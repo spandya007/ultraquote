@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production builds
+/build
+/dist
+
+# pdf-service deps (deployed separately; Railway installs its own)
+/pdf-service/node_modules/
+
+# environment / secrets — NEVER commit these
+.env
+.env.local
+.env*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# misc / OS
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# typescript / caches
+*.tsbuildinfo
+.eslintcache
