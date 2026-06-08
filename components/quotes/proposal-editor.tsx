@@ -9,7 +9,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2 } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { createClient } from "@/lib/supabase/client";
@@ -506,6 +506,104 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
+  // ── AI writing assistant ──────────────────────────────────────────────────
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [toneOpen, setToneOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  // A proposed AI edit awaiting the user's accept/discard decision.
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    mode: string;
+    original: string;   // selected text being edited ("" for generate/continue)
+    suggested: string;
+    from: number;
+    to: number;
+  } | null>(null);
+
+  const SELECTION_MODES = ["improve", "expand", "shorten", "grammar", "tone"] as const;
+  const MODE_LABELS: Record<string, string> = {
+    improve: "Improve writing", expand: "Make longer", shorten: "Make shorter",
+    grammar: "Fix spelling & grammar", tone: "Change tone",
+    generate: "Generate", continue: "Continue writing",
+  };
+
+  // Build explicit ProseMirror paragraph nodes (NOT an HTML string). Inserting
+  // HTML mid-paragraph made TipTap wrap the content in a blockquote; paragraph
+  // nodes insert as clean, normal paragraphs.
+  function aiTextToNodes(t: string) {
+    const paras = t.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+    if (paras.length === 0) return [{ type: "paragraph" }];
+    return paras.map(p => ({
+      type: "paragraph",
+      content: [{ type: "text", text: p.replace(/\s*\n\s*/g, " ") }],
+    }));
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function tt() { return (editorRef.current as any)._tiptapEditor; }
+  function getSelectedText(): string {
+    const e = tt();
+    const { from, to } = e.state.selection;
+    return e.state.doc.textBetween(from, to, "\n").trim();
+  }
+  function getDocText(): string {
+    const e = tt();
+    return e.state.doc.textBetween(0, e.state.doc.content.size, "\n");
+  }
+
+  async function runAI(mode: string, opts?: { tone?: string; prompt?: string }) {
+    const isSelection = (SELECTION_MODES as readonly string[]).includes(mode);
+    const selected = isSelection ? getSelectedText() : "";
+    if (isSelection && !selected) {
+      toastRef.current.error("Select some text first");
+      return;
+    }
+    // Capture the target range NOW so we can apply later even after focus moves
+    // to the preview dialog. Selection modes replace [from,to]; generate/continue
+    // insert at the cursor (from === to).
+    const { from, to } = tt().state.selection;
+    setAiBusy(true);
+    try {
+      const res = await fetch("/api/ai/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quoteId: quoteIdRef.current,
+          mode,
+          text: selected || undefined,
+          prompt: opts?.prompt,
+          tone: opts?.tone,
+          documentText: getDocText(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed");
+      // Stage the suggestion for review instead of applying immediately.
+      setAiSuggestion({ mode, original: selected, suggested: data.text, from, to });
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setAiBusy(false);
+      setAiOpen(false);
+      setToneOpen(false);
+      setAiPrompt("");
+    }
+  }
+
+  function acceptSuggestion() {
+    if (!aiSuggestion) return;
+    const { from, to, suggested } = aiSuggestion;
+    // insertContentAt replaces [from,to] for selection edits, or inserts at the
+    // cursor when from === to (generate/continue).
+    tt().chain().focus().insertContentAt({ from, to }, aiTextToNodes(suggested)).run();
+    scheduleSave();
+    setAiSuggestion(null);
+    toastRef.current.success("Applied — use Undo to revert");
+  }
+
+  function discardSuggestion() {
+    setAiSuggestion(null);
+  }
+
   // ── Alignment ───────────────────────────────────────────────────────────
   function applyAlignment(alignment: TextAlignment) {
     const selectedBlocks = editor.getSelection()?.blocks ?? [
@@ -564,6 +662,24 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
 
       {/* Persistent toolbar */}
       <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-muted/10 shrink-0">
+
+        {/* Undo / Redo */}
+        <div className="flex items-center gap-0.5 border-r pr-2 mr-1">
+          <button
+            title="Undo (⌘Z)"
+            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().undo().run(); scheduleSave(); }}
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            title="Redo (⌘⇧Z)"
+            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().redo().run(); scheduleSave(); }}
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
         {/* Alignment buttons */}
         <div className="flex items-center gap-0.5 border-r pr-2 mr-1">
@@ -665,6 +781,100 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           )}
         </div>
 
+        {/* Ask AI dropdown */}
+        <div className="relative border-r pr-2 mr-1">
+          <button
+            onMouseDown={(e) => { e.preventDefault(); if (!aiBusy) setAiOpen(o => !o); }}
+            disabled={aiBusy}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
+          >
+            {aiBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {aiBusy ? "Thinking…" : "Ask AI"}
+            {!aiBusy && <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {aiOpen && !aiBusy && (() => {
+            const hasSel = getSelectedText().length > 0;
+            const toneOptions = ["Professional", "Friendly", "Confident", "Concise", "Persuasive"];
+            return (
+              <>
+                <div className="fixed inset-0 z-10" onMouseDown={() => { setAiOpen(false); setToneOpen(false); }} />
+                <div className="absolute left-0 top-full mt-1 z-20 w-72 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
+                  <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
+                    <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">
+                      Edit selection {hasSel ? "" : "(select text first)"}
+                    </p>
+                  </div>
+                  {[
+                    { mode: "improve", label: "Improve writing" },
+                    { mode: "expand",  label: "Make longer" },
+                    { mode: "shorten", label: "Make shorter" },
+                    { mode: "grammar", label: "Fix spelling & grammar" },
+                  ].map(({ mode, label }) => (
+                    <button
+                      key={mode}
+                      disabled={!hasSel}
+                      onMouseDown={(e) => { e.preventDefault(); runAI(mode); }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-violet-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+
+                  {/* Change tone (expands) */}
+                  <button
+                    disabled={!hasSel}
+                    onMouseDown={(e) => { e.preventDefault(); setToneOpen(o => !o); }}
+                    className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-800 hover:bg-violet-50 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  >
+                    Change tone
+                    <ChevronDown className={cn("w-3 h-3 transition-transform", toneOpen && "rotate-180")} />
+                  </button>
+                  {toneOpen && hasSel && (
+                    <div className="bg-violet-50/60 border-y border-violet-100">
+                      {toneOptions.map(t => (
+                        <button
+                          key={t}
+                          onMouseDown={(e) => { e.preventDefault(); runAI("tone", { tone: t }); }}
+                          className="w-full text-left pl-7 pr-4 py-1.5 text-sm text-gray-700 hover:bg-violet-100 transition-colors"
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="px-4 py-2 bg-violet-100 border-y border-violet-200">
+                    <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Generate</p>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="e.g. Write an executive summary…"
+                      rows={2}
+                      className="w-full text-sm rounded-md border border-violet-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none"
+                    />
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); if (aiPrompt.trim()) runAI("generate", { prompt: aiPrompt.trim() }); }}
+                      disabled={!aiPrompt.trim()}
+                      className="w-full rounded-md bg-violet-600 text-white text-sm font-medium py-1.5 hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                    >
+                      Generate at cursor
+                    </button>
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); runAI("continue"); }}
+                      className="w-full rounded-md border border-violet-200 text-violet-700 text-sm font-medium py-1.5 hover:bg-violet-50 transition-colors"
+                    >
+                      Continue writing
+                    </button>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
         <p className="text-xs text-muted-foreground flex-1">
           Type <kbd className="px-1 py-0.5 rounded border text-xs bg-muted">/</kbd> for blocks · Select text to format
         </p>
@@ -704,6 +914,55 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
             </ScenarioContext.Provider>
           </div>
       </div>
+
+      {/* AI suggestion review */}
+      {aiSuggestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">
+                {MODE_LABELS[aiSuggestion.mode] ?? "AI suggestion"}
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {aiSuggestion.original && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Original</p>
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground line-through decoration-red-300/70">
+                    {aiSuggestion.original}
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">
+                  {aiSuggestion.original ? "Suggested replacement" : "Suggested text"}
+                </p>
+                <div className="rounded-md border border-violet-200 bg-violet-50/50 p-3 text-sm whitespace-pre-wrap">
+                  {aiSuggestion.suggested}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button
+                onClick={discardSuggestion}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                <X className="w-4 h-4" /> Discard
+              </button>
+              <button
+                onClick={acceptSuggestion}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 transition-colors"
+              >
+                <Check className="w-4 h-4" />
+                {aiSuggestion.original ? "Replace" : "Insert"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
