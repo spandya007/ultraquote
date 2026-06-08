@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Building2, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Building2, SlidersHorizontal, Upload, Trash2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
+
+const STORAGE_SCHEME = "sb-storage://";
 
 interface Tenant {
   id: string;
@@ -56,6 +58,57 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
   const toast = useToast();
+
+  // ── Logo state ──────────────────────────────────────────────────────────────
+  const [logoUrl,      setLogoUrl]      = useState<string | null>(tenant?.logo_url ?? null);
+  const [logoPreview,  setLogoPreview]  = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Resolve the stored sb-storage:// URL to a signed URL for on-screen preview.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!logoUrl) { setLogoPreview(null); return; }
+      if (logoUrl.startsWith(STORAGE_SCHEME)) {
+        const rest = logoUrl.slice(STORAGE_SCHEME.length);
+        const slash = rest.indexOf("/");
+        const bucket = rest.slice(0, slash);
+        const path = rest.slice(slash + 1);
+        const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+        if (active) setLogoPreview(data?.signedUrl ?? null);
+      } else if (active) {
+        setLogoPreview(logoUrl);
+      }
+    })();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logoUrl]);
+
+  async function uploadLogo(file: File) {
+    if (!file.type.startsWith("image/")) { toast.error("Please choose an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2 MB"); return; }
+    setUploadingLogo(true);
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `tenant-logos/${tenantId}/logo-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("proposal-assets")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { toast.error(`Upload failed: ${upErr.message}`); setUploadingLogo(false); return; }
+    const url = `${STORAGE_SCHEME}proposal-assets/${path}`;
+    const { error } = await db.from("tenants").update({ logo_url: url }).eq("id", tenantId);
+    setUploadingLogo(false);
+    if (error) { toast.error("Failed to save logo"); return; }
+    setLogoUrl(url);
+    toast.success("Logo uploaded");
+  }
+
+  async function removeLogo() {
+    const { error } = await db.from("tenants").update({ logo_url: null }).eq("id", tenantId);
+    if (error) { toast.error("Failed to remove logo"); return; }
+    setLogoUrl(null);
+    toast.success("Logo removed");
+  }
 
   // ── Tenant profile state ──────────────────────────────────────────────────
   const [name,        setName]        = useState(tenant?.name         ?? "");
@@ -134,6 +187,47 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
 
       {/* ── Company Profile ── */}
       <SectionCard icon={<Building2 className="w-4 h-4" />} title="Company Profile">
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Logo</label>
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-32 shrink-0 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
+              {logoPreview
+                ? // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoPreview} alt="Company logo" className="max-h-full max-w-full object-contain" />
+                : <span className="text-xs text-muted-foreground">No logo</span>}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50 transition-colors"
+              >
+                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploadingLogo ? "Uploading…" : (logoUrl ? "Replace" : "Upload")}
+              </button>
+              {logoUrl && (
+                <button
+                  onClick={removeLogo}
+                  disabled={uploadingLogo}
+                  className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm text-muted-foreground hover:text-destructive hover:bg-muted disabled:opacity-50 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Remove
+                </button>
+              )}
+            </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ""; }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Appears on the first page of generated PDFs. PNG or SVG with a transparent background works best (max 2 MB).
+          </p>
+        </div>
+
         <div className="space-y-1">
           <label className="text-sm font-medium">Company Name *</label>
           <input

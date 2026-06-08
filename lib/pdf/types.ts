@@ -16,6 +16,7 @@ export interface SerializeTenant {
   email: string | null;
   phone: string | null;
   address: string | null;
+  logo_url: string | null;
 }
 
 export interface SerializeLineItem {

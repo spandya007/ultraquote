@@ -279,7 +279,13 @@ export function buildHeaderFooterMeta(input: SerializeInput): HeaderFooterMeta {
 /** Renders a complete, print-ready HTML page. */
 export function buildFullHtml(input: SerializeInput): string {
   const body = buildDocumentBody(input);
-  const { quote, client } = input;
+  const { quote, client, tenant, imageUrlMap = {} } = input;
+
+  // Tenant logo on the first page (resolved sb-storage:// → signed URL).
+  const logoSrc = tenant.logo_url ? (imageUrlMap[tenant.logo_url] ?? tenant.logo_url) : "";
+  const logoHtml = logoSrc
+    ? `<div class="doc-logo"><img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(tenant.name || "")}" /></div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -322,6 +328,8 @@ export function buildFullHtml(input: SerializeInput): string {
   }
   .doc-header .meta { text-align: right; font-size: 10pt; color: #64748b; }
   .doc-header .quote-number { font-family: monospace; font-size: 11pt; color: #475569; }
+  .doc-logo { margin-bottom: 16px; }
+  .doc-logo img { max-height: 72px; max-width: 260px; object-fit: contain; }
 
   .page-break { page-break-after: always; height: 0; }
   /* On screen there are no real pages, so show a visible marker where the
@@ -365,6 +373,7 @@ export function buildFullHtml(input: SerializeInput): string {
 </style>
 </head>
 <body>
+  ${logoHtml}
   <div class="doc-header">
     <div>
       <h1 style="font-size:16pt;margin:0">${escapeHtml(client.company_name || "")}</h1>

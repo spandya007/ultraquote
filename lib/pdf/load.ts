@@ -31,12 +31,22 @@ export async function loadSerializeInput(
 
   const { data: tenant } = await db
     .from("tenants")
-    .select("name, contact_name, email, phone, address")
+    .select("name, contact_name, email, phone, address, logo_url")
     .eq("id", quote.tenant_id)
     .single();
 
   const blocks: DocBlock[] = Array.isArray(quote.document_content) ? quote.document_content : [];
   const imageUrlMap = await buildImageUrlMap(blocks, supabase);
+
+  // Resolve the tenant logo (also an sb-storage:// URL) into the same map so the
+  // serializer can render it on the first page.
+  if (tenant?.logo_url) {
+    const logoMap = await buildImageUrlMap(
+      [{ type: "image", props: { url: tenant.logo_url } }],
+      supabase
+    );
+    Object.assign(imageUrlMap, logoMap);
+  }
 
   return {
     quote: {
@@ -52,7 +62,7 @@ export async function loadSerializeInput(
       company_name: "", contact_name: null, contact_email: null, contact_phone: null, address: null,
     },
     tenant: tenant ?? {
-      name: "", contact_name: null, email: null, phone: null, address: null,
+      name: "", contact_name: null, email: null, phone: null, address: null, logo_url: null,
     },
     imageUrlMap,
   };
