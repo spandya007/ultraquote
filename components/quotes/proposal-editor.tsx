@@ -966,8 +966,17 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           )}
         </div>
 
+        {/* Editing hint (stays with the left/editing group) */}
+        <span className="text-xs text-muted-foreground whitespace-nowrap hidden md:inline">
+          Type <kbd className="px-1 py-0.5 rounded border text-xs bg-muted">/</kbd> for blocks
+        </span>
+
+        {/* Flexible gap — separates editing tools (left) from feature actions (right) */}
+        <div className="flex-1" />
+
+        {/* ── Feature actions (right cluster) ── */}
         {/* Ask AI dropdown */}
-        <div className="relative border-r pr-2 mr-1">
+        <div className="relative border-l pl-3">
           <button
             onMouseDown={(e) => { e.preventDefault(); if (!aiBusy) setAiOpen(o => !o); }}
             disabled={aiBusy}
@@ -1060,10 +1069,10 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           })()}
         </div>
 
-        {/* Import .docx / .md */}
-        <div className="border-r pr-2 mr-1">
+        {/* Import .docx / .html / .md */}
+        <div>
           <button
-            title="Import a .docx or .md file"
+            title="Import a .docx, .html, or .md file"
             onMouseDown={(e) => { e.preventDefault(); if (!importing) importInputRef.current?.click(); }}
             disabled={importing}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
@@ -1081,7 +1090,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
         </div>
 
         {/* Extract pricing tables → scenarios */}
-        <div className="border-r pr-2 mr-1">
+        <div>
           <button
             title="Detect pricing tables and turn them into scenarios"
             onMouseDown={(e) => { e.preventDefault(); if (!extractBusy) extractPricing(); }}
@@ -1093,11 +1102,8 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground flex-1">
-          Type <kbd className="px-1 py-0.5 rounded border text-xs bg-muted">/</kbd> for blocks · Select text to format
-        </p>
         <span className={cn(
-          "text-xs transition-colors duration-300",
+          "text-xs transition-colors duration-300 ml-3 border-l pl-3 min-w-[58px] text-right",
           saveState === "saving" ? "text-muted-foreground" :
           saveState === "saved"  ? "text-green-600" :
           "text-transparent"
