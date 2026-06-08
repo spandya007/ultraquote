@@ -72,6 +72,12 @@ column and a **Margin %** column (color-coded: green ≥30%, amber ≥15%, red b
 
 A rich-text editor for the proposal body.
 
+**Toolbar layout:** the toolbar is split into two zones.
+- **Left — editing tools** (used while writing): Undo/Redo, text alignment,
+  **Insert Field**, and the "Type `/` for blocks" hint.
+- **Right — feature actions**: **Ask AI**, **Import**, and **Extract pricing**.
+- The **Saved ✓ / Saving…** status sits at the far right.
+
 - **Formatting** — type `/` for a block menu (headings, lists, etc.); select text
   for inline formatting (bold, italic, …). Alignment buttons and Undo/Redo are in
   the toolbar.
