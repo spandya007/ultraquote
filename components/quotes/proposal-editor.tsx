@@ -68,6 +68,7 @@ const PageBreakBlock = createReactBlockSpec(
 // (BlockNote block render functions can't receive parent props directly).
 
 export interface EditorLineItem {
+  description: string;
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_price: number | null;
@@ -110,7 +111,8 @@ function scenarioOnetime(s: EditorScenario) {
 function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
   const { scenarios, showMargins } = useContext(ScenarioContext);
   const ref: string = block.props?.scenarioRef ?? "recommended";
-  const cols = showMargins ? 4 : 3;
+  // Columns: Description, Billing, Qty, Unit Price, Total (+ Margin when on).
+  const cols = showMargins ? 6 : 5;
 
   const sorted = [...scenarios].sort((a, b) => a.sort_order - b.sort_order);
   let shown: EditorScenario[];
@@ -153,6 +155,9 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
         const monthly = scenarioMonthly(s);
         const onetime = scenarioOnetime(s);
         const c = scenarioColor(sorted.findIndex(x => x.id === s.id));
+        const th = { padding: "4px 8px", border: `1px solid ${c.border}`, background: c.footBg, color: c.headText, fontWeight: 600 as const, fontSize: 10 };
+        const td = { padding: "4px 8px", border: "1px solid #f1f5f9" };
+        const tdR = { ...td, textAlign: "right" as const };
         return (
           <table key={s.id} style={{
             width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 11,
@@ -165,8 +170,15 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                   padding: "6px 8px", border: `1px solid ${c.border}`, fontSize: 12,
                 }}>
                   {s.name}{s.is_recommended ? " ★" : ""}
-                  {showMargins && <span style={{ float: "right", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>internal margin</span>}
                 </th>
+              </tr>
+              <tr>
+                <th style={{ ...th, textAlign: "left" }}>Description</th>
+                <th style={{ ...th, textAlign: "left" }}>Billing</th>
+                <th style={{ ...th, textAlign: "right" }}>Qty</th>
+                <th style={{ ...th, textAlign: "right" }}>Unit Price</th>
+                <th style={{ ...th, textAlign: "right" }}>Total</th>
+                {showMargins && <th style={{ ...th, textAlign: "right" }}>Margin</th>}
               </tr>
             </thead>
             <tbody>
@@ -176,11 +188,13 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 const m = lineMargin(i);
                 return (
                 <tr key={idx}>
-                  <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9" }}>{i.billing_period ?? "—"}</td>
-                  <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right" }}>×{Math.round(i.quantity)}</td>
-                  <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right" }}>{formatCurrency(i.quantity * (i.unit_price ?? 0))}</td>
+                  <td style={td}>{i.description}</td>
+                  <td style={td}>{i.billing_period ?? "—"}</td>
+                  <td style={tdR}>{Math.round(i.quantity)}</td>
+                  <td style={tdR}>{formatCurrency(i.unit_price ?? 0)}</td>
+                  <td style={tdR}>{formatCurrency(i.quantity * (i.unit_price ?? 0))}</td>
                   {showMargins && (
-                    <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right", color: marginColor(m), fontWeight: 600 }}>
+                    <td style={{ ...tdR, color: marginColor(m), fontWeight: 600 }}>
                       {m != null ? `${m.toFixed(1)}%` : "—"}
                     </td>
                   )}
@@ -188,8 +202,16 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
               );})}
             </tbody>
             <tfoot>
-              <tr><td colSpan={cols - 1} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td></tr>
-              <tr><td colSpan={cols - 1} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td></tr>
+              <tr>
+                <td colSpan={4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td>
+                <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td>
+                {showMargins && <td style={{ background: c.footBg }} />}
+              </tr>
+              <tr>
+                <td colSpan={4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td>
+                <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td>
+                {showMargins && <td style={{ background: c.footBg }} />}
+              </tr>
             </tfoot>
           </table>
         );
