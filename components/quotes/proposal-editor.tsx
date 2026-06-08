@@ -71,6 +71,7 @@ export interface EditorLineItem {
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_price: number | null;
+  unit_cost: number | null;
   is_taxable: boolean;
 }
 export interface EditorScenario {
@@ -83,8 +84,18 @@ export interface EditorScenario {
 interface ScenarioCtx {
   scenarios: EditorScenario[];
   taxRate: number;
+  showMargins: boolean;
 }
-const ScenarioContext = createContext<ScenarioCtx>({ scenarios: [], taxRate: 0 });
+const ScenarioContext = createContext<ScenarioCtx>({ scenarios: [], taxRate: 0, showMargins: false });
+
+function lineMargin(i: EditorLineItem): number | null {
+  if (i.unit_price == null || i.unit_cost == null || i.unit_price <= 0) return null;
+  return ((i.unit_price - i.unit_cost) / i.unit_price) * 100;
+}
+function marginColor(pct: number | null): string {
+  if (pct == null) return "#94a3b8";
+  return pct >= 30 ? "#16a34a" : pct >= 15 ? "#ca8a04" : "#dc2626";
+}
 
 function scenarioMonthly(s: EditorScenario) {
   return s.line_items.filter(i => i.billing_period === "Monthly")
@@ -97,8 +108,9 @@ function scenarioOnetime(s: EditorScenario) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
-  const { scenarios } = useContext(ScenarioContext);
+  const { scenarios, showMargins } = useContext(ScenarioContext);
   const ref: string = block.props?.scenarioRef ?? "recommended";
+  const cols = showMargins ? 4 : 3;
 
   const sorted = [...scenarios].sort((a, b) => a.sort_order - b.sort_order);
   let shown: EditorScenario[];
@@ -148,28 +160,36 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
           }}>
             <thead>
               <tr>
-                <th colSpan={3} style={{
+                <th colSpan={cols} style={{
                   textAlign: "left", background: c.headBg, color: c.headText,
                   padding: "6px 8px", border: `1px solid ${c.border}`, fontSize: 12,
                 }}>
                   {s.name}{s.is_recommended ? " ★" : ""}
+                  {showMargins && <span style={{ float: "right", fontSize: 10, fontWeight: 400, opacity: 0.8 }}>internal margin</span>}
                 </th>
               </tr>
             </thead>
             <tbody>
               {s.line_items.length === 0 ? (
-                <tr><td colSpan={3} style={{ padding: "6px 8px", color: "#94a3b8", textAlign: "center" }}>No line items</td></tr>
-              ) : s.line_items.map((i, idx) => (
+                <tr><td colSpan={cols} style={{ padding: "6px 8px", color: "#94a3b8", textAlign: "center" }}>No line items</td></tr>
+              ) : s.line_items.map((i, idx) => {
+                const m = lineMargin(i);
+                return (
                 <tr key={idx}>
                   <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9" }}>{i.billing_period ?? "—"}</td>
                   <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right" }}>×{Math.round(i.quantity)}</td>
                   <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right" }}>{formatCurrency(i.quantity * (i.unit_price ?? 0))}</td>
+                  {showMargins && (
+                    <td style={{ padding: "4px 8px", border: "1px solid #f1f5f9", textAlign: "right", color: marginColor(m), fontWeight: 600 }}>
+                      {m != null ? `${m.toFixed(1)}%` : "—"}
+                    </td>
+                  )}
                 </tr>
-              ))}
+              );})}
             </tbody>
             <tfoot>
-              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td></tr>
-              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td></tr>
+              <tr><td colSpan={cols - 1} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td></tr>
+              <tr><td colSpan={cols - 1} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td></tr>
             </tfoot>
           </table>
         );
@@ -296,6 +316,8 @@ interface Props {
   /** Live scenario data for the inline pricing-table block previews. */
   scenarios: EditorScenario[];
   taxRate: number;
+  /** Show internal profit-margin column in the inline pricing-table previews. */
+  showMargins: boolean;
   /** Called once on mount with an API the parent can invoke (save flush + checks). */
   onReady?: (api: ProposalEditorApi) => void;
   /** Called after pricing tables are extracted into scenarios (so the parent can refresh). */
@@ -316,7 +338,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, onReady, onPricingApplied }: Props) {
+export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied }: Props) {
   const supabaseRef = useRef(createClient());
   const quoteIdRef  = useRef(quoteId);
   const toast       = useToast();
@@ -1115,7 +1137,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
       {/* Editor */}
       <div className="flex-1 overflow-y-auto overflow-x-visible">
         <div className="overflow-x-visible px-2 py-4">
-            <ScenarioContext.Provider value={{ scenarios, taxRate }}>
+            <ScenarioContext.Provider value={{ scenarios, taxRate, showMargins }}>
               <BlockNoteView
                 editor={editor}
                 theme="light"

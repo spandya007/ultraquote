@@ -628,6 +628,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               tenantData={tenant}
               scenarios={scenarios}
               taxRate={taxRate}
+              showMargins={showMargins}
               onReady={handleEditorReady}
               onPricingApplied={refreshScenarios}
             />

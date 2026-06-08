@@ -66,6 +66,9 @@ information. (This is *business* profit margin — not document page margins.)
 - In the right-hand **Scenario Totals** panel (visible in both the Line Items and
   Document tabs) each scenario shows its overall **Margin %**, so you can see
   per-scenario margins even while writing the Document.
+- Inline **pricing tables** placed in the Document (`/pricing`) also show a
+  per-line **margin column** while the toggle is on. This is an editor-only
+  view — margins are **never** included in the generated Preview/PDF.
 - Margin % is calculated only over line items that have a cost set; items without
   a cost are excluded (shows "—" if no costs are set).
 - Margins are **internal only** — they never appear in the Preview or PDF.
