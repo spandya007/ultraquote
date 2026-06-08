@@ -113,6 +113,13 @@ The **Ask AI** button in the Document toolbar helps you write.
 - The AI is aware of the deal (client, your company, pricing) when generating, so
   drafts are tailored.
 
+**If you see "The AI service is busy right now. Please try again in a moment":**
+this is a temporary hiccup on the AI provider's side (the model was momentarily
+overloaded), not an error with your document or data. The app automatically
+retries a couple of times first; if you still see the message, just wait a few
+seconds and click again. The same applies to **Extract pricing** and any other
+AI action.
+
 ---
 
 ## Preview
