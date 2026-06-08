@@ -4,6 +4,20 @@ Working notes to fold into end-user help later. Not polished docs yet.
 
 ---
 
+## Dashboard (home)
+
+The landing page summarizes your pipeline:
+
+- **Top cards:** Open pipeline (total value of open quotes — draft/sent/viewed),
+  Monthly recurring for open quotes, Won (value of signed quotes) with win rate,
+  and Active clients. Values use each quote's **recommended scenario** (or the
+  first scenario if none is marked recommended).
+- **Quotes by status:** a bar breakdown of how many quotes are in each status.
+- **Expiring soon:** open quotes whose "valid until" date is within 14 days (or
+  overdue) — click to open.
+- **Recent quotes:** your latest quotes with status and value; click to open, or
+  "View all" to go to the Quotes list.
+
 ## The Quote model (overview)
 
 A **Quote** is the central object. Each quote has two complementary parts, shown

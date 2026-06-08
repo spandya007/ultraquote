@@ -137,7 +137,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - [ ] E-signature flow — DocuSeal integration (send for signature, webhook for completion)
 - [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added)
 - [ ] Quote "Send" flow — generate PDF → create DocuSeal submission → email signers
-- [ ] Dashboard — meaningful stats (pipeline value, quotes by status, recent activity)
+- [x] ~~Dashboard — meaningful stats~~ ✅ DONE — `app/(dashboard)/page.tsx`: open-pipeline value, monthly-recurring (open), won/win-rate, active clients; quotes-by-status bars; expiring-soon (≤14d); recent quotes. Uses each quote's recommended (or first) scenario totals. `force-dynamic`.
 
 ### Backlog / Reminders (user-requested — do not lose)
 1. ~~**AI writing assistance in the Document**~~ ✅ DONE — **`gemini-2.5-flash`** via `POST /api/ai/write` (key server-side, `GEMINI_API_KEY`). NOTE: 2.5-flash is a thinking model — request sets `thinkingConfig.thinkingBudget: 0` so the token budget goes to output (otherwise it truncates). "Ask AI" toolbar dropdown in `proposal-editor.tsx`: selection actions (Improve/Make longer/Make shorter/Fix grammar/Change tone) + Generate-from-prompt + Continue writing. Context-aware (client/tenant/pricing grounding). **Preview-before-apply**: AI result is staged in a review modal (original strikethrough vs suggested) with Replace/Discard — the target range is captured up-front and applied via `insertContentAt({from,to})`. Toolbar also has **Undo/Redo** (TipTap history).
