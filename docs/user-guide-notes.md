@@ -2,6 +2,145 @@
 
 Working notes to fold into end-user help later. Not polished docs yet.
 
+---
+
+## The Quote model (overview)
+
+A **Quote** is the central object. Each quote has two complementary parts, shown
+as tabs in the quote editor:
+
+1. **Line Items tab** — the structured pricing data (what you're selling and for
+   how much), organized into Scenarios.
+2. **Document tab** — the narrative proposal (cover letter, scope, terms) written
+   in a rich-text editor.
+
+A quote also carries metadata in the right-hand panel (valid-until date, tax
+rate, payment terms, internal notes) and a **status** (Draft, Sent, Viewed,
+Signed, Declined, Expired).
+
+**Everything auto-saves** — there is no Save button. A "Saving… / Saved ✓"
+indicator in the top bar shows progress. Line item edits save instantly;
+text/metadata edits save about a second after you stop typing.
+
+**Other quote actions:**
+- **New Quote** — from the Quotes list; pick a client, optionally a title.
+- **Duplicate** — the Duplicate button on a quote row copies everything
+  (scenarios, line items, and the document) into a fresh **Draft** with a new
+  quote number and " (Copy)" appended to the title.
+- **Preview** / **Download PDF** — see those sections below.
+
+---
+
+## Scenarios (in the Line Items tab)
+
+Scenarios let you present **options** to the client (e.g. "Essentials" vs.
+"Complete"). Up to **5** per quote.
+
+- **Add Scenario** / rename inline / **delete** (trash icon).
+- **Recommended** (star icon) — mark one scenario as recommended. It's
+  highlighted and labelled "Recommended" in pricing tables.
+- **Deleting a scenario** asks for confirmation and warns you if:
+  - it's the recommended one (another scenario is auto-promoted to recommended), or
+  - a pricing table in the Document references it (so you can fix that table).
+- Each scenario is color-coded; the same color follows it into the Document's
+  pricing tables.
+
+## Line items
+
+Within a scenario, add line items two ways:
+- **Add from catalog** — search your product catalog; multi-tier products show
+  tier buttons.
+- **Add free-text item** — a blank row for custom entries.
+
+Each row has a description, billing period (**Monthly** or **One Time**),
+quantity, unit price, and an auto-calculated total. Scenario totals (monthly
+recurring, one-time, tax, grand total) compute automatically.
+
+## Margins
+
+Toggle the **Margins** checkbox in the top bar to show/hide cost and margin
+columns in the line-items table. This is an internal view — it adds a **Cost**
+column and a **Margin %** column (color-coded: green ≥30%, amber ≥15%, red below).
+
+- Margins are **never shown to the client** — they don't appear in the Preview or
+  PDF, only in the editor.
+- The toggle is saved per-quote, so it stays as you left it.
+
+---
+
+## Document tab (proposal narrative)
+
+A rich-text editor for the proposal body.
+
+- **Formatting** — type `/` for a block menu (headings, lists, etc.); select text
+  for inline formatting (bold, italic, …). Alignment buttons and Undo/Redo are in
+  the toolbar.
+- **Insert Field** — drop in placeholders like client company name, contact,
+  email, phone, address, and the same for your own company. These are filled with
+  real values in the Preview/PDF.
+- **Pricing Table** (`/pricing`) — insert a live pricing table anywhere in the
+  document. Choose which scenario it shows (Recommended, All, or a specific one).
+  It stays in sync as you edit line items — it's a live reference, not a snapshot.
+  *Pricing is optional:* if you place no pricing table, the proposal simply has no
+  prices (you'll get a heads-up warning when previewing).
+- **Page Break** (`/page break`) — force a new page in the PDF at that point.
+- **Images** — upload images into the document.
+- **Ask AI** — see below.
+
+## Ask AI (writing assistant)
+
+The **Ask AI** button in the Document toolbar helps you write.
+
+- **Edit selected text:** highlight text first, then choose **Improve writing**,
+  **Make longer**, **Make shorter**, **Fix spelling & grammar**, or **Change tone**.
+- **Generate new text:** type an instruction (e.g. "Write an executive summary")
+  and click **Generate at cursor**, or click **Continue writing** to extend from
+  where you left off.
+- Every result opens a **review window** showing the original (for edits) vs. the
+  suggested text. Click **Replace/Insert** to apply or **Discard** to cancel —
+  nothing changes until you accept. Use **Undo** to revert after applying.
+- The AI is aware of the deal (client, your company, pricing) when generating, so
+  drafts are tailored.
+
+---
+
+## Preview
+
+The **Preview** button opens a full-screen view of the rendered proposal as the
+client will see it (cover page, narrative, any pricing tables). It reflects your
+latest edits.
+
+Note: the running header/footer (see below) are **print-only** and do **not**
+appear in the on-screen Preview — only in the downloaded PDF.
+
+## Download PDF
+
+**Download PDF** generates the final PDF. Page breaks, pricing tables, inserted
+fields, images, and your logo are all rendered.
+
+## Header & Footer (PDF)
+
+Generated PDFs include a running **header** and **footer** on every page **after
+the cover (page 1)**:
+
+- **Header:** your company name (left) and the quote number (right).
+- **Footer:** a confidentiality line (left) and "Page X of Y" (right).
+- The **cover page has no header/footer**, and page numbering starts at 1 on the
+  second page.
+
+Turn this off per-document with the **Header & footer** checkbox under **PDF
+Options** in the quote's right-hand panel (default: on). Off = a clean document
+with no header/footer on any page.
+
+---
+
+## Settings
+
+Settings → **Company Profile** (name, contact, email, phone, address, logo) and
+**Quote Defaults** (quote-number prefix, default valid days, default tax rate,
+default payment terms). Company info feeds the Insert Field placeholders and the
+PDF header/first page.
+
 ## Company Logo
 
 **Where:** Settings → Company Profile → **Logo**.

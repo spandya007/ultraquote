@@ -138,6 +138,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 5. **Import/upload Document from `.docx` or `.md`** — let users populate the Document editor by uploading a Word or Markdown file (parse → BlockNote blocks). `mammoth` is already a dependency for `.docx`. Also relevant to the Templates feature.
 6. ~~**Tenant logo**~~ ✅ DONE — `tenants.logo_url` (column already existed). Upload UI in Settings → Company Profile (`settings-client.tsx`): uploads to `proposal-assets/tenant-logos/{tenantId}/...`, stores `sb-storage://` URL, signed-URL preview. Rendered on the PDF/Preview **first page** (`.doc-logo` above `doc-header` in `serialize.ts`); `load.ts` resolves the logo into the image map. NOT in the running header.
 7. **Dark mode** — add a dark-mode toggle/setting in the UI. Tailwind is already CSS-variable themed (`app/globals.css` has `.dark` tokens); needs a theme toggle + persistence (e.g. `next-themes` or a `class` on `<html>`).
+8. **Product user documentation** — turn `docs/user-guide-notes.md` (running draft notes on Quotes/Scenarios/Line Items/Margins/Document/Ask AI/Preview/PDF/Header&Footer/Logo/Settings) into polished end-user docs. Keep adding to the notes file as features ship.
 3. ~~**Preview feature**~~ ✅ DONE (in-app iframe modal sharing the PDF serializer).
 4. **Quote ↔ Document relationship** — RESOLVED via the inline `scenarioTable` block: loosely integrated (document controls layout via placed pricing tables; line items remain the structured data). Revisit only if a tighter merge is wanted.
 
