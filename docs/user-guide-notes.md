@@ -169,8 +169,12 @@ document they came from), so auto-created entries are traceable.
 
 ## Product Catalog — how items get added
 
+Your **Product Catalog** (Products page) is the reusable list of services/
+products you sell — each with pricing (and optional pricing tiers), category, and
+cost (for margins). Line items in a quote can come from the catalog or be custom.
+
 There are now **two ways** to populate your Product Catalog (besides editing it
-directly):
+directly on the Products page):
 
 1. **CSV import** — bulk-import products from a spreadsheet (Products page →
    Import CSV). Best for initial setup / bulk updates.
