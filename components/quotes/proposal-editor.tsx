@@ -1220,17 +1220,21 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
                           <td className="px-2 py-1.5 text-right tabular-nums">{it.quantity}</td>
                           <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(it.unit_price)}</td>
                           <td className="px-2 py-1.5">
-                            <select
-                              value={it.action}
-                              onChange={(e) => setPricing(p => p!.map((x, i) => i === si ? {
-                                ...x, lineItems: x.lineItems.map((y, j) => j === li ? { ...y, action: e.target.value as PItem["action"] } : y),
-                              } : x))}
-                              className="w-full rounded border bg-background px-1.5 py-1 text-xs"
-                            >
-                              {it.match && <option value="link">Use catalog item</option>}
-                              <option value="create">{it.match ? "Create new product" : "Add to Professional Services"}</option>
-                              <option value="freetext">Custom (no catalog)</option>
-                            </select>
+                            {it.match ? (
+                              // Already in the catalog — nothing to create, so no choice needed.
+                              <span className="text-xs text-muted-foreground">Uses catalog item</span>
+                            ) : (
+                              <select
+                                value={it.action}
+                                onChange={(e) => setPricing(p => p!.map((x, i) => i === si ? {
+                                  ...x, lineItems: x.lineItems.map((y, j) => j === li ? { ...y, action: e.target.value as PItem["action"] } : y),
+                                } : x))}
+                                className="w-full rounded border bg-background px-1.5 py-1 text-xs"
+                              >
+                                <option value="create">Add to Professional Services</option>
+                                <option value="freetext">Custom (no catalog)</option>
+                              </select>
+                            )}
                           </td>
                         </tr>
                       ))}
