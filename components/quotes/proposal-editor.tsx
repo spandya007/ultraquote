@@ -9,7 +9,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { createClient } from "@/lib/supabase/client";
@@ -604,6 +604,59 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     setAiSuggestion(null);
   }
 
+  // ── Import .docx / .md ────────────────────────────────────────────────────
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImport(file: File) {
+    const name = file.name.toLowerCase();
+    const isMd = name.endsWith(".md") || name.endsWith(".markdown") || name.endsWith(".txt");
+    const isDocx = name.endsWith(".docx");
+    if (!isMd && !isDocx) {
+      toastRef.current.error("Please choose a .docx or .md file");
+      return;
+    }
+    setImporting(true);
+    try {
+      const ed = editorRef.current;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let blocks: any[];
+      if (isMd) {
+        const text = await file.text();
+        blocks = await ed.tryParseMarkdownToBlocks(text);
+      } else {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch("/api/documents/parse-docx", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to read .docx");
+        blocks = await ed.tryParseHTMLToBlocks(data.html);
+      }
+      if (!blocks || blocks.length === 0) {
+        toastRef.current.error("Nothing to import — the file appears empty");
+        return;
+      }
+      // Fill an empty document, otherwise insert after the cursor.
+      const doc = ed.document;
+      const docEmpty =
+        doc.length === 1 && doc[0].type === "paragraph" &&
+        (!doc[0].content || (Array.isArray(doc[0].content) && doc[0].content.length === 0));
+      if (docEmpty) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ed.replaceBlocks(ed.document, blocks as any);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ed.insertBlocks(blocks as any, ed.getTextCursorPosition().block, "after");
+      }
+      scheduleSave();
+      toastRef.current.success("Document imported — use Undo if needed");
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   // ── Alignment ───────────────────────────────────────────────────────────
   function applyAlignment(alignment: TextAlignment) {
     const selectedBlocks = editor.getSelection()?.blocks ?? [
@@ -873,6 +926,26 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
               </>
             );
           })()}
+        </div>
+
+        {/* Import .docx / .md */}
+        <div className="border-r pr-2 mr-1">
+          <button
+            title="Import a .docx or .md file"
+            onMouseDown={(e) => { e.preventDefault(); if (!importing) importInputRef.current?.click(); }}
+            disabled={importing}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+          >
+            {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5" />}
+            {importing ? "Importing…" : "Import"}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".docx,.md,.markdown,.txt"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = ""; }}
+          />
         </div>
 
         <p className="text-xs text-muted-foreground flex-1">

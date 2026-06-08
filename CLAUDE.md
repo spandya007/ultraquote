@@ -135,7 +135,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 ### Backlog / Reminders (user-requested — do not lose)
 1. ~~**AI writing assistance in the Document**~~ ✅ DONE — **`gemini-2.5-flash`** via `POST /api/ai/write` (key server-side, `GEMINI_API_KEY`). NOTE: 2.5-flash is a thinking model — request sets `thinkingConfig.thinkingBudget: 0` so the token budget goes to output (otherwise it truncates). "Ask AI" toolbar dropdown in `proposal-editor.tsx`: selection actions (Improve/Make longer/Make shorter/Fix grammar/Change tone) + Generate-from-prompt + Continue writing. Context-aware (client/tenant/pricing grounding). **Preview-before-apply**: AI result is staged in a review modal (original strikethrough vs suggested) with Replace/Discard — the target range is captured up-front and applied via `insertContentAt({from,to})`. Toolbar also has **Undo/Redo** (TipTap history).
 2. ~~**Duplicate a Quote**~~ ✅ DONE — `POST /api/quotes/[id]/duplicate` clones quote + scenarios + line items + document_content into a fresh draft (new quote number, title + " (Copy)"); "Duplicate" button per row in `quotes-client.tsx` → navigates to the copy.
-5. **Import/upload Document from `.docx` or `.md`** — let users populate the Document editor by uploading a Word or Markdown file (parse → BlockNote blocks). `mammoth` is already a dependency for `.docx`. Also relevant to the Templates feature.
+5. ~~**Import/upload Document from `.docx` or `.md`**~~ ✅ DONE — "Import" button in `proposal-editor.tsx` toolbar. `.md`/`.txt` parsed client-side via `editor.tryParseMarkdownToBlocks`; `.docx` → `POST /api/documents/parse-docx` (mammoth → HTML) → `editor.tryParseHTMLToBlocks`. Fills an empty doc (replaceBlocks) or inserts at cursor. NOTE: mammoth embeds images as base64 data URIs → can bloat `document_content`; revisit if size becomes an issue. Reusable for the Templates feature.
 6. ~~**Tenant logo**~~ ✅ DONE — `tenants.logo_url` (column already existed). Upload UI in Settings → Company Profile (`settings-client.tsx`): uploads to `proposal-assets/tenant-logos/{tenantId}/...`, stores `sb-storage://` URL, signed-URL preview. Rendered on the PDF/Preview **first page** (`.doc-logo` above `doc-header` in `serialize.ts`); `load.ts` resolves the logo into the image map. NOT in the running header.
 7. **Dark mode** — add a dark-mode toggle/setting in the UI. Tailwind is already CSS-variable themed (`app/globals.css` has `.dark` tokens); needs a theme toggle + persistence (e.g. `next-themes` or a `class` on `<html>`).
 8. **Product user documentation** — turn `docs/user-guide-notes.md` (running draft notes on Quotes/Scenarios/Line Items/Margins/Document/Ask AI/Preview/PDF/Header&Footer/Logo/Settings) into polished end-user docs. Keep adding to the notes file as features ship.
@@ -158,6 +158,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
   /api/quotes/[id]/pdf/route.ts      ← HTML→Puppeteer→PDF download
   /api/quotes/[id]/duplicate/route.ts ← clone quote into a fresh draft
   /api/ai/write/route.ts             ← Gemini Flash AI writing assistant
+  /api/documents/parse-docx/route.ts ← mammoth .docx → HTML (for Document import)
   /(auth)/login/
   /(dashboard)/
     page.tsx                  ← dashboard home
