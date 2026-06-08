@@ -227,6 +227,20 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      case "table": {
+        // BlockNote table content: { type:"tableContent", rows:[{ cells: InlineContent[][] }] }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows: any[] = (block.content as any)?.rows ?? [];
+        const rowsHtml = rows.map((r) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cells = (r.cells ?? []).map((cell: any) => `<td>${renderInline(cell, tokenMap)}</td>`).join("");
+          return `<tr>${cells}</tr>`;
+        }).join("");
+        if (rowsHtml) out.push(`<table class="doc-table">${rowsHtml}</table>`);
+        i++;
+        break;
+      }
+
       case "scenarioTable": {
         const targets = resolveScenarioRef(props.scenarioRef, scenarios);
         out.push(`<div class="scenario-block">${targets.map(s => renderScenarioTable(s, taxRate, scenarioColor(colorIndex[s.id] ?? 0))).join("")}</div>`);
@@ -330,6 +344,10 @@ export function buildFullHtml(input: SerializeInput): string {
   .doc-header .quote-number { font-family: monospace; font-size: 11pt; color: #475569; }
   .doc-logo { margin-bottom: 16px; }
   .doc-logo img { max-height: 72px; max-width: 260px; object-fit: contain; }
+
+  /* Imported (Word) tables */
+  .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }
+  .doc-table td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
 
   .page-break { page-break-after: always; height: 0; }
   /* On screen there are no real pages, so show a visible marker where the

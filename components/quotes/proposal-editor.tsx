@@ -12,6 +12,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
+import { htmlToBlocks } from "@/lib/import/html-to-blocks";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
@@ -630,7 +631,9 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
         const res = await fetch("/api/documents/parse-docx", { method: "POST", body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to read .docx");
-        blocks = await ed.tryParseHTMLToBlocks(data.html);
+        // Use our own HTML→blocks converter (handles tables correctly, unlike
+        // BlockNote 0.14's tryParseHTMLToBlocks).
+        blocks = htmlToBlocks(data.html);
       }
       if (!blocks || blocks.length === 0) {
         toastRef.current.error("Nothing to import — the file appears empty");
