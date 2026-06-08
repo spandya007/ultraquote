@@ -6,6 +6,12 @@ const nextConfig = {
   // saved content via editor.replaceBlocks() after mount (see proposal-editor.tsx),
   // but we keep StrictMode off as a safeguard against editor double-mount.
   reactStrictMode: false,
+  // Don't serve stale dynamic routes from the client Router Cache on
+  // back/forward navigation — always refetch (fixes e.g. /quotes not showing a
+  // newly added quote when navigating back to it).
+  experimental: {
+    staleTimes: { dynamic: 0 },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co" },

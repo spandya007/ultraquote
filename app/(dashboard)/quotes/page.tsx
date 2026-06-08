@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { QuotesClient } from "@/components/quotes/quotes-client";
 
+// Always render fresh from the DB (no static optimization).
+export const dynamic = "force-dynamic";
+
 export default async function QuotesPage() {
   const supabase = await createClient();
 

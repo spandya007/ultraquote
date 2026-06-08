@@ -45,7 +45,9 @@ const STATUS_STYLES: Record<QuoteStatus, string> = {
 export function QuotesClient({ initialQuotes, clients }: Props) {
   const router = useRouter();
   const toast = useToast();
-  const [quotes] = useState<QuoteRow[]>(initialQuotes);
+  // Use the server prop directly (don't freeze it in state) so the list always
+  // reflects the latest fetch after navigation/refresh.
+  const quotes = initialQuotes;
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | "all">("all");
   const [filterClient, setFilterClient] = useState<string>("all");
