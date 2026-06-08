@@ -600,7 +600,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               )}
             >
               <List className="w-4 h-4" />
-              Line Items
+              Pricing Scenarios
             </button>
             <button
               onClick={() => switchTab("document")}

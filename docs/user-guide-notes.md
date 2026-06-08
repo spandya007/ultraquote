@@ -9,8 +9,8 @@ Working notes to fold into end-user help later. Not polished docs yet.
 A **Quote** is the central object. Each quote has two complementary parts, shown
 as tabs in the quote editor:
 
-1. **Line Items tab** — the structured pricing data (what you're selling and for
-   how much), organized into Scenarios.
+1. **Pricing Scenarios tab** — the structured pricing data (what you're selling
+   and for how much), organized into Scenarios with line items.
 2. **Document tab** — the narrative proposal (cover letter, scope, terms) written
    in a rich-text editor.
 
@@ -31,7 +31,7 @@ text/metadata edits save about a second after you stop typing.
 
 ---
 
-## Scenarios (in the Line Items tab)
+## Scenarios (in the Pricing Scenarios tab)
 
 Scenarios let you present **options** to the client (e.g. "Essentials" vs.
 "Complete"). Up to **5** per quote.
@@ -61,10 +61,10 @@ recurring, one-time, tax, grand total) compute automatically.
 Toggle **Profit margins** in the top bar to show internal **cost & profit margin**
 information. (This is *business* profit margin — not document page margins.)
 
-- In the **Line Items** tab it adds a **Cost** column and a **Margin %** column
+- In the **Pricing Scenarios** tab it adds a **Cost** column and a **Margin %** column
   (color-coded: green ≥30%, amber ≥15%, red below).
-- In the right-hand **Scenario Totals** panel (visible in both the Line Items and
-  Document tabs) each scenario shows its overall **Margin %**, so you can see
+- In the right-hand **Scenario Totals** panel (visible in both the Pricing
+  Scenarios and Document tabs) each scenario shows its overall **Margin %**, so you can see
   per-scenario margins even while writing the Document.
 - Inline **pricing tables** placed in the Document (`/pricing`) also show a
   per-line **margin column** while the toggle is on. This is an editor-only
@@ -187,8 +187,8 @@ After importing a Word/Markdown doc that contains pricing tables, use
    catalog**, you're asked to **confirm first** (it tells you how many will be
    added). Confirm to proceed.
 4. After it runs, a message tells you what happened — e.g. *"Created 3 scenarios ·
-   added 9 new products to your catalog."* You're taken to the Line Items tab with
-   the new scenarios. Up to **5 scenarios** per quote.
+   added 9 new products to your catalog."* You're taken to the Pricing Scenarios
+   tab with the new scenarios. Up to **5 scenarios** per quote.
 
 Items added to the catalog this way are recorded with their origin (which quote/
 document they came from), so auto-created entries are traceable. The same service
