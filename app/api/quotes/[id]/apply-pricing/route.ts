@@ -22,6 +22,10 @@ interface InLineItem {
 }
 interface InScenario { name: string; lineItems: InLineItem[] }
 
+function normalizeName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function calcTotals(items: { billing_period: string; quantity: number; unit_price: number; is_taxable: boolean }[], taxRate: number) {
   const monthly = items.filter(i => i.billing_period === "Monthly").reduce((s, i) => s + i.quantity * (i.unit_price ?? 0), 0);
   const onetime = items.filter(i => i.billing_period === "One Time").reduce((s, i) => s + i.quantity * (i.unit_price ?? 0), 0);
@@ -61,6 +65,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return created?.id ?? null;
   }
   let proServicesCatId: string | null | undefined;
+
+  // Dedup map for "create": normalized product name → { productId, tierId }.
+  // Seeded with the tenant's existing catalog and extended as we create new
+  // products, so the same service repeated across scenarios maps to ONE product.
+  const productMap = new Map<string, { productId: string; tierId: string | null }>();
+  const { data: existingProducts } = await db
+    .from("products")
+    .select("id, name, pricing_tiers:product_pricing_tiers(id, is_default)")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const p of (existingProducts ?? []) as any[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tier = (p.pricing_tiers ?? []).find((t: any) => t.is_default) ?? p.pricing_tiers?.[0];
+    productMap.set(normalizeName(p.name), { productId: p.id, tierId: tier?.id ?? null });
+  }
 
   // Replace the default scenario only if it's the lone empty one.
   const { data: existingScenarios } = await db
@@ -118,33 +138,43 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           tierId = tier?.id ?? tierId;
         }
       } else if (item.action === "create") {
-        if (proServicesCatId === undefined) proServicesCatId = await professionalServicesCategoryId();
-        const { data: newProd } = await db.from("products").insert({
-          tenant_id:      tenantId,
-          category_id:    proServicesCatId,
-          name:           item.description.slice(0, 200),
-          description:    null,
-          item_type:      "Service",
-          billing_period: item.billing_period,
-          unit_price:     item.unit_price,
-          unit_cost:      null,
-          setup_price:    0,
-          is_taxable:     item.is_taxable,
-          is_active:      true,
-          source:         "document_import",
-          source_quote_id: params.id,
-        }).select("id").single();
-        if (newProd) {
-          productId = newProd.id;
-          const { data: newTier } = await db.from("product_pricing_tiers").insert({
-            product_id: newProd.id, tier_name: "Standard", unit_price: item.unit_price, unit_cost: null, is_default: true, sort_order: 0,
+        const norm = normalizeName(item.description);
+        const seen = productMap.get(norm);
+        if (seen) {
+          // Same service already exists (catalog) or was created earlier in this
+          // run — reuse it. The line item keeps its own quoted price.
+          productId = seen.productId;
+          tierId = seen.tierId;
+        } else {
+          if (proServicesCatId === undefined) proServicesCatId = await professionalServicesCategoryId();
+          const { data: newProd } = await db.from("products").insert({
+            tenant_id:      tenantId,
+            category_id:    proServicesCatId,
+            name:           item.description.slice(0, 200),
+            description:    null,
+            item_type:      "Service",
+            billing_period: item.billing_period,
+            unit_price:     item.unit_price,
+            unit_cost:      null,
+            setup_price:    0,
+            is_taxable:     item.is_taxable,
+            is_active:      true,
+            source:         "document_import",
+            source_quote_id: params.id,
           }).select("id").single();
-          tierId = newTier?.id ?? null;
-          await db.from("product_audit").insert({
-            tenant_id: tenantId, product_id: newProd.id, event: "created",
-            source: "document_import", source_quote_id: params.id, created_by: user.id,
-            details: { name: item.description, unit_price: item.unit_price, billing_period: item.billing_period },
-          });
+          if (newProd) {
+            productId = newProd.id;
+            const { data: newTier } = await db.from("product_pricing_tiers").insert({
+              product_id: newProd.id, tier_name: "Standard", unit_price: item.unit_price, unit_cost: null, is_default: true, sort_order: 0,
+            }).select("id").single();
+            tierId = newTier?.id ?? null;
+            await db.from("product_audit").insert({
+              tenant_id: tenantId, product_id: newProd.id, event: "created",
+              source: "document_import", source_quote_id: params.id, created_by: user.id,
+              details: { name: item.description, unit_price: item.unit_price, billing_period: item.billing_period },
+            });
+            productMap.set(norm, { productId: newProd.id, tierId });
+          }
         }
       }
       // action "freetext" → leave productId/tierId null, use doc values.
