@@ -675,6 +675,17 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
   const [extractBusy, setExtractBusy] = useState(false);
   const [pricing, setPricing] = useState<PScenario[] | null>(null);
   const [applyBusy, setApplyBusy] = useState(false);
+  const [confirmCatalog, setConfirmCatalog] = useState(false);
+
+  // Count of distinct NEW products that would be added to the catalog.
+  function newProductCount(): number {
+    if (!pricing) return 0;
+    const names = new Set<string>();
+    for (const s of pricing) if (s.include)
+      for (const it of s.lineItems)
+        if (it.action === "create") names.add(it.description.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim());
+    return names.size;
+  }
 
   function blockText(b: any): string {
     return Array.isArray(b?.content) ? b.content.map((n: any) => n?.text ?? "").join("") : "";
@@ -749,8 +760,13 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create scenarios");
       const n = (data.created ?? []).length;
-      toastRef.current.success(`Created ${n} scenario${n === 1 ? "" : "s"}`);
+      const added = data.productsCreated ?? 0;
+      toastRef.current.success(
+        `Created ${n} scenario${n === 1 ? "" : "s"}` +
+        (added > 0 ? ` · added ${added} new product${added === 1 ? "" : "s"} to your catalog` : "")
+      );
       setPricing(null);
+      setConfirmCatalog(false);
       onPricingApplied?.();
     } catch (e) {
       toastRef.current.error((e as Error).message);
@@ -1228,21 +1244,38 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
               </p>
             </div>
 
+            {/* Confirmation banner shown before writing new products to the catalog */}
+            {confirmCatalog && (
+              <div className="mx-5 mb-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  This will add <strong>{newProductCount()}</strong> new product{newProductCount() === 1 ? "" : "s"} to
+                  your <strong>Product Catalog</strong> (Professional Services), plus create the scenarios. Continue?
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
               <button
-                onClick={() => setPricing(null)}
+                onClick={() => { setPricing(null); setConfirmCatalog(false); }}
                 disabled={applyBusy}
                 className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
               >
                 <X className="w-4 h-4" /> Cancel
               </button>
               <button
-                onClick={applyPricing}
+                onClick={() => {
+                  // Ask for confirmation first if any new catalog products would be added.
+                  if (!confirmCatalog && newProductCount() > 0) { setConfirmCatalog(true); return; }
+                  applyPricing();
+                }}
                 disabled={applyBusy}
                 className="flex items-center gap-1.5 rounded-md bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {applyBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Create scenarios
+                {confirmCatalog
+                  ? `Yes — add ${newProductCount()} product${newProductCount() === 1 ? "" : "s"} & create`
+                  : "Create scenarios"}
               </button>
             </div>
           </div>

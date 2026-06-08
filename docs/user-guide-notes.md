@@ -161,11 +161,17 @@ After importing a Word/Markdown doc that contains pricing tables, use
    - **New item:** defaults to **adding it to your Product Catalog** under the
      **Professional Services** category, so you don't have to re-enter it later.
    - **Custom:** keep it as a one-off line item that is *not* added to the catalog.
-3. Click **Create scenarios**. You're taken to the Line Items tab with the new
-   scenarios. Up to **5 scenarios** per quote.
+3. Click **Create scenarios**. If any line items would **add new products to your
+   catalog**, you're asked to **confirm first** (it tells you how many will be
+   added). Confirm to proceed.
+4. After it runs, a message tells you what happened — e.g. *"Created 3 scenarios ·
+   added 9 new products to your catalog."* You're taken to the Line Items tab with
+   the new scenarios. Up to **5 scenarios** per quote.
 
 Items added to the catalog this way are recorded with their origin (which quote/
-document they came from), so auto-created entries are traceable.
+document they came from), so auto-created entries are traceable. The same service
+appearing in multiple scenarios is added to the catalog **once** (each line item
+keeps its own quoted price).
 
 ## Product Catalog — how items get added
 

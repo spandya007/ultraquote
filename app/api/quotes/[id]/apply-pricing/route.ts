@@ -96,6 +96,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   let sortOrder = existing.length;
   const MAX = 5;
   const created: { id: string; name: string }[] = [];
+  let productsCreated = 0;
+  let productsReused = 0;
 
   for (const sc of scenarios) {
     if (sortOrder >= MAX) break;
@@ -145,6 +147,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           // run — reuse it. The line item keeps its own quoted price.
           productId = seen.productId;
           tierId = seen.tierId;
+          productsReused++;
         } else {
           if (proServicesCatId === undefined) proServicesCatId = await professionalServicesCategoryId();
           const { data: newProd } = await db.from("products").insert({
@@ -174,6 +177,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               details: { name: item.description, unit_price: item.unit_price, billing_period: item.billing_period },
             });
             productMap.set(norm, { productId: newProd.id, tierId });
+            productsCreated++;
           }
         }
       }
@@ -207,5 +211,5 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     sortOrder++;
   }
 
-  return NextResponse.json({ created });
+  return NextResponse.json({ created, productsCreated, productsReused });
 }
