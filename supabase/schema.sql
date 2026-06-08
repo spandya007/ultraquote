@@ -116,7 +116,7 @@ create table public.products (
   quickbooks_online_id    text,
   source                  text not null default 'manual'
                             check (source in ('manual','csv','document_import')),
-  source_quote_id         uuid references public.quotes(id) on delete set null,
+  source_quote_id         uuid,   -- FK to quotes added after quotes is created (below)
   created_at              timestamptz not null default now()
 );
 
@@ -127,7 +127,7 @@ create table public.product_audit (
   product_id      uuid references public.products(id) on delete set null,
   event           text not null check (event in ('created','updated','imported')),
   source          text,
-  source_quote_id uuid references public.quotes(id) on delete set null,
+  source_quote_id uuid,   -- FK to quotes added after quotes is created (below)
   details         jsonb,
   created_by      uuid references public.users(id) on delete set null,
   created_at      timestamptz not null default now()
@@ -186,6 +186,14 @@ create table public.quotes (
   signed_at             timestamptz,
   unique (tenant_id, quote_number)
 );
+
+-- Deferred FKs: products / product_audit reference quotes, which is defined here.
+alter table public.products
+  add constraint products_source_quote_id_fkey
+  foreign key (source_quote_id) references public.quotes(id) on delete set null;
+alter table public.product_audit
+  add constraint product_audit_source_quote_id_fkey
+  foreign key (source_quote_id) references public.quotes(id) on delete set null;
 
 -- Auto-update updated_at
 create or replace function public.set_updated_at()
@@ -336,6 +344,7 @@ alter table public.clients              enable row level security;
 alter table public.product_categories   enable row level security;
 alter table public.products             enable row level security;
 alter table public.product_pricing_tiers enable row level security;
+alter table public.product_audit        enable row level security;
 alter table public.templates            enable row level security;
 alter table public.quotes               enable row level security;
 alter table public.quote_scenarios      enable row level security;
@@ -381,6 +390,11 @@ create policy "product_pricing_tiers: own tenant only"
       select id from public.products where tenant_id = public.current_tenant_id()
     )
   );
+
+-- ── product_audit ──────────────────────────────────────────────────────────────
+create policy "product_audit: own tenant only"
+  on public.product_audit for all
+  using (tenant_id = public.current_tenant_id());
 
 -- ── templates ────────────────────────────────────────────────────────────────
 create policy "templates: own tenant only"
@@ -473,3 +487,38 @@ begin
   return v_tenant_id;
 end;
 $$;
+
+-- ─── Storage ─────────────────────────────────────────────────────────────────
+-- Single private bucket for proposal images, tenant logos, and imported-document
+-- assets. The app references objects via an `sb-storage://proposal-assets/<path>`
+-- scheme and resolves them to short-lived signed URLs at render time.
+--
+-- NOTE: on an existing project these may already have been created via the
+-- Supabase dashboard; the guards below make re-running safe.
+
+insert into storage.buckets (id, name, public)
+values ('proposal-assets', 'proposal-assets', false)
+on conflict (id) do nothing;
+
+-- Authenticated users may read/write within the bucket. Tenant isolation is
+-- enforced at the app layer via per-tenant / per-quote path prefixes
+-- (e.g. `tenant-logos/<tenantId>/...`, `<quoteId>/...`).
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'proposal-assets: authenticated read') then
+    create policy "proposal-assets: authenticated read"
+      on storage.objects for select to authenticated using (bucket_id = 'proposal-assets');
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'proposal-assets: authenticated insert') then
+    create policy "proposal-assets: authenticated insert"
+      on storage.objects for insert to authenticated with check (bucket_id = 'proposal-assets');
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'proposal-assets: authenticated update') then
+    create policy "proposal-assets: authenticated update"
+      on storage.objects for update to authenticated using (bucket_id = 'proposal-assets');
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'proposal-assets: authenticated delete') then
+    create policy "proposal-assets: authenticated delete"
+      on storage.objects for delete to authenticated using (bucket_id = 'proposal-assets');
+  end if;
+end $$;

@@ -15,8 +15,15 @@ service is stateless and never touches the database.
 
 ## 1. Supabase (database)
 
-1. Schema lives in `supabase/schema.sql` (already applied to the project).
-2. **Run pending migrations** in Supabase → SQL Editor. Current migrations:
+**Fresh database (e.g. a new Prod project):** run **`supabase/schema.sql`** in the
+SQL Editor — it is the complete, authoritative schema: all tables, RLS policies,
+functions/triggers, the `provision_tenant()` onboarding function, and the
+`proposal-assets` storage bucket + policies. The incremental migrations below are
+already folded into it, so you do **not** run them on a fresh DB.
+
+**Existing database (upgrading the current dev project):**
+1. Schema source of truth is `supabase/schema.sql`.
+2. **Run pending migrations** in Supabase → SQL Editor (only those not yet applied). Current migrations:
    - `supabase/migrations/001_add_include_header_footer.sql` — adds the per-document
      header/footer toggle. Required, or saving a quote will fail.
    - `supabase/migrations/002_product_provenance_and_audit.sql` — adds product
