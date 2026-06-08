@@ -24,6 +24,23 @@ export async function POST(request: NextRequest) {
 
   if (!client_id) return NextResponse.json({ error: "client_id is required" }, { status: 400 });
 
+  // Reject a duplicate (case-insensitive) title within this tenant.
+  if (title && title.trim()) {
+    const { data: dup } = await db
+      .from("quotes")
+      .select("id")
+      .eq("tenant_id", tenant_id)
+      .ilike("title", title.trim())
+      .limit(1)
+      .maybeSingle() as { data: { id: string } | null };
+    if (dup) {
+      return NextResponse.json(
+        { error: "A quote with this title already exists. Please choose a different title." },
+        { status: 409 }
+      );
+    }
+  }
+
   // Fetch (or create) tenant_settings
   let { data: settings } = await db
     .from("tenant_settings")

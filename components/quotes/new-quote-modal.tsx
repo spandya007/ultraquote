@@ -53,7 +53,9 @@ export function NewQuoteModal({ open, clients, onClose, onCreated }: Props) {
       toast.success("Quote created — opening editor…");
       onCreated(json.id);
     } catch (e: unknown) {
-      const msg = (e as { message?: string })?.message ?? "Failed to create quote";
+      let msg = (e as { message?: string })?.message ?? "Failed to create quote";
+      // Browsers throw a raw "Failed to fetch" on network errors — make it clear.
+      if (/failed to fetch/i.test(msg)) msg = "Network error — please check your connection and try again.";
       setError(msg);
       toast.error(msg);
     } finally {
