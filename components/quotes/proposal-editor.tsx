@@ -932,6 +932,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
         {/* Insert Field dropdown */}
         <div className="relative border-r pr-2 mr-1">
           <button
+            title="Insert a client or company field (e.g. company name, contact, email) that fills in automatically"
             onMouseDown={(e) => { e.preventDefault(); setFieldMenuOpen(o => !o); }}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
@@ -1010,11 +1011,6 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           )}
         </div>
 
-        {/* Editing hint (stays with the left/editing group) */}
-        <span className="text-xs text-muted-foreground whitespace-nowrap hidden md:inline">
-          Type <kbd className="px-1 py-0.5 rounded border text-xs bg-muted">/</kbd> for blocks
-        </span>
-
         {/* Flexible gap — separates editing tools (left) from feature actions (right) */}
         <div className="flex-1" />
 
@@ -1022,6 +1018,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
         {/* Ask AI dropdown */}
         <div className="relative border-l pl-3">
           <button
+            title="AI writing assistant — improve, expand, shorten, change tone, or generate proposal text"
             onMouseDown={(e) => { e.preventDefault(); if (!aiBusy) setAiOpen(o => !o); }}
             disabled={aiBusy}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"

@@ -591,6 +591,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
           {/* Main tab bar */}
           <div className="flex items-center gap-1 px-6 pt-4 border-b bg-background shrink-0">
             <button
+              title="Build pricing: products, line items, and scenario options for the quote"
               onClick={() => switchTab("lineitems")}
               className={cn(
                 "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors",
@@ -603,6 +604,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               Pricing Scenarios
             </button>
             <button
+              title="Write the proposal narrative (cover letter, scope, terms) and place pricing tables"
               onClick={() => switchTab("document")}
               className={cn(
                 "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors",
