@@ -234,6 +234,8 @@ PDF header/first page.
 - Click **Remove** to clear it.
 
 **Where the logo appears:**
+- In the **left sidebar**, under "UltraQuote Builder for" — your logo if uploaded,
+  otherwise your company name. (So the app is branded per company.)
 - On the **first page** of every generated **PDF** and in the **Preview**, at the
   top of the page above the title block.
 - It does **NOT** appear in the running header on pages 2+ (that header is text
