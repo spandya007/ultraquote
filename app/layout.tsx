@@ -7,7 +7,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MSP QuoteBuilder",
+  title: "UltraQuote Builder",
   description: "Professional proposals for Managed Service Providers",
 };
 
