@@ -10,6 +10,7 @@ const ProposalEditor = dynamic(
   () => import("./proposal-editor").then(m => m.ProposalEditor),
   { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">Loading editor…</div> }
 );
+import type { ProposalEditorApi } from "./proposal-editor";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
 import { createClient } from "@/lib/supabase/client";
@@ -198,14 +199,15 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     setActiveTab(tab);
   }
 
-  // Document save flush (registered by ProposalEditor) — used to ensure the
-  // Preview reflects the very latest edits before rendering.
-  const proposalSaveRef = useRef<(() => Promise<void>) | null>(null);
-  const handleSaveReady = useCallback((fn: () => Promise<void>) => {
-    proposalSaveRef.current = fn;
+  // ProposalEditor API (registered on mount) — flush saves before preview and
+  // check whether a pricing table was placed in the document.
+  const proposalApiRef = useRef<ProposalEditorApi | null>(null);
+  const handleEditorReady = useCallback((api: ProposalEditorApi) => {
+    proposalApiRef.current = api;
   }, []);
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
 
   const taxRate = quote.tax_rate ?? 0;
 
@@ -251,9 +253,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   // Flush both document + metadata saves first so the server-rendered preview
   // reflects the latest edits, then open the modal.
   async function openPreview() {
+    // Attaching pricing is optional — warn (but proceed) if the document has no
+    // pricing table placed via the /pricing block.
+    if (proposalApiRef.current && !proposalApiRef.current.hasPricingTable()) {
+      toast.warning("No pricing table in the document — the proposal will not include pricing. Use “/pricing” to add one.");
+    }
     if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current);
     await Promise.all([
-      proposalSaveRef.current?.(),
+      proposalApiRef.current?.saveNow(),
       db.from("quotes").update({
         title:         quote.title,
         status:        quote.status,
@@ -286,26 +293,69 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
 
   async function updateScenarioName(id: string, name: string) {
     setScenarios(prev => prev.map(s => s.id === id ? { ...s, name } : s));
-    await db.from("quote_scenarios").update({ name }).eq("id", id);
+    const { error } = await db.from("quote_scenarios").update({ name }).eq("id", id);
+    if (error) toast.error("Failed to save scenario name");
   }
 
-  async function deleteScenario(id: string) {
+  // Which scenario (if any) becomes the recommended default after deleting `s`.
+  // Only relevant when the deleted scenario was itself the recommended one.
+  function nextDefaultAfterDelete(s: Scenario): Scenario | null {
+    if (!s.is_recommended) return null;
+    const remaining = scenarios.filter(x => x.id !== s.id).sort((a, b) => a.sort_order - b.sort_order);
+    return remaining[0] ?? null;
+  }
+
+  // scenarioRef values of every pricing table in the document. Prefers the live
+  // editor (reflects unsaved edits); falls back to the saved document_content
+  // when the Document tab hasn't been opened this session (editor not mounted).
+  function getDocumentScenarioRefs(): string[] {
+    if (proposalApiRef.current) return proposalApiRef.current.documentScenarioRefs();
+    const blocks = Array.isArray(quote.document_content) ? quote.document_content : [];
+    return blocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((b: any) => b?.type === "scenarioTable")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((b: any) => String(b?.props?.scenarioRef ?? "recommended"));
+  }
+
+  // Does the document reference this scenario (directly, via "all", or via
+  // "recommended" when this scenario is the recommended one)?
+  function documentReferencesScenario(s: Scenario): boolean {
+    const refs = getDocumentScenarioRefs();
+    return refs.some(r => r === s.id || r === "all" || (r === "recommended" && s.is_recommended));
+  }
+
+  async function confirmDeleteScenario(s: Scenario) {
+    setScenarioToDelete(null);
     if (scenarios.length === 1) return;
-    await db.from("quote_scenarios").delete().eq("id", id);
-    const remaining = scenarios.filter(s => s.id !== id);
-    // Rename sequentially (A, B, C…) and fix sort_order to close the gap
-    const renamed = remaining.map((s, i) => ({
-      ...s,
-      name:       `Scenario ${String.fromCharCode(65 + i)}`,
-      sort_order: i,
-    }));
+
+    const newDefault = nextDefaultAfterDelete(s);
+
+    await db.from("quote_scenarios").delete().eq("id", s.id);
+    const remaining = scenarios.filter(x => x.id !== s.id);
+    // Preserve custom names. Only close the sort_order gap and promote a new
+    // recommended default if the deleted scenario was the recommended one.
+    const updated = remaining
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((x, i) => ({
+        ...x,
+        sort_order:     i,
+        is_recommended: newDefault ? x.id === newDefault.id : x.is_recommended,
+      }));
     await Promise.all(
-      renamed.map(s =>
-        db.from("quote_scenarios").update({ name: s.name, sort_order: s.sort_order }).eq("id", s.id)
+      updated.map(x =>
+        db.from("quote_scenarios")
+          .update({ sort_order: x.sort_order, is_recommended: x.is_recommended })
+          .eq("id", x.id)
       )
     );
-    setScenarios(renamed);
-    setActiveScenario(renamed[0]?.id ?? "");
+    setScenarios(updated);
+    setActiveScenario(updated[0]?.id ?? "");
+    if (newDefault) {
+      toast.success(`Scenario deleted — “${updated.find(x => x.id === newDefault.id)?.name}” is now recommended`);
+    } else {
+      toast.success("Scenario deleted");
+    }
   }
 
   async function setRecommended(id: string) {
@@ -550,7 +600,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               tenantData={tenant}
               scenarios={scenarios}
               taxRate={taxRate}
-              onSaveReady={handleSaveReady}
+              onReady={handleEditorReady}
             />
           </div>
           )}
@@ -617,7 +667,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                   </button>
                   {scenarios.length > 1 && (
                     <button
-                      onClick={() => deleteScenario(currentScenario.id)}
+                      onClick={() => setScenarioToDelete(currentScenario)}
                       className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1010,6 +1060,62 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
           </div>
         </div>
       )}
+
+      {/* Delete-scenario confirmation */}
+      {scenarioToDelete && (() => {
+        const s = scenarioToDelete;
+        const newDefault = nextDefaultAfterDelete(s);
+        const referenced = documentReferencesScenario(s);
+        return (
+          <>
+            <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setScenarioToDelete(null)} />
+            <div className="fixed left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-background rounded-xl border shadow-2xl p-5">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0 rounded-full bg-destructive/10 p-2">
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Delete “{s.name}”?</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This permanently deletes the scenario and its line items. This can’t be undone.
+                  </p>
+
+                  <div className="mt-3 space-y-2 text-sm">
+                    {s.is_recommended && newDefault && (
+                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2">
+                        “{s.name}” is the <strong>recommended</strong> scenario. After deletion,{" "}
+                        <strong>“{newDefault.name}”</strong> will automatically become the recommended default.
+                      </div>
+                    )}
+                    {referenced && (
+                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2">
+                        “{s.name}” is currently <strong>used by a pricing table in the Document</strong>.
+                        Deleting it will leave that table without a valid scenario — after deleting, open the{" "}
+                        <strong>Document</strong> tab and review or repoint that pricing table.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-5">
+                <button
+                  onClick={() => setScenarioToDelete(null)}
+                  className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => confirmDeleteScenario(s)}
+                  className="rounded-md bg-destructive text-destructive-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  Delete scenario
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

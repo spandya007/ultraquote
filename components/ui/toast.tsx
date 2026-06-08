@@ -1,12 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { CheckCircle, XCircle, X } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ToastType = "success" | "error";
+type ToastType = "success" | "error" | "warning";
 
 interface Toast {
   id: string;
@@ -17,6 +17,7 @@ interface Toast {
 interface ToastContextValue {
   success: (message: string) => void;
   error:   (message: string) => void;
+  warning: (message: string) => void;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const value: ToastContextValue = {
     success: (msg) => add("success", msg),
     error:   (msg) => add("error",   msg),
+    warning: (msg) => add("warning", msg),
   };
 
   return (
@@ -82,11 +84,14 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       className={cn(
         "pointer-events-auto flex items-start gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg transition-all duration-300",
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-        toast.type === "success" ? "border-green-200" : "border-red-200"
+        toast.type === "success" ? "border-green-200" :
+        toast.type === "warning" ? "border-amber-200" : "border-red-200"
       )}
     >
       {toast.type === "success"
         ? <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+        : toast.type === "warning"
+        ? <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
         : <XCircle    className="w-5 h-5 text-red-500   shrink-0 mt-0.5" />}
       <p className="text-sm flex-1">{toast.message}</p>
       <button

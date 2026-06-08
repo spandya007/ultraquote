@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Copy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { formatDate, formatCurrency } from "@/lib/utils/format";
+import { formatDate } from "@/lib/utils/format";
+import { useToast } from "@/components/ui/toast";
 import type { QuoteStatus } from "@/types";
 import { NewQuoteModal } from "./new-quote-modal";
 
@@ -43,11 +44,27 @@ const STATUS_STYLES: Record<QuoteStatus, string> = {
 
 export function QuotesClient({ initialQuotes, clients }: Props) {
   const router = useRouter();
+  const toast = useToast();
   const [quotes] = useState<QuoteRow[]>(initialQuotes);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | "all">("all");
   const [filterClient, setFilterClient] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  async function duplicateQuote(id: string) {
+    setDuplicatingId(id);
+    try {
+      const res = await fetch(`/api/quotes/${id}/duplicate`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to duplicate");
+      toast.success(`Created ${data.quote_number}`);
+      router.push(`/quotes/${data.id}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+      setDuplicatingId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     return quotes.filter((q) => {
@@ -150,6 +167,7 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valid Until</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -179,6 +197,19 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
                     {q.valid_until ? formatDate(q.valid_until) : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(q.created_at)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); duplicateQuote(q.id); }}
+                      disabled={duplicatingId === q.id}
+                      title="Duplicate quote"
+                      className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {duplicatingId === q.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Copy className="w-3.5 h-3.5" />}
+                      Duplicate
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

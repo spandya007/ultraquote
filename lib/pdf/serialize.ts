@@ -4,6 +4,7 @@ import type {
   DocBlock,
   InlineContent,
 } from "./types";
+import { scenarioColor, type ScenarioColor } from "../scenario-colors";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ function calcTotals(s: SerializeScenario, taxRate: number) {
   return { monthly, onetime, tax, total: monthly + onetime + tax };
 }
 
-function renderScenarioTable(s: SerializeScenario, taxRate: number): string {
+function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioColor): string {
   const t = calcTotals(s, taxRate);
   const rows = s.line_items.map((i) => `
     <tr>
@@ -129,26 +130,31 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number): string {
       <td class="num">${fmtCurrency(i.quantity * (i.unit_price ?? 0))}</td>
     </tr>`).join("");
 
+  const headStyle = `background:${c.headBg};color:${c.headText};border:1px solid ${c.border}`;
+  const colHeadStyle = `background:${c.footBg};border:1px solid ${c.border}`;
+  const footStyle = `background:${c.footBg};color:${c.footText}`;
+  const badgeStyle = `background:${c.border};color:${c.headText}`;
+
   return `
-  <table class="scenario-table">
+  <table class="scenario-table" style="border:1px solid ${c.border}">
     <thead>
       <tr>
-        <th class="scenario-title" colspan="5">
-          ${escapeHtml(s.name)}${s.is_recommended ? ' <span class="rec-badge">Recommended</span>' : ""}
+        <th class="scenario-title" colspan="5" style="${headStyle}">
+          ${escapeHtml(s.name)}${s.is_recommended ? ` <span class="rec-badge" style="${badgeStyle}">Recommended</span>` : ""}
         </th>
       </tr>
       <tr class="col-head">
-        <th>Description</th><th>Billing</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+        <th style="${colHeadStyle}">Description</th><th style="${colHeadStyle}">Billing</th><th style="${colHeadStyle}">Qty</th><th style="${colHeadStyle}">Unit Price</th><th style="${colHeadStyle}">Total</th>
       </tr>
     </thead>
     <tbody>
       ${rows || `<tr><td colspan="5" class="empty">No line items</td></tr>`}
     </tbody>
     <tfoot>
-      <tr><td colspan="4">Monthly Recurring</td><td class="num">${fmtCurrency(t.monthly)}</td></tr>
-      <tr><td colspan="4">One-Time</td><td class="num">${fmtCurrency(t.onetime)}</td></tr>
-      ${taxRate > 0 ? `<tr><td colspan="4">Tax (${(taxRate * 100).toFixed(2)}%)</td><td class="num">${fmtCurrency(t.tax)}</td></tr>` : ""}
-      <tr class="grand"><td colspan="4">Total</td><td class="num">${fmtCurrency(t.total)}</td></tr>
+      <tr><td colspan="4" style="${footStyle}">Monthly Recurring</td><td class="num" style="${footStyle}">${fmtCurrency(t.monthly)}</td></tr>
+      <tr><td colspan="4" style="${footStyle}">One-Time</td><td class="num" style="${footStyle}">${fmtCurrency(t.onetime)}</td></tr>
+      ${taxRate > 0 ? `<tr><td colspan="4" style="${footStyle}">Tax (${(taxRate * 100).toFixed(2)}%)</td><td class="num" style="${footStyle}">${fmtCurrency(t.tax)}</td></tr>` : ""}
+      <tr class="grand"><td colspan="4" style="${footStyle};border-top:2px solid ${c.accent}">Total</td><td class="num" style="${footStyle};border-top:2px solid ${c.accent}">${fmtCurrency(t.total)}</td></tr>
     </tfoot>
   </table>`;
 }
@@ -169,6 +175,9 @@ function resolveScenarioRef(ref: string | undefined, scenarios: SerializeScenari
 function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): string {
   const { blocks, scenarios, quote, imageUrlMap = {} } = input;
   const taxRate = quote.tax_rate ?? 0;
+  // Stable color index per scenario id, by sort position (matches the editor).
+  const colorIndex: Record<string, number> = {};
+  [...scenarios].sort((a, b) => a.sort_order - b.sort_order).forEach((s, i) => { colorIndex[s.id] = i; });
   const out: string[] = [];
 
   let i = 0;
@@ -220,7 +229,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
 
       case "scenarioTable": {
         const targets = resolveScenarioRef(props.scenarioRef, scenarios);
-        out.push(`<div class="scenario-block">${targets.map(s => renderScenarioTable(s, taxRate)).join("")}</div>`);
+        out.push(`<div class="scenario-block">${targets.map(s => renderScenarioTable(s, taxRate, scenarioColor(colorIndex[s.id] ?? 0))).join("")}</div>`);
         i++;
         break;
       }
@@ -240,21 +249,42 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
 
 // ─── Public API ────────────────────────────────────────────────────────────────
 
-/** Renders just the document body HTML (no <html>/<head>). */
+/**
+ * Renders just the document body HTML (no <html>/<head>).
+ * Pricing is OPTIONAL: tables appear only where the author placed a
+ * `scenarioTable` block (`/pricing`). Nothing is auto-appended — if the document
+ * has no pricing table, the output simply contains none. The UI warns the user
+ * about this before generating a preview/PDF.
+ */
 export function buildDocumentBody(input: SerializeInput): string {
   const tokenMap = buildTokenMap(input);
-  let body = renderBlocks(input, tokenMap);
+  return renderBlocks(input, tokenMap);
+}
 
-  // Safety net: if the document placed no scenario tables, append all scenarios
-  // at the end so a quote never goes out without pricing.
-  const hasScenarioBlock = input.blocks.some(b => b.type === "scenarioTable");
-  if (!hasScenarioBlock && input.scenarios.length > 0) {
-    const taxRate = input.quote.tax_rate ?? 0;
-    const sorted = [...input.scenarios].sort((a, b) => a.sort_order - b.sort_order);
-    body += `\n<div class="scenario-block auto-appended"><h2>Pricing</h2>${sorted.map(s => renderScenarioTable(s, taxRate)).join("")}</div>`;
-  }
+// ─── Running header / footer (Puppeteer templates) ─────────────────────────────
+// These are rendered by Puppeteer into the page margin on every page EXCEPT the
+// first (suppressed via `@page :first { margin-top/bottom: 0 }` in buildFullHtml).
+// They don't inherit the page stylesheet, so all styles are inline and font
+// sizes are explicit. `pageNumber`/`totalPages` are auto-filled by Puppeteer.
 
-  return body;
+const HF_WRAP =
+  "font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:9px;color:#64748b;" +
+  "width:100%;padding:0 0.75in;display:flex;justify-content:space-between;align-items:center;";
+
+export function buildHeaderTemplate(input: SerializeInput): string {
+  const { quote, tenant } = input;
+  return `<div style="${HF_WRAP}border-bottom:0.5px solid #cbd5e1;padding-bottom:4px;">
+    <span>${escapeHtml(tenant.name || "")}</span>
+    <span style="font-family:monospace;">${escapeHtml(quote.quote_number || "")}</span>
+  </div>`;
+}
+
+export function buildFooterTemplate(input: SerializeInput): string {
+  const { client } = input;
+  return `<div style="${HF_WRAP}border-top:0.5px solid #cbd5e1;padding-top:4px;">
+    <span>Confidential — prepared for ${escapeHtml(client.company_name || "")}</span>
+    <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+  </div>`;
 }
 
 /** Renders a complete, print-ready HTML page. */
@@ -269,11 +299,16 @@ export function buildFullHtml(input: SerializeInput): string {
 <title>${escapeHtml(quote.title || quote.quote_number || "Proposal")}</title>
 <style>
   @page { size: Letter; margin: 0.75in; }
+  /* No running header/footer on the first page: zero its top/bottom margin so
+     Puppeteer has no margin box to draw them in. Left/right stay aligned. */
+  @page :first { margin-top: 0; margin-bottom: 0; }
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b; font-size: 12pt; line-height: 1.6; margin: 0;
   }
+  /* Page 1 has no top page-margin (see @page:first), so inset its first content. */
+  @media print { body { padding-top: 0.75in; } }
   /* The @page margin applies to the printed PDF. For the on-screen Preview
      (iframe) there is no @page margin, so pad the body to match — also caps the
      content width so long lines stay readable, like a real page. */

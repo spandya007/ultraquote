@@ -35,10 +35,14 @@ app.post("/render", async (req, res) => {
     }
   }
 
-  const { html } = req.body || {};
+  const { html, headerHtml, footerHtml } = req.body || {};
   if (!html || typeof html !== "string") {
     return res.status(400).json({ error: "Missing 'html' string in body" });
   }
+
+  const wantHeaderFooter =
+    (typeof headerHtml === "string" && headerHtml.length > 0) ||
+    (typeof footerHtml === "string" && footerHtml.length > 0);
 
   let page;
   try {
@@ -49,6 +53,9 @@ app.post("/render", async (req, res) => {
       format: "Letter",
       printBackground: true,
       preferCSSPageSize: true,
+      displayHeaderFooter: wantHeaderFooter,
+      headerTemplate: typeof headerHtml === "string" ? headerHtml : "<span></span>",
+      footerTemplate: typeof footerHtml === "string" ? footerHtml : "<span></span>",
     });
     res.set({
       "Content-Type": "application/pdf",

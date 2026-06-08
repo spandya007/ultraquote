@@ -86,13 +86,16 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 | `/api/quotes` | POST | Create quote + default scenario (server-side, bypasses trigger ambiguity) |
 | `/api/quotes/[id]/preview` | GET | Returns the proposal as standalone HTML (iframe Preview source) |
 | `/api/quotes/[id]/pdf` | GET | Serializes quote→HTML, POSTs to Puppeteer service, returns PDF download |
+| `/api/quotes/[id]/duplicate` | POST | Clones quote + scenarios + line items + document into a fresh draft |
 
 #### PDF / Preview pipeline ✅ (renderer needs Railway deploy)
 - **Serializer** (`lib/pdf/serialize.ts`) — pure function: BlockNote blocks → print-ready HTML. Handles token substitution (`{{client.*}}`/`{{tenant.*}}`), `pageBreak`→CSS `page-break-after`, `scenarioTable`→live pricing tables, inline styles, lists, images. Includes full `<style>` (Letter @page, scenario table styling)
 - **Image resolution** (`lib/pdf/resolve-images.ts`) — pre-resolves `sb-storage://` URLs → signed URLs into a map so the serializer stays sync
 - **Data loader** (`lib/pdf/load.ts`) — fetches quote+scenarios+line_items+client+tenant+image map → `SerializeInput`
-- **Inline Scenario block** — custom `scenarioTable` block (`proposal-editor.tsx`), insertable via slash menu (`/pricing`). Stores a *reference* (`scenarioRef`: `recommended`|`all`|specific id), NOT a snapshot, so tables stay live. In-editor live preview fed by `ScenarioContext` (provides current scenarios+taxRate, since BlockNote block renders can't take parent props). Safety net: if a document has no `scenarioTable`, serializer auto-appends all scenarios under a "Pricing" heading
-- **Preview** — "Preview" button in quote editor header opens a full-screen modal with an `<iframe>` pointing at the preview route; flushes document + metadata saves first so preview is current. "Download PDF" button links to the pdf route
+- **Inline Scenario block** — custom `scenarioTable` block (`proposal-editor.tsx`), insertable via slash menu (`/pricing`). Stores a *reference* (`scenarioRef`: `recommended`|`all`|specific id), NOT a snapshot, so tables stay live. In-editor live preview fed by `ScenarioContext` (provides current scenarios+taxRate, since BlockNote block renders can't take parent props)
+- **Pricing is OPTIONAL** — serializer renders pricing only where the author placed a `scenarioTable` block (no auto-append). On Preview, if the live document has no pricing table, `quote-editor` shows a `toast.warning` but proceeds. `ProposalEditor` exposes `onReady({ saveNow, hasPricingTable })` for this check + the pre-preview save flush
+- **Preview** — "Preview" button in quote editor header opens a full-screen modal with an `<iframe>` pointing at the preview route; flushes document + metadata saves first so preview is current. "Download PDF" button links to the pdf route. NOTE: running header/footer are print-only (Puppeteer) so they do NOT appear in the on-screen iframe Preview
+- **Running header/footer** (`buildHeaderTemplate`/`buildFooterTemplate` in `serialize.ts`) — header: tenant name (left) + quote number (right); footer: "Confidential — prepared for {client}" (left) + "Page X of Y" (right). Rendered by Puppeteer into the page margin. **Suppressed on page 1** via `@page :first { margin-top/bottom: 0 }` (no margin box → not drawn); page-1 keeps its in-body `doc-header` title block (future home of the tenant logo). The pdf route passes `headerHtml`/`footerHtml` to the service; service uses `displayHeaderFooter` + `preferCSSPageSize`
 - **Puppeteer service** (`/pdf-service`) — standalone Express + Puppeteer, `POST /render {html}` → PDF. Dockerfile uses `ghcr.io/puppeteer/puppeteer` base. **Deploy to Railway**, then set `PDF_SERVICE_URL` + `PDF_SERVICE_TOKEN` in the main app env. See `pdf-service/README.md`
 - **Env vars needed**: `PDF_SERVICE_URL`, `PDF_SERVICE_TOKEN` (PDF download returns 501 until set)
 
@@ -116,7 +119,9 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 
 ### Backlog / Reminders (user-requested — do not lose)
 1. **AI writing assistance in the Document** — integrate Google Gemini **Flash** APIs to help author/refine the proposal narrative in the BlockNote editor (e.g. generate/expand/rewrite sections).
-2. **Duplicate a Quote** — add "Duplicate" action on a quote (clone quote + scenarios + line items + document_content into a new quote with a fresh quote number).
+2. ~~**Duplicate a Quote**~~ ✅ DONE — `POST /api/quotes/[id]/duplicate` clones quote + scenarios + line items + document_content into a fresh draft (new quote number, title + " (Copy)"); "Duplicate" button per row in `quotes-client.tsx` → navigates to the copy.
+5. **Import/upload Document from `.docx` or `.md`** — let users populate the Document editor by uploading a Word or Markdown file (parse → BlockNote blocks). `mammoth` is already a dependency for `.docx`. Also relevant to the Templates feature.
+6. **Tenant logo** — add a `logo_url` column on `tenants` + upload UI in Settings. User wants the logo on the **first page** of the PDF (NOT in the running header). First-page title block (`doc-header` in `lib/pdf/serialize.ts`) is where it should render once available.
 3. ~~**Preview feature**~~ ✅ DONE (in-app iframe modal sharing the PDF serializer).
 4. **Quote ↔ Document relationship** — RESOLVED via the inline `scenarioTable` block: loosely integrated (document controls layout via placed pricing tables; line items remain the structured data). Revisit only if a tighter merge is wanted.
 
@@ -124,6 +129,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - Variable tokens are now substituted by `lib/pdf/serialize.ts` (tokenMap) at PDF/Preview render time
 - Re-enable `reactStrictMode` once BlockNote is upgraded past the `getPos` bug
 - PDF download returns 501 until `PDF_SERVICE_URL` is set (deploy `/pdf-service` to Railway)
+- **Planned Next.js major upgrade** — currently pinned to `^14.2.35` (patched the two CVEs that blocked Railway). `npm audit` advisories keep accumulating on the Next 14 line; npm's only auto-fix is `next@16` (breaking). Schedule a deliberate, tested upgrade to a newer Next major. Pair with the BlockNote upgrade (above) so `reactStrictMode` can be re-enabled in the same pass.
 
 ## File Structure
 ```
@@ -133,6 +139,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
   /api/quotes/route.ts
   /api/quotes/[id]/preview/route.ts  ← proposal HTML (iframe source)
   /api/quotes/[id]/pdf/route.ts      ← HTML→Puppeteer→PDF download
+  /api/quotes/[id]/duplicate/route.ts ← clone quote into a fresh draft
   /(auth)/login/
   /(dashboard)/
     page.tsx                  ← dashboard home

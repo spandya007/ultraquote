@@ -11,6 +11,7 @@ import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@bloc
 import { BlockNoteView } from "@blocknote/mantine";
 import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
+import { scenarioColor } from "@/lib/scenario-colors";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
@@ -138,16 +139,17 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
       ) : shown.map(s => {
         const monthly = scenarioMonthly(s);
         const onetime = scenarioOnetime(s);
+        const c = scenarioColor(sorted.findIndex(x => x.id === s.id));
         return (
           <table key={s.id} style={{
             width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 11,
-            border: "1px solid #ede9fe",
+            border: `1px solid ${c.border}`,
           }}>
             <thead>
               <tr>
                 <th colSpan={3} style={{
-                  textAlign: "left", background: "#f5f3ff", color: "#5b21b6",
-                  padding: "6px 8px", border: "1px solid #ddd6fe", fontSize: 12,
+                  textAlign: "left", background: c.headBg, color: c.headText,
+                  padding: "6px 8px", border: `1px solid ${c.border}`, fontSize: 12,
                 }}>
                   {s.name}{s.is_recommended ? " ★" : ""}
                 </th>
@@ -165,8 +167,8 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
               ))}
             </tbody>
             <tfoot>
-              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", color: "#5b21b6" }}>Monthly</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, color: "#5b21b6" }}>{formatCurrency(monthly)}</td></tr>
-              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", color: "#5b21b6" }}>One-time</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, color: "#5b21b6" }}>{formatCurrency(onetime)}</td></tr>
+              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td></tr>
+              <tr><td colSpan={2} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td><td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td></tr>
             </tfoot>
           </table>
         );
@@ -293,15 +295,25 @@ interface Props {
   /** Live scenario data for the inline pricing-table block previews. */
   scenarios: EditorScenario[];
   taxRate: number;
-  /** Called once on mount with a `saveNow` function the parent can invoke. */
-  onSaveReady?: (saveNow: () => Promise<void>) => void;
+  /** Called once on mount with an API the parent can invoke (save flush + checks). */
+  onReady?: (api: ProposalEditorApi) => void;
+}
+
+export interface ProposalEditorApi {
+  /** Flush any pending document save immediately. */
+  saveNow: () => Promise<void>;
+  /** True if the live document contains at least one pricing/scenario table. */
+  hasPricingTable: () => boolean;
+  /** scenarioRef values of every pricing table in the live document
+   *  (e.g. "recommended", "all", or a specific scenario id). */
+  documentScenarioRefs: () => string[];
 }
 
 type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, onSaveReady }: Props) {
+export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, onReady }: Props) {
   const supabaseRef = useRef(createClient());
   const quoteIdRef  = useRef(quoteId);
   const toast       = useToast();
@@ -427,12 +439,20 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     saveTimer.current = setTimeout(save, 1500);
   }, [save]);
 
-  // Hand the parent a stable `saveNow` reference so it can flush the document
-  // from the top-right Save button without needing forwardRef (which conflicts
-  // with Next.js dynamic() imports and triggers extra render cycles).
+  // Hand the parent a stable API (save flush + document checks) without needing
+  // forwardRef (which conflicts with Next.js dynamic() imports and triggers
+  // extra render cycles).
   useEffect(() => {
-    onSaveReady?.(save);
-  // onSaveReady is stable (passed inline but the parent memoises it via useCallback)
+    onReady?.({
+      saveNow: save,
+      hasPricingTable: () => editorRef.current.document.some(b => b.type === "scenarioTable"),
+      documentScenarioRefs: () =>
+        editorRef.current.document
+          .filter(b => b.type === "scenarioTable")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map(b => String((b.props as any)?.scenarioRef ?? "recommended")),
+    });
+  // save is stable; onReady is memoised by the parent.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save]);
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loadSerializeInput } from "@/lib/pdf/load";
-import { buildFullHtml } from "@/lib/pdf/serialize";
+import { buildFullHtml, buildHeaderTemplate, buildFooterTemplate } from "@/lib/pdf/serialize";
 
 // Renders the quote to PDF by sending the serialized HTML to the external
 // Puppeteer service (see /pdf-service). Returns the PDF as a download.
@@ -26,6 +26,8 @@ export async function GET(
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
 
   const html = buildFullHtml(input);
+  const headerHtml = buildHeaderTemplate(input);
+  const footerHtml = buildFooterTemplate(input);
 
   let pdfRes: Response;
   try {
@@ -35,7 +37,7 @@ export async function GET(
         "Content-Type": "application/json",
         ...(process.env.PDF_SERVICE_TOKEN ? { Authorization: `Bearer ${process.env.PDF_SERVICE_TOKEN}` } : {}),
       },
-      body: JSON.stringify({ html }),
+      body: JSON.stringify({ html, headerHtml, footerHtml }),
     });
   } catch (e) {
     return NextResponse.json(
