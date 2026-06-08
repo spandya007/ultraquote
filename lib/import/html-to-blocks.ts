@@ -67,6 +67,9 @@ function buildTable(table: Element): any | null {
 function blockFromElement(el: Element): any | any[] | null {
   const tag = el.tagName.toLowerCase();
 
+  // Skip non-content elements that can appear in a full HTML file.
+  if (tag === "script" || tag === "style" || tag === "noscript" || tag === "head") return null;
+
   if (/^h[1-6]$/.test(tag)) {
     const level = Math.min(parseInt(tag[1], 10), 3);
     return { type: "heading", props: { level }, content: inlineContent(el) };

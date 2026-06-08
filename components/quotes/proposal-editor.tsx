@@ -614,9 +614,10 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
   async function handleImport(file: File) {
     const name = file.name.toLowerCase();
     const isMd = name.endsWith(".md") || name.endsWith(".markdown") || name.endsWith(".txt");
+    const isHtml = name.endsWith(".html") || name.endsWith(".htm");
     const isDocx = name.endsWith(".docx");
-    if (!isMd && !isDocx) {
-      toastRef.current.error("Please choose a .docx or .md file");
+    if (!isMd && !isHtml && !isDocx) {
+      toastRef.current.error("Please choose a .docx, .html, or .md file");
       return;
     }
     setImporting(true);
@@ -627,6 +628,10 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
       if (isMd) {
         const text = await file.text();
         blocks = await ed.tryParseMarkdownToBlocks(text);
+      } else if (isHtml) {
+        // Read the HTML directly and use our own converter (handles tables).
+        const text = await file.text();
+        blocks = htmlToBlocks(text);
       } else {
         const form = new FormData();
         form.append("file", file);
@@ -1069,7 +1074,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           <input
             ref={importInputRef}
             type="file"
-            accept=".docx,.md,.markdown,.txt"
+            accept=".docx,.html,.htm,.md,.markdown,.txt"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = ""; }}
           />

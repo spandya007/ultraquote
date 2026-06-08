@@ -85,10 +85,11 @@ A rich-text editor for the proposal body.
   prices (you'll get a heads-up warning when previewing).
 - **Page Break** (`/page break`) — force a new page in the PDF at that point.
 - **Images** — upload images into the document.
-- **Import** — bring in an existing **Word (.docx)** or **Markdown (.md)** file.
-  Click **Import** in the toolbar and choose a file; its content is converted to
-  editable blocks. If the document is empty it's filled; otherwise the content is
-  inserted at your cursor. Use **Undo** if you don't like the result.
+- **Import** — bring in an existing **Word (.docx)**, **HTML (.html/.htm)**, or
+  **Markdown (.md/.txt)** file. Click **Import** in the toolbar and choose a file;
+  its content is converted to editable blocks (headings, lists, formatting, links,
+  images, and tables). If the document is empty it's filled; otherwise the content
+  is inserted at your cursor. Use **Undo** if you don't like the result.
   *(Formatting maps as closely as possible — headings, lists, bold/italic, links,
   and images carry over; very complex Word layouts may simplify.)*
 - **Extract pricing → scenarios** — if your imported document has **pricing
