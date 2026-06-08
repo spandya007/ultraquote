@@ -109,9 +109,23 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - `reactStrictMode: false` in `next.config.mjs` — safeguard against BlockNote 0.14 editor double-mount under StrictMode (not the crash fix itself; remove once BlockNote is upgraded)
 - ProposalEditor uses an `onSaveReady` callback prop pattern (NOT `forwardRef`) — `forwardRef` conflicts with `dynamic()` and triggers extra render cycles. (Currently unused by parent since the manual Save button was removed, but the prop remains available)
 
+## ⏸️ RESUME SNAPSHOT (last session end)
+**Where things stand:**
+- Code pushed to GitHub `spandya007/ultraquote` (branch `main`, latest commit `54405b7`).
+- **PDF service is deployed on Railway** (Docker, `/pdf-service`) and `/health` returns ok. Auto-redeploys on push.
+- AI writing, Duplicate Quote, optional pricing, scenario color-coding, scenario-delete guard, PDF header/footer (cover excluded, numbering from page 2), per-document header/footer toggle — all **built, tested, and working locally**.
+- Web app **not yet deployed to Netlify** (see `DEPLOY.md`).
+
+**Outstanding manual steps before/while deploying:**
+1. Run migration `supabase/migrations/001_add_include_header_footer.sql` in Supabase SQL editor (required — saving a quote fails without the column). *(If already run locally, also fine.)*
+2. Netlify env vars (full list in `DEPLOY.md`): Supabase ×3, `PDF_SERVICE_URL`, `PDF_SERVICE_TOKEN`, `GEMINI_API_KEY`.
+3. Local `.env.local` already has Supabase + `GEMINI_API_KEY`; set `PDF_SERVICE_URL`/`PDF_SERVICE_TOKEN` locally if testing PDF download from laptop.
+
+**Good next features to pick up:** Tenant logo (backlog #6, pairs with Settings page) · `.docx`/`.md` document import (backlog #5) · Templates · DocuSeal e-sign + Send flow · Dashboard stats.
+
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
-- [x] ~~PDF generation + Preview~~ ✅ DONE (code complete; **pending: deploy `/pdf-service` to Railway + set env vars**)
+- [x] ~~PDF generation + Preview~~ ✅ DONE (deployed to Railway; header/footer + per-document toggle)
 - [ ] Templates — create/edit/import (`.docx` via Mammoth.js, `.md`)
 - [ ] E-signature flow — DocuSeal integration (send for signature, webhook for completion)
 - [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added)
