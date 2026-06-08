@@ -19,6 +19,9 @@ service is stateless and never touches the database.
 2. **Run pending migrations** in Supabase → SQL Editor. Current migrations:
    - `supabase/migrations/001_add_include_header_footer.sql` — adds the per-document
      header/footer toggle. Required, or saving a quote will fail.
+   - `supabase/migrations/002_product_provenance_and_audit.sql` — adds product
+     provenance columns + `product_audit` table. Required for "Extract pricing →
+     scenarios" (creating catalog products from document tables).
 3. Storage bucket **`proposal-assets`** must exist (used for Document image uploads).
 
 ---

@@ -9,7 +9,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -298,6 +298,8 @@ interface Props {
   taxRate: number;
   /** Called once on mount with an API the parent can invoke (save flush + checks). */
   onReady?: (api: ProposalEditorApi) => void;
+  /** Called after pricing tables are extracted into scenarios (so the parent can refresh). */
+  onPricingApplied?: () => void;
 }
 
 export interface ProposalEditorApi {
@@ -314,7 +316,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, onReady }: Props) {
+export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, onReady, onPricingApplied }: Props) {
   const supabaseRef = useRef(createClient());
   const quoteIdRef  = useRef(quoteId);
   const toast       = useToast();
@@ -660,6 +662,104 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     }
   }
 
+  // ── Extract pricing tables → scenarios ────────────────────────────────────
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  interface PItem {
+    description: string; billing_period: "Monthly" | "One Time"; quantity: number;
+    unit_price: number; is_taxable: boolean;
+    match: { productId: string; name: string; tierId: string | null; unitPrice: number | null; unitCost: number | null } | null;
+    action: "link" | "create" | "freetext";
+  }
+  interface PScenario { name: string; include: boolean; lineItems: PItem[] }
+
+  const [extractBusy, setExtractBusy] = useState(false);
+  const [pricing, setPricing] = useState<PScenario[] | null>(null);
+  const [applyBusy, setApplyBusy] = useState(false);
+
+  function blockText(b: any): string {
+    return Array.isArray(b?.content) ? b.content.map((n: any) => n?.text ?? "").join("") : "";
+  }
+  function gatherTables() {
+    const doc = editorRef.current.document;
+    const tables: { heading: string; rows: string[][] }[] = [];
+    let heading = "";
+    for (const b of doc) {
+      if (b.type === "heading") heading = blockText(b);
+      else if (b.type === "table") {
+        const rows = (((b.content as any)?.rows) ?? []).map((r: any) =>
+          (r.cells ?? []).map((cell: any) => Array.isArray(cell) ? cell.map((n: any) => n?.text ?? "").join("") : ""));
+        tables.push({ heading, rows });
+      }
+    }
+    return tables;
+  }
+
+  async function extractPricing() {
+    const tables = gatherTables();
+    if (tables.length === 0) {
+      toastRef.current.error("No tables found in the document to extract from");
+      return;
+    }
+    setExtractBusy(true);
+    try {
+      const res = await fetch("/api/ai/extract-pricing", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tables }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Extraction failed");
+      if (!data.scenarios?.length) {
+        toastRef.current.error("No pricing tables detected in the document");
+        return;
+      }
+      setPricing(data.scenarios.map((s: any) => ({
+        name: s.name,
+        include: true,
+        lineItems: (s.lineItems ?? []).map((it: any) => ({
+          ...it,
+          action: it.match ? "link" : "create",
+        })),
+      })));
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setExtractBusy(false);
+    }
+  }
+
+  async function applyPricing() {
+    if (!pricing) return;
+    const scenarios = pricing.filter(s => s.include).map(s => ({
+      name: s.name,
+      lineItems: s.lineItems.map(it => ({
+        description: it.description, billing_period: it.billing_period, quantity: it.quantity,
+        unit_price: it.unit_price, is_taxable: it.is_taxable, action: it.action,
+        productId: it.action === "link" ? it.match?.productId : undefined,
+        tierId:    it.action === "link" ? it.match?.tierId : undefined,
+        unitCost:  it.action === "link" ? it.match?.unitCost : undefined,
+      })),
+    }));
+    if (scenarios.length === 0) { toastRef.current.error("Select at least one scenario"); return; }
+    setApplyBusy(true);
+    try {
+      const res = await fetch(`/api/quotes/${quoteIdRef.current}/apply-pricing`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenarios }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create scenarios");
+      const n = (data.created ?? []).length;
+      toastRef.current.success(`Created ${n} scenario${n === 1 ? "" : "s"}`);
+      setPricing(null);
+      onPricingApplied?.();
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setApplyBusy(false);
+    }
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   // ── Alignment ───────────────────────────────────────────────────────────
   function applyAlignment(alignment: TextAlignment) {
     const selectedBlocks = editor.getSelection()?.blocks ?? [
@@ -951,6 +1051,19 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           />
         </div>
 
+        {/* Extract pricing tables → scenarios */}
+        <div className="border-r pr-2 mr-1">
+          <button
+            title="Detect pricing tables and turn them into scenarios"
+            onMouseDown={(e) => { e.preventDefault(); if (!extractBusy) extractPricing(); }}
+            disabled={extractBusy}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-60"
+          >
+            {extractBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ListPlus className="w-3.5 h-3.5" />}
+            {extractBusy ? "Scanning…" : "Extract pricing"}
+          </button>
+        </div>
+
         <p className="text-xs text-muted-foreground flex-1">
           Type <kbd className="px-1 py-0.5 rounded border text-xs bg-muted">/</kbd> for blocks · Select text to format
         </p>
@@ -1034,6 +1147,102 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
               >
                 <Check className="w-4 h-4" />
                 {aiSuggestion.original ? "Replace" : "Insert"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing extraction review */}
+      {pricing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <ListPlus className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-semibold">Review extracted pricing</span>
+              <span className="text-xs text-muted-foreground">— creates scenarios in this quote</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {pricing.map((s, si) => (
+                <div key={si} className={cn("rounded-lg border", !s.include && "opacity-50")}>
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
+                    <input
+                      type="checkbox"
+                      checked={s.include}
+                      onChange={(e) => setPricing(p => p!.map((x, i) => i === si ? { ...x, include: e.target.checked } : x))}
+                      className="rounded"
+                    />
+                    <input
+                      value={s.name}
+                      onChange={(e) => setPricing(p => p!.map((x, i) => i === si ? { ...x, name: e.target.value } : x))}
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-semibold"
+                    />
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground">
+                        <th className="text-left px-4 py-1.5 font-medium">Item</th>
+                        <th className="text-left px-2 py-1.5 font-medium">Billing</th>
+                        <th className="text-right px-2 py-1.5 font-medium">Qty</th>
+                        <th className="text-right px-2 py-1.5 font-medium">Unit</th>
+                        <th className="text-left px-2 py-1.5 font-medium w-56">Catalog action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {s.lineItems.map((it, li) => (
+                        <tr key={li}>
+                          <td className="px-4 py-1.5">
+                            {it.description}
+                            {it.match && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-amber-700 text-xs">
+                                <AlertTriangle className="w-3 h-3" /> in catalog
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{it.billing_period}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums">{it.quantity}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(it.unit_price)}</td>
+                          <td className="px-2 py-1.5">
+                            <select
+                              value={it.action}
+                              onChange={(e) => setPricing(p => p!.map((x, i) => i === si ? {
+                                ...x, lineItems: x.lineItems.map((y, j) => j === li ? { ...y, action: e.target.value as PItem["action"] } : y),
+                              } : x))}
+                              className="w-full rounded border bg-background px-1.5 py-1 text-xs"
+                            >
+                              {it.match && <option value="link">Use catalog item</option>}
+                              <option value="create">{it.match ? "Create new product" : "Add to Professional Services"}</option>
+                              <option value="freetext">Custom (no catalog)</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                Items already in your catalog default to the catalog version. New items are added to your Product
+                Catalog (Professional Services) unless you choose “Custom”. Up to 5 scenarios total per quote.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button
+                onClick={() => setPricing(null)}
+                disabled={applyBusy}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <X className="w-4 h-4" /> Cancel
+              </button>
+              <button
+                onClick={applyPricing}
+                disabled={applyBusy}
+                className="flex items-center gap-1.5 rounded-md bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {applyBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Create scenarios
               </button>
             </div>
           </div>

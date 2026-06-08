@@ -114,7 +114,23 @@ create table public.products (
   supplier_sku            text,
   autotask_id             text,
   quickbooks_online_id    text,
+  source                  text not null default 'manual'
+                            check (source in ('manual','csv','document_import')),
+  source_quote_id         uuid references public.quotes(id) on delete set null,
   created_at              timestamptz not null default now()
+);
+
+-- Product creation/change history (e.g. system-created from document import)
+create table public.product_audit (
+  id              uuid primary key default gen_random_uuid(),
+  tenant_id       uuid not null references public.tenants(id) on delete cascade,
+  product_id      uuid references public.products(id) on delete set null,
+  event           text not null check (event in ('created','updated','imported')),
+  source          text,
+  source_quote_id uuid references public.quotes(id) on delete set null,
+  details         jsonb,
+  created_by      uuid references public.users(id) on delete set null,
+  created_at      timestamptz not null default now()
 );
 
 -- ─── Product Pricing Tiers ────────────────────────────────────────────────────

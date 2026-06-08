@@ -88,6 +88,9 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 | `/api/quotes/[id]/pdf` | GET | Serializes quote→HTML, POSTs to Puppeteer service, returns PDF download |
 | `/api/quotes/[id]/duplicate` | POST | Clones quote + scenarios + line items + document into a fresh draft |
 | `/api/ai/write` | POST | Gemini Flash AI writing assistant (improve/expand/shorten/grammar/tone/generate/continue) |
+| `/api/ai/extract-pricing` | POST | Gemini JSON mode: document tables → proposed scenarios + line items, classified against catalog |
+| `/api/documents/parse-docx` | POST | mammoth .docx → HTML |
+| `/api/quotes/[id]/apply-pricing` | POST | Creates scenarios + line items from reviewed extraction; link/create(+audit)/freetext per item |
 
 #### PDF / Preview pipeline ✅ (renderer needs Railway deploy)
 - **Serializer** (`lib/pdf/serialize.ts`) — pure function: BlockNote blocks → print-ready HTML. Handles token substitution (`{{client.*}}`/`{{tenant.*}}`), `pageBreak`→CSS `page-break-after`, `scenarioTable`→live pricing tables, inline styles, lists, images. Includes full `<style>` (Letter @page, scenario table styling)
@@ -108,6 +111,10 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - **BlockNote "Position undefined out of range" crash** — custom `content:"none"` blocks (pageBreak) crash if loaded via `initialContent`, because the node view renders before ProseMirror's view exists and `getPos()` returns undefined. **Fix:** create the editor empty, then load saved content with `editor.replaceBlocks()` inside a `requestAnimationFrame` (post-mount, after view attaches). A `contentLoaded` ref guards against double-load; a `skipNextChange` ref suppresses the echo-save from the programmatic load
 - `reactStrictMode: false` in `next.config.mjs` — safeguard against BlockNote 0.14 editor double-mount under StrictMode (not the crash fix itself; remove once BlockNote is upgraded)
 - ProposalEditor uses an `onSaveReady` callback prop pattern (NOT `forwardRef`) — `forwardRef` conflicts with `dynamic()` and triggers extra render cycles. (Currently unused by parent since the manual Save button was removed, but the prop remains available)
+
+## ⚠️ PENDING MIGRATIONS (run in Supabase SQL editor)
+- `001_add_include_header_footer.sql` — header/footer toggle column
+- `002_product_provenance_and_audit.sql` — `products.source` + `products.source_quote_id` + `product_audit` table + RLS. **Required for the "Extract pricing → scenarios" feature** (creating catalog products writes provenance + audit).
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
@@ -138,6 +145,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 5. ~~**Import/upload Document from `.docx` or `.md`**~~ ✅ DONE — "Import" button in `proposal-editor.tsx` toolbar. `.md`/`.txt` parsed client-side via `editor.tryParseMarkdownToBlocks`; `.docx` → `POST /api/documents/parse-docx` (mammoth → HTML) → **custom `lib/import/html-to-blocks.ts`** converter (BlockNote 0.14's `tryParseHTMLToBlocks` mangles `<table>` — empty shell + content dumped into `children`; our converter builds proper `tableContent` rows/cells, plus headings/lists/links/images). Serializer (`serialize.ts`) now renders `table` blocks (`.doc-table`). Fills an empty doc (replaceBlocks) or inserts at cursor. NOTES: merged cells (colspan/rowspan) not supported (flattened); mammoth embeds images as base64 data URIs → can bloat `document_content`. Reusable for Templates.
 6. ~~**Tenant logo**~~ ✅ DONE — `tenants.logo_url` (column already existed). Upload UI in Settings → Company Profile (`settings-client.tsx`): uploads to `proposal-assets/tenant-logos/{tenantId}/...`, stores `sb-storage://` URL, signed-URL preview. Rendered on the PDF/Preview **first page** (`.doc-logo` above `doc-header` in `serialize.ts`); `load.ts` resolves the logo into the image map. NOT in the running header.
 7. **Dark mode** — add a dark-mode toggle/setting in the UI. Tailwind is already CSS-variable themed (`app/globals.css` has `.dark` tokens); needs a theme toggle + persistence (e.g. `next-themes` or a `class` on `<html>`).
+9. ~~**Document pricing tables → scenarios**~~ ✅ DONE — "Extract pricing" button in Document toolbar. `/api/ai/extract-pricing` (Gemini JSON) extracts line items grouped into scenarios + classifies each against the catalog (conservative normalized-name match). Review modal: per-item action — **link** (duplicate → forced catalog values), **create** (new product in Professional Services + `product_audit`), or **freetext**. `/api/quotes/[id]/apply-pricing` creates scenarios+line items; replaces the lone empty default scenario, caps at 5. Parent refreshes via `onPricingApplied`. **Needs migration 002.**
 8. **Product user documentation** — turn `docs/user-guide-notes.md` (running draft notes on Quotes/Scenarios/Line Items/Margins/Document/Ask AI/Preview/PDF/Header&Footer/Logo/Settings) into polished end-user docs. Keep adding to the notes file as features ship.
 3. ~~**Preview feature**~~ ✅ DONE (in-app iframe modal sharing the PDF serializer).
 4. **Quote ↔ Document relationship** — RESOLVED via the inline `scenarioTable` block: loosely integrated (document controls layout via placed pricing tables; line items remain the structured data). Revisit only if a tighter merge is wanted.
@@ -159,6 +167,8 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
   /api/quotes/[id]/duplicate/route.ts ← clone quote into a fresh draft
   /api/ai/write/route.ts             ← Gemini Flash AI writing assistant
   /api/documents/parse-docx/route.ts ← mammoth .docx → HTML (for Document import)
+  /api/ai/extract-pricing/route.ts   ← document tables → scenarios (Gemini JSON) + catalog match
+  /api/quotes/[id]/apply-pricing/route.ts ← create scenarios/line items + catalog products from review
   /(auth)/login/
   /(dashboard)/
     page.tsx                  ← dashboard home

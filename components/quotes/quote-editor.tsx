@@ -208,6 +208,27 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     proposalApiRef.current = api;
   }, []);
 
+  // After pricing extraction creates scenarios, refetch them and jump to Line Items.
+  const refreshScenarios = useCallback(async () => {
+    const { data } = await db
+      .from("quote_scenarios")
+      .select("*, line_items:quote_line_items(*)")
+      .eq("quote_id", initialQuote.id)
+      .order("sort_order");
+    if (data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sorted = (data as any[]).map((s) => ({
+        ...s,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        line_items: [...(s.line_items ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order),
+      }));
+      setScenarios(sorted);
+      setActiveScenario(sorted[0]?.id ?? "");
+    }
+    setActiveTab("lineitems");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
 
@@ -605,6 +626,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               scenarios={scenarios}
               taxRate={taxRate}
               onReady={handleEditorReady}
+              onPricingApplied={refreshScenarios}
             />
           </div>
           )}

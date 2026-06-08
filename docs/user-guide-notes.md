@@ -91,6 +91,11 @@ A rich-text editor for the proposal body.
   inserted at your cursor. Use **Undo** if you don't like the result.
   *(Formatting maps as closely as possible — headings, lists, bold/italic, links,
   and images carry over; very complex Word layouts may simplify.)*
+- **Extract pricing → scenarios** — if your imported document has **pricing
+  tables**, click **Extract pricing** in the toolbar. The system reads the tables
+  (AI-assisted), proposes one **scenario** per pricing table with line items, and
+  opens a **review window**. Nothing is created until you confirm. See "Turning
+  document pricing into scenarios" below.
 - **Ask AI** — see below.
 
 ## Ask AI (writing assistant)
@@ -139,6 +144,44 @@ Options** in the quote's right-hand panel (default: on). Off = a clean document
 with no header/footer on any page.
 
 ---
+
+## Turning document pricing into scenarios
+
+After importing a Word/Markdown doc that contains pricing tables, use
+**Extract pricing** (Document toolbar) to convert those tables into structured
+**Scenarios** with line items.
+
+1. The system detects pricing tables (ignoring non-pricing tables like contact
+   or schedule tables) and proposes a scenario per table.
+2. A **review window** lets you rename scenarios, include/exclude them, and
+   decide what each line item does in your **Product Catalog**:
+   - **In catalog (duplicate):** if an item already exists in your catalog, it's
+     flagged and defaults to **using the catalog version** (the catalog's price
+     and details win). You can override if it's not actually the same item.
+   - **New item:** defaults to **adding it to your Product Catalog** under the
+     **Professional Services** category, so you don't have to re-enter it later.
+   - **Custom:** keep it as a one-off line item that is *not* added to the catalog.
+3. Click **Create scenarios**. You're taken to the Line Items tab with the new
+   scenarios. Up to **5 scenarios** per quote.
+
+Items added to the catalog this way are recorded with their origin (which quote/
+document they came from), so auto-created entries are traceable.
+
+## Product Catalog — how items get added
+
+There are now **two ways** to populate your Product Catalog (besides editing it
+directly):
+
+1. **CSV import** — bulk-import products from a spreadsheet (Products page →
+   Import CSV). Best for initial setup / bulk updates.
+2. **From a proposal document** — the "Extract pricing → scenarios" flow above
+   can add new line items to the catalog as you build quotes (mostly Professional
+   Services). This avoids manual data entry and keeps the catalog growing
+   organically. Duplicate items are detected and **not** re-created — the existing
+   catalog entry is used instead.
+
+System-created catalog entries keep a small history record (origin + date), so
+you can tell them apart from hand-curated or CSV-imported products.
 
 ## Settings
 
