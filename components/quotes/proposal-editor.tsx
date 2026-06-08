@@ -9,11 +9,12 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
 import { createClient } from "@/lib/supabase/client";
+import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 
@@ -362,6 +363,7 @@ type TextAlignment = "left" | "center" | "right";
 
 export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied }: Props) {
   const supabaseRef = useRef(createClient());
+  const tenantId = useTenantId();
   const quoteIdRef  = useRef(quoteId);
   const toast       = useToast();
   const toastRef    = useRef(toast);
@@ -651,6 +653,21 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     setAiSuggestion(null);
   }
 
+  // Fill an empty document, otherwise insert after the cursor. Shared by Import
+  // and Apply-template.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function insertBlocksIntoDoc(blocks: any[]) {
+    const ed = editorRef.current;
+    const doc = ed.document;
+    const docEmpty =
+      doc.length === 1 && doc[0].type === "paragraph" &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (!doc[0].content || (Array.isArray(doc[0].content) && (doc[0].content as any).length === 0));
+    if (docEmpty) ed.replaceBlocks(ed.document, blocks);
+    else ed.insertBlocks(blocks, ed.getTextCursorPosition().block, "after");
+    scheduleSave();
+  }
+
   // ── Import .docx / .md ────────────────────────────────────────────────────
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -690,19 +707,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
         toastRef.current.error("Nothing to import — the file appears empty");
         return;
       }
-      // Fill an empty document, otherwise insert after the cursor.
-      const doc = ed.document;
-      const docEmpty =
-        doc.length === 1 && doc[0].type === "paragraph" &&
-        (!doc[0].content || (Array.isArray(doc[0].content) && doc[0].content.length === 0));
-      if (docEmpty) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ed.replaceBlocks(ed.document, blocks as any);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ed.insertBlocks(blocks as any, ed.getTextCursorPosition().block, "after");
-      }
-      scheduleSave();
+      insertBlocksIntoDoc(blocks);
       toastRef.current.success("Document imported — use Undo if needed");
     } catch (e) {
       toastRef.current.error((e as Error).message);
@@ -710,6 +715,63 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
       setImporting(false);
     }
   }
+
+  // ── Templates (apply / save current document as a template) ─────────────────
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const [tplOpen, setTplOpen] = useState(false);
+  const [tplBusy, setTplBusy] = useState(false);
+  const [tplList, setTplList] = useState<{ id: string; name: string }[] | null>(null);
+  const [tplName, setTplName] = useState("");
+
+  async function openTemplates() {
+    setTplOpen(o => !o);
+    if (tplList === null) {
+      const { data } = await (supabaseRef.current as any)
+        .from("templates").select("id, name").eq("is_active", true).order("created_at", { ascending: false });
+      setTplList(data ?? []);
+    }
+  }
+
+  async function applyTemplate(id: string) {
+    setTplBusy(true);
+    try {
+      const { data, error } = await (supabaseRef.current as any)
+        .from("templates").select("document_content").eq("id", id).single();
+      if (error) throw new Error(error.message);
+      const blocks = Array.isArray(data?.document_content) ? data.document_content : [];
+      if (blocks.length === 0) { toastRef.current.error("That template is empty"); return; }
+      insertBlocksIntoDoc(blocks);
+      toastRef.current.success("Template applied — use Undo if needed");
+      setTplOpen(false);
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setTplBusy(false);
+    }
+  }
+
+  async function saveAsTemplate() {
+    const name = tplName.trim();
+    if (!name) { toastRef.current.error("Name the template first"); return; }
+    if (!tenantId) { toastRef.current.error("Still loading — try again in a moment"); return; }
+    setTplBusy(true);
+    try {
+      const blocks = editorRef.current.document;
+      const { error } = await (supabaseRef.current as any).from("templates").insert({
+        tenant_id: tenantId, name, document_content: blocks, source_file_type: "native", is_active: true,
+      });
+      if (error) throw new Error(error.message);
+      toastRef.current.success(`Saved template “${name}”`);
+      setTplName("");
+      setTplOpen(false);
+      setTplList(null); // refetch next open
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setTplBusy(false);
+    }
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   // ── Extract pricing tables → scenarios ────────────────────────────────────
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1128,6 +1190,65 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = ""; }}
           />
+        </div>
+
+        {/* Templates */}
+        <div className="relative">
+          <button
+            title="Apply a saved template, or save this document as a template"
+            onMouseDown={(e) => { e.preventDefault(); if (!tplBusy) openTemplates(); }}
+            disabled={tplBusy}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+          >
+            {tplBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookTemplate className="w-3.5 h-3.5" />}
+            Templates
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {tplOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onMouseDown={() => setTplOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border bg-white shadow-xl overflow-hidden">
+                <div className="px-4 py-2 bg-muted/40 border-b">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Save as template</p>
+                </div>
+                <div className="p-3 space-y-2">
+                  <input
+                    value={tplName}
+                    onChange={(e) => setTplName(e.target.value)}
+                    placeholder="Template name…"
+                    className="w-full text-sm rounded-md border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); if (tplName.trim()) saveAsTemplate(); }}
+                    disabled={!tplName.trim() || tplBusy}
+                    className="w-full rounded-md bg-primary text-primary-foreground text-sm font-medium py-1.5 hover:bg-primary/90 disabled:opacity-40 transition-colors"
+                  >
+                    Save current document
+                  </button>
+                </div>
+
+                <div className="px-4 py-2 bg-muted/40 border-y">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Apply a template</p>
+                </div>
+                <div className="max-h-56 overflow-y-auto">
+                  {tplList === null ? (
+                    <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>
+                  ) : tplList.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-muted-foreground">No templates yet.</p>
+                  ) : tplList.map(t => (
+                    <button
+                      key={t.id}
+                      onMouseDown={(e) => { e.preventDefault(); applyTemplate(t.id); }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors border-b last:border-0"
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Extract pricing tables → scenarios */}

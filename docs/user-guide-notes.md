@@ -181,6 +181,22 @@ with no header/footer on any page.
 
 ---
 
+## Templates
+
+Reusable proposal documents so you don't start every quote from scratch.
+
+- **Create a template:** in a quote's **Document** tab, build the content you want,
+  then use the **Templates** button → type a name → **Save current document**.
+- **Apply a template:** in a quote's Document tab, **Templates** → pick one under
+  "Apply a template." It fills an empty document, or inserts at your cursor
+  (use **Undo** if needed).
+- **Manage templates:** the **Templates** page (left nav) lists all templates —
+  rename them, edit their description, or delete.
+
+Templates store the document layout (text, fields, page breaks, pricing-table
+placeholders). When applied to a quote, pricing tables set to "Recommended" or
+"All" automatically reference that quote's own scenarios.
+
 ## Turning document pricing into scenarios
 
 After importing a Word/Markdown doc that contains pricing tables, use

@@ -133,7 +133,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
 - [x] ~~PDF generation + Preview~~ ✅ DONE (deployed to Railway; header/footer + per-document toggle)
-- [ ] Templates — create/edit/import (`.docx` via Mammoth.js, `.md`)
+- [x] ~~Templates~~ ✅ DONE — `/templates` page (`templates-client.tsx`): list/rename/describe/soft-delete (`is_active=false`). In the quote Document toolbar, a **Templates** dropdown: "Save current document as template" (writes `templates.document_content`) and "Apply a template" (loads content via shared `insertBlocksIntoDoc` — fills empty doc or inserts at cursor). Templates reuse the BlockNote block format; created from any quote's Document.
 - [ ] E-signature flow — DocuSeal integration (send for signature, webhook for completion)
 - [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added)
 - [ ] Quote "Send" flow — generate PDF → create DocuSeal submission → email signers
