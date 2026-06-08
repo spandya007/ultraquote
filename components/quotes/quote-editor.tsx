@@ -550,9 +550,12 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
             ))}
           </select>
 
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+          <label
+            className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
+            title="Show internal cost & profit margin (never shown to the client)"
+          >
             <input type="checkbox" checked={showMargins} onChange={e => { setShowMargins(e.target.checked); }} className="rounded" />
-            Margins
+            Profit margins
           </label>
 
           <button
@@ -973,6 +976,11 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 {scenarios.map((s, idx) => {
                   const totals = calcScenarioTotals(s.line_items, taxRate);
                   const color  = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
+                  // Internal profit margin across line items that have a cost set.
+                  const costed = s.line_items.filter(i => i.unit_cost != null && i.unit_price != null);
+                  const mRev  = costed.reduce((sum, i) => sum + i.quantity * (i.unit_price ?? 0), 0);
+                  const mCost = costed.reduce((sum, i) => sum + i.quantity * (i.unit_cost ?? 0), 0);
+                  const marginPct = mRev > 0 ? ((mRev - mCost) / mRev) * 100 : null;
                   return (
                     <div
                       key={s.id}
@@ -1000,6 +1008,19 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                       <p className={cn("text-xs font-bold border-t mt-1.5 pt-1.5", color.label, color.divider)}>
                         Total: {formatCurrency(totals.monthly + totals.onetime + totals.tax)}
                       </p>
+                      {showMargins && (
+                        <p className={cn("text-xs mt-1", color.label)}>
+                          Margin:{" "}
+                          <span className={cn(
+                            "font-semibold",
+                            marginPct == null ? "" :
+                            marginPct >= 30 ? "text-green-600" :
+                            marginPct >= 15 ? "text-yellow-600" : "text-red-600"
+                          )}>
+                            {marginPct != null ? `${marginPct.toFixed(1)}%` : "—"}
+                          </span>
+                        </p>
+                      )}
                     </div>
                   );
                 })}

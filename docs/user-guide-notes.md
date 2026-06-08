@@ -56,15 +56,20 @@ Each row has a description, billing period (**Monthly** or **One Time**),
 quantity, unit price, and an auto-calculated total. Scenario totals (monthly
 recurring, one-time, tax, grand total) compute automatically.
 
-## Margins
+## Profit margins
 
-Toggle the **Margins** checkbox in the top bar to show/hide cost and margin
-columns in the line-items table. This is an internal view — it adds a **Cost**
-column and a **Margin %** column (color-coded: green ≥30%, amber ≥15%, red below).
+Toggle **Profit margins** in the top bar to show internal **cost & profit margin**
+information. (This is *business* profit margin — not document page margins.)
 
-- Margins are **never shown to the client** — they don't appear in the Preview or
-  PDF, only in the editor.
-- The toggle is saved per-quote, so it stays as you left it.
+- In the **Line Items** tab it adds a **Cost** column and a **Margin %** column
+  (color-coded: green ≥30%, amber ≥15%, red below).
+- In the right-hand **Scenario Totals** panel (visible in both the Line Items and
+  Document tabs) each scenario shows its overall **Margin %**, so you can see
+  per-scenario margins even while writing the Document.
+- Margin % is calculated only over line items that have a cost set; items without
+  a cost are excluded (shows "—" if no costs are set).
+- Margins are **internal only** — they never appear in the Preview or PDF.
+- The toggle is saved per-quote.
 
 ---
 

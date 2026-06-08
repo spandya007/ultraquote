@@ -846,7 +846,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     <div className="flex flex-col h-full">
 
       {/* Persistent toolbar */}
-      <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-muted/10 shrink-0">
+      <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-muted/50 shrink-0">
 
         {/* Undo / Redo */}
         <div className="flex items-center gap-0.5 border-r pr-2 mr-1">
