@@ -159,6 +159,7 @@ create table public.quotes (
   valid_until           date,
   notes                 text,
   show_margins          boolean not null default false,
+  include_header_footer boolean not null default true,
   tax_rate              decimal(5,4),
   payment_terms         text,
   selected_scenario_id  uuid,

@@ -78,6 +78,7 @@ interface Quote {
   tax_rate: number | null;
   payment_terms: string | null;
   show_margins: boolean;
+  include_header_footer: boolean;
   notes: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   document_content: any[] | null;
@@ -189,6 +190,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [showMargins, setShowMargins] = useState(initialQuote.show_margins);
+  const [includeHeaderFooter, setIncludeHeaderFooter] = useState(initialQuote.include_header_footer ?? true);
   const [activeTab, setActiveTab] = useState<"lineitems" | "document">("lineitems");
   // Track whether the Document tab has ever been opened so we don't mount
   // the BlockNote editor while it's hidden (display:none causes ProseMirror
@@ -226,13 +228,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current);
     quoteSaveTimer.current = setTimeout(async () => {
       const { error } = await db.from("quotes").update({
-        title:         quote.title,
-        status:        quote.status,
-        valid_until:   quote.valid_until,
-        tax_rate:      quote.tax_rate,
-        payment_terms: quote.payment_terms,
-        notes:         quote.notes,
-        show_margins:  showMargins,
+        title:                 quote.title,
+        status:                quote.status,
+        valid_until:           quote.valid_until,
+        tax_rate:              quote.tax_rate,
+        payment_terms:         quote.payment_terms,
+        notes:                 quote.notes,
+        show_margins:          showMargins,
+        include_header_footer: includeHeaderFooter,
       }).eq("id", quote.id);
 
       if (error) {
@@ -247,7 +250,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     return () => { if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current); };
   // db/toast are stable enough; we intentionally key off the quote fields only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote.title, quote.status, quote.valid_until, quote.tax_rate, quote.payment_terms, quote.notes, showMargins]);
+  }, [quote.title, quote.status, quote.valid_until, quote.tax_rate, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
 
   // ── Preview ────────────────────────────────────────────────────────────────
   // Flush both document + metadata saves first so the server-rendered preview
@@ -262,13 +265,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     await Promise.all([
       proposalApiRef.current?.saveNow(),
       db.from("quotes").update({
-        title:         quote.title,
-        status:        quote.status,
-        valid_until:   quote.valid_until,
-        tax_rate:      quote.tax_rate,
-        payment_terms: quote.payment_terms,
-        notes:         quote.notes,
-        show_margins:  showMargins,
+        title:                 quote.title,
+        status:                quote.status,
+        valid_until:           quote.valid_until,
+        tax_rate:              quote.tax_rate,
+        payment_terms:         quote.payment_terms,
+        notes:                 quote.notes,
+        show_margins:          showMargins,
+        include_header_footer: includeHeaderFooter,
       }).eq("id", quote.id),
     ]);
     setPreviewOpen(true);
@@ -906,6 +910,25 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 />
               </div>
             </div>
+          </section>
+
+          {/* PDF options */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">PDF Options</h3>
+            <label className="flex items-start gap-2 cursor-pointer rounded-md border bg-background p-3">
+              <input
+                type="checkbox"
+                checked={includeHeaderFooter}
+                onChange={(e) => setIncludeHeaderFooter(e.target.checked)}
+                className="mt-0.5 rounded"
+              />
+              <span className="text-sm">
+                Header &amp; footer
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Company name, quote number, confidentiality line, and page numbers on every page after the cover.
+                </span>
+              </span>
+            </label>
           </section>
 
           {/* Client info */}

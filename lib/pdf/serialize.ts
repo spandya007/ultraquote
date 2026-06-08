@@ -261,30 +261,19 @@ export function buildDocumentBody(input: SerializeInput): string {
   return renderBlocks(input, tokenMap);
 }
 
-// ─── Running header / footer (Puppeteer templates) ─────────────────────────────
-// These are rendered by Puppeteer into the page margin on every page EXCEPT the
-// first (suppressed via `@page :first { margin-top/bottom: 0 }` in buildFullHtml).
-// They don't inherit the page stylesheet, so all styles are inline and font
-// sizes are explicit. `pageNumber`/`totalPages` are auto-filled by Puppeteer.
-
-const HF_WRAP =
-  "font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:9px;color:#64748b;" +
-  "width:100%;padding:0 0.75in;display:flex;justify-content:space-between;align-items:center;";
-
-export function buildHeaderTemplate(input: SerializeInput): string {
-  const { quote, tenant } = input;
-  return `<div style="${HF_WRAP}border-bottom:0.5px solid #cbd5e1;padding-bottom:4px;">
-    <span>${escapeHtml(tenant.name || "")}</span>
-    <span style="font-family:monospace;">${escapeHtml(quote.quote_number || "")}</span>
-  </div>`;
+// Header/footer are stamped onto pages 2+ by the pdf-service using pdf-lib
+// (so numbering can start at 1 on the second physical page). The data it needs:
+export interface HeaderFooterMeta {
+  tenantName: string;
+  quoteNumber: string;
+  clientCompany: string;
 }
-
-export function buildFooterTemplate(input: SerializeInput): string {
-  const { client } = input;
-  return `<div style="${HF_WRAP}border-top:0.5px solid #cbd5e1;padding-top:4px;">
-    <span>Confidential — prepared for ${escapeHtml(client.company_name || "")}</span>
-    <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
-  </div>`;
+export function buildHeaderFooterMeta(input: SerializeInput): HeaderFooterMeta {
+  return {
+    tenantName:    input.tenant.name || "",
+    quoteNumber:   input.quote.quote_number || "",
+    clientCompany: input.client.company_name || "",
+  };
 }
 
 /** Renders a complete, print-ready HTML page. */
@@ -299,16 +288,11 @@ export function buildFullHtml(input: SerializeInput): string {
 <title>${escapeHtml(quote.title || quote.quote_number || "Proposal")}</title>
 <style>
   @page { size: Letter; margin: 0.75in; }
-  /* No running header/footer on the first page: zero its top/bottom margin so
-     Puppeteer has no margin box to draw them in. Left/right stay aligned. */
-  @page :first { margin-top: 0; margin-bottom: 0; }
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b; font-size: 12pt; line-height: 1.6; margin: 0;
   }
-  /* Page 1 has no top page-margin (see @page:first), so inset its first content. */
-  @media print { body { padding-top: 0.75in; } }
   /* The @page margin applies to the printed PDF. For the on-screen Preview
      (iframe) there is no @page margin, so pad the body to match — also caps the
      content width so long lines stay readable, like a real page. */

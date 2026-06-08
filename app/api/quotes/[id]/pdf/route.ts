@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loadSerializeInput } from "@/lib/pdf/load";
-import { buildFullHtml, buildHeaderTemplate, buildFooterTemplate } from "@/lib/pdf/serialize";
+import { buildFullHtml, buildHeaderFooterMeta } from "@/lib/pdf/serialize";
 
 // Renders the quote to PDF by sending the serialized HTML to the external
 // Puppeteer service (see /pdf-service). Returns the PDF as a download.
@@ -25,9 +25,17 @@ export async function GET(
   const input = await loadSerializeInput(supabase, params.id);
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
 
+  // Per-document header/footer toggle (defaults on if column/row missing).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tog } = await (supabase as any)
+    .from("quotes")
+    .select("include_header_footer")
+    .eq("id", params.id)
+    .single();
+  const headerFooter = tog?.include_header_footer !== false;
+
   const html = buildFullHtml(input);
-  const headerHtml = buildHeaderTemplate(input);
-  const footerHtml = buildFooterTemplate(input);
+  const meta = buildHeaderFooterMeta(input);
 
   let pdfRes: Response;
   try {
@@ -37,7 +45,7 @@ export async function GET(
         "Content-Type": "application/json",
         ...(process.env.PDF_SERVICE_TOKEN ? { Authorization: `Bearer ${process.env.PDF_SERVICE_TOKEN}` } : {}),
       },
-      body: JSON.stringify({ html, headerHtml, footerHtml }),
+      body: JSON.stringify({ html, headerFooter, meta }),
     });
   } catch (e) {
     return NextResponse.json(
