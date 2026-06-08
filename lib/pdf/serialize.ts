@@ -178,6 +178,12 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
   // Stable color index per scenario id, by sort position (matches the editor).
   const colorIndex: Record<string, number> = {};
   [...scenarios].sort((a, b) => a.sort_order - b.sort_order).forEach((s, i) => { colorIndex[s.id] = i; });
+  // Renders a block array; recurses into each block's children so NESTED content
+  // (e.g. a table nested under a paragraph) is not dropped.
+  function renderChildren(b: DocBlock): string {
+    return Array.isArray(b.children) && b.children.length ? renderArray(b.children) : "";
+  }
+  function renderArray(blocks: DocBlock[]): string {
   const out: string[] = [];
 
   let i = 0;
@@ -189,6 +195,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       case "heading": {
         const level = Math.min(Math.max(Number(props.level) || 1, 1), 3);
         out.push(`<h${level}${alignStyle(props)}>${renderInline(block.content, tokenMap)}</h${level}>`);
+        out.push(renderChildren(block));
         i++;
         break;
       }
@@ -199,7 +206,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         const tag = block.type === "bulletListItem" ? "ul" : "ol";
         const items: string[] = [];
         while (i < blocks.length && blocks[i].type === block.type) {
-          items.push(`<li>${renderInline(blocks[i].content, tokenMap)}</li>`);
+          items.push(`<li>${renderInline(blocks[i].content, tokenMap)}${renderChildren(blocks[i])}</li>`);
           i++;
         }
         out.push(`<${tag}>${items.join("")}</${tag}>`);
@@ -217,6 +224,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         out.push(
           `<figure style="text-align:${align}"><img src="${escapeHtml(url)}"${width} />${caption}</figure>`
         );
+        out.push(renderChildren(block));
         i++;
         break;
       }
@@ -237,6 +245,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
           return `<tr>${cells}</tr>`;
         }).join("");
         if (rowsHtml) out.push(`<table class="doc-table">${rowsHtml}</table>`);
+        out.push(renderChildren(block));
         i++;
         break;
       }
@@ -252,6 +261,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       default: {
         const inner = renderInline(block.content, tokenMap);
         out.push(`<p${alignStyle(props)}>${inner || "&nbsp;"}</p>`);
+        out.push(renderChildren(block));
         i++;
         break;
       }
@@ -259,6 +269,9 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
   }
 
   return out.join("\n");
+  }
+
+  return renderArray(blocks);
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────

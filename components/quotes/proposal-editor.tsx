@@ -691,17 +691,25 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
     return Array.isArray(b?.content) ? b.content.map((n: any) => n?.text ?? "").join("") : "";
   }
   function gatherTables() {
-    const doc = editorRef.current.document;
     const tables: { heading: string; rows: string[][] }[] = [];
-    let heading = "";
-    for (const b of doc) {
-      if (b.type === "heading") heading = blockText(b);
-      else if (b.type === "table") {
-        const rows = (((b.content as any)?.rows) ?? []).map((r: any) =>
-          (r.cells ?? []).map((cell: any) => Array.isArray(cell) ? cell.map((n: any) => n?.text ?? "").join("") : ""));
-        tables.push({ heading, rows });
+    // Walk recursively: tables can be NESTED inside a block's children (e.g. a
+    // table under a descriptive paragraph), which the old top-level-only scan missed.
+    const walk = (blocks: any[], heading: string) => {
+      for (const b of blocks) {
+        if (b.type === "heading") heading = blockText(b);
+        if (b.type === "table") {
+          const rows = (((b.content as any)?.rows) ?? []).map((r: any) =>
+            (r.cells ?? []).map((cell: any) => Array.isArray(cell) ? cell.map((n: any) => n?.text ?? "").join("") : ""));
+          tables.push({ heading, rows });
+        }
+        if (Array.isArray(b.children) && b.children.length) {
+          // A non-table parent's text becomes the heading hint for its nested tables.
+          const childHeading = b.type !== "table" && blockText(b) ? blockText(b) : heading;
+          walk(b.children, childHeading);
+        }
       }
-    }
+    };
+    walk(editorRef.current.document, "");
     return tables;
   }
 
