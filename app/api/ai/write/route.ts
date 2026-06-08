@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
 
 // AI writing assistant for the proposal Document. Calls Google Gemini Flash
 // server-side (key never reaches the browser) and returns generated/edited text.
@@ -136,30 +137,23 @@ export async function POST(request: NextRequest) {
   // ── Call Gemini ────────────────────────────────────────────────────────────
   let resp: Response;
   try {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-          generationConfig: {
-            temperature,
-            maxOutputTokens: 1536,
-            // gemini-2.5-flash is a "thinking" model; disable thinking so the
-            // whole token budget goes to the answer (faster, no truncation).
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      }
-    );
+    resp = await geminiGenerate(MODEL, apiKey, {
+      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+      generationConfig: {
+        temperature,
+        maxOutputTokens: 1536,
+        // gemini-2.5-flash is a "thinking" model; disable thinking so the
+        // whole token budget goes to the answer (faster, no truncation).
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    });
   } catch (e) {
     return NextResponse.json({ error: `AI service unreachable: ${(e as Error).message}` }, { status: 502 });
   }
 
   if (!resp.ok) {
     const detail = await resp.text().catch(() => "");
-    return NextResponse.json({ error: `AI error (${resp.status})`, detail }, { status: 502 });
+    return NextResponse.json({ error: geminiErrorMessage(resp.status), detail }, { status: 502 });
   }
 
   const data = await resp.json();

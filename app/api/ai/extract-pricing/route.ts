@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
 
 // Extracts pricing line items from imported document tables (via Gemini JSON
 // mode) and classifies each against the tenant's product catalog.
@@ -57,28 +58,21 @@ export async function POST(request: NextRequest) {
 
   let resp: Response;
   try {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      }
-    );
+    resp = await geminiGenerate(MODEL, apiKey, {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    });
   } catch (e) {
     return NextResponse.json({ error: `AI service unreachable: ${(e as Error).message}` }, { status: 502 });
   }
   if (!resp.ok) {
     const detail = await resp.text().catch(() => "");
-    return NextResponse.json({ error: `AI error (${resp.status})`, detail }, { status: 502 });
+    return NextResponse.json({ error: geminiErrorMessage(resp.status), detail }, { status: 502 });
   }
 
   const data = await resp.json();
