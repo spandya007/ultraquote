@@ -119,17 +119,17 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
-- Code pushed to GitHub `spandya007/ultraquote` (branch `main`, latest commit `54405b7`).
-- **PDF service is deployed on Railway** (Docker, `/pdf-service`) and `/health` returns ok. Auto-redeploys on push.
-- AI writing, Duplicate Quote, optional pricing, scenario color-coding, scenario-delete guard, PDF header/footer (cover excluded, numbering from page 2), per-document header/footer toggle — all **built, tested, and working locally**.
-- Web app **not yet deployed to Netlify** (see `DEPLOY.md`).
+- Code on GitHub `spandya007/ultraquote` (branch `main`, latest commit `3d60352`).
+- **PDF service deployed on Railway** (Docker, `/pdf-service`), `/health` ok, auto-redeploys on push. **Web app NOT yet deployed to Netlify** (see `DEPLOY.md`).
+- **Built, tested, working locally** (everything below): AI writing (Gemini 2.5-flash, retry on 429/503), Duplicate Quote, optional pricing + warning, scenario color-coding, scenario-delete guard, PDF header/footer (cover excluded, numbering from p2) + per-doc toggle, **Dashboard** (pipeline/status/expiring/recent), **Templates** (page + editor `/templates/[id]` + Save/Apply in Document toolbar), **Document import** `.docx/.html/.md` (custom `html-to-blocks`, tables), **Extract pricing → scenarios** (Gemini JSON + catalog match/create/freetext, dedup, confirm-before-add), **tenant logo** (Settings, first-page PDF) + sidebar branding, **client logo** (`{{client.logo}}` field, client cards), **app icons** (favicon/apple/PWA from `docs/brand/uq512.png`) + manifest + icon in sidebar/login, **Sign out** button (confirm dialog).
+- Fixed: App Router cache staleness (`staleTimes:0` + `force-dynamic` on list pages; `router.refresh()` on /templates), duplicate quote-title rejection, nested-table extraction/serialization, toolbar reorg + tooltips.
 
-**Outstanding manual steps before/while deploying:**
-1. Run migration `supabase/migrations/001_add_include_header_footer.sql` in Supabase SQL editor (required — saving a quote fails without the column). *(If already run locally, also fine.)*
-2. Netlify env vars (full list in `DEPLOY.md`): Supabase ×3, `PDF_SERVICE_URL`, `PDF_SERVICE_TOKEN`, `GEMINI_API_KEY`.
-3. Local `.env.local` already has Supabase + `GEMINI_API_KEY`; set `PDF_SERVICE_URL`/`PDF_SERVICE_TOKEN` locally if testing PDF download from laptop.
+**Outstanding manual steps:**
+1. **Run pending migrations** in Supabase SQL editor (see "PENDING MIGRATIONS" above): `001` (header/footer — done earlier), `002` (product provenance/audit — done earlier), **`003_add_client_logo.sql`** (clients.logo_url — needed for client logo).
+2. Restart `npm run dev` after any `next.config.mjs` change (staleTimes).
+3. Netlify env vars (in `DEPLOY.md`): Supabase ×3, `PDF_SERVICE_URL`, `PDF_SERVICE_TOKEN`, `GEMINI_API_KEY`.
 
-**Good next features to pick up:** Tenant logo (backlog #6, pairs with Settings page) · `.docx`/`.md` document import (backlog #5) · Templates · DocuSeal e-sign + Send flow · Dashboard stats.
+**Good next features:** DocuSeal e-sign + **Send flow** (do after Netlify deploy — needs public webhook + email) · Dark mode (#7) · BlockNote upgrade + two-column (#10, see `docs/blocknote-upgrade-plan.md`) · Polish product docs (#8, `docs/user-guide-notes.md`).
 
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
