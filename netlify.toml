@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Netlify's official Next.js runtime (App Router, server components, API routes).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
