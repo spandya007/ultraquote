@@ -200,6 +200,11 @@ Templates store the document layout (text, fields, page breaks, pricing-table
 placeholders). When applied to a quote, pricing tables set to "Recommended" or
 "All" automatically reference that quote's own scenarios.
 
+**What a template does NOT include:** scenarios, line items, or pricing. Those are
+per-quote data — a template only reuses the *write-up*. To clone an entire deal
+including its pricing, use **Duplicate** on the Quotes list instead. (A template's
+pricing tables are placeholders that fill in from each quote's own scenarios.)
+
 ## Turning document pricing into scenarios
 
 After importing a Word/Markdown doc that contains pricing tables, use
