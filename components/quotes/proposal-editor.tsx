@@ -150,7 +150,9 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
 
       {shown.length === 0 ? (
         <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>
-          Referenced scenario no longer exists — pick another above.
+          {scenarios.length === 0
+            ? "Pricing table placeholder — will use the quote's scenarios when this template is applied."
+            : "Referenced scenario no longer exists — pick another above."}
         </div>
       ) : shown.map(s => {
         const monthly = scenarioMonthly(s);
@@ -331,7 +333,10 @@ interface TenantData {
 }
 
 interface Props {
+  /** The row id to save into — a quote id, or a template id when isTemplate. */
   quoteId: string;
+  /** Template mode: persist to `templates.document_content`; hides quote-only actions. */
+  isTemplate?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialContent: any[] | null;
   clientData: ClientData | null;
@@ -361,8 +366,10 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied }: Props) {
+export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied }: Props) {
   const supabaseRef = useRef(createClient());
+  const isTemplateRef = useRef(isTemplate);
+  isTemplateRef.current = isTemplate;
   const tenantId = useTenantId();
   const quoteIdRef  = useRef(quoteId);
   const toast       = useToast();
@@ -459,7 +466,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabaseRef.current as any)
-      .from("quotes")
+      .from(isTemplateRef.current ? "templates" : "quotes")
       .update({ document_content: blocks })
       .eq("id", quoteIdRef.current)
       .select("id");
@@ -1192,7 +1199,8 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
           />
         </div>
 
-        {/* Templates */}
+        {/* Templates (not shown while editing a template itself) */}
+        {!isTemplate && (
         <div className="relative">
           <button
             title="Apply a saved template, or save this document as a template"
@@ -1250,8 +1258,10 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
             </>
           )}
         </div>
+        )}
 
-        {/* Extract pricing tables → scenarios */}
+        {/* Extract pricing tables → scenarios (quote-only) */}
+        {!isTemplate && (
         <div>
           <button
             title="Detect pricing tables and turn them into scenarios"
@@ -1263,6 +1273,7 @@ export function ProposalEditor({ quoteId, initialContent, clientData, tenantData
             {extractBusy ? "Scanning…" : "Extract pricing"}
           </button>
         </div>
+        )}
 
         <span className={cn(
           "text-xs transition-colors duration-300 ml-3 border-l pl-3 min-w-[58px] text-right",

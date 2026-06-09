@@ -190,6 +190,9 @@ Reusable proposal documents so you don't start every quote from scratch.
 - **Apply a template:** in a quote's Document tab, **Templates** → pick one under
   "Apply a template." It fills an empty document, or inserts at your cursor
   (use **Undo** if needed).
+- **View / edit a template:** on the **Templates** page, click **Open editor** on a
+  template to edit its content in the full document editor (formatting, fields,
+  page breaks, pricing-table placeholders, import, Ask AI). Changes auto-save.
 - **Manage templates:** the **Templates** page (left nav) lists all templates —
   rename them, edit their description, or delete.
 

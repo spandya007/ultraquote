@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookTemplate, Trash2, FileText } from "lucide-react";
+import { BookTemplate, Trash2, FileText, PenLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/utils/format";
@@ -86,7 +87,15 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
                     rows={2}
                     className="w-full text-sm text-muted-foreground bg-transparent border-none outline-none focus:ring-0 p-0 mt-1 resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">Created {formatDate(t.created_at)}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-muted-foreground">Created {formatDate(t.created_at)}</p>
+                    <Link
+                      href={`/templates/${t.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <PenLine className="w-3.5 h-3.5" /> Open editor
+                    </Link>
+                  </div>
                 </div>
                 {confirmId === t.id ? (
                   <div className="flex items-center gap-1 shrink-0">

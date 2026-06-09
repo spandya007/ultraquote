@@ -133,7 +133,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
 - [x] ~~PDF generation + Preview~~ ✅ DONE (deployed to Railway; header/footer + per-document toggle)
-- [x] ~~Templates~~ ✅ DONE — `/templates` page (`templates-client.tsx`): list/rename/describe/soft-delete (`is_active=false`). In the quote Document toolbar, a **Templates** dropdown: "Save current document as template" (writes `templates.document_content`) and "Apply a template" (loads content via shared `insertBlocksIntoDoc` — fills empty doc or inserts at cursor). Templates reuse the BlockNote block format; created from any quote's Document.
+- [x] ~~Templates~~ ✅ DONE — `/templates` page (`templates-client.tsx`): list/rename/describe/soft-delete (`is_active=false`), "Open editor" link → `/templates/[id]` (`template-editor.tsx`) which reuses **`ProposalEditor` in `isTemplate` mode** (saves to `templates.document_content`; quote-only actions Extract pricing + Templates dropdown hidden; pricing-table block shows a placeholder note when no scenarios). Quote Document toolbar has a **Templates** dropdown: "Save current document as template" + "Apply a template" (shared `insertBlocksIntoDoc`). `/templates` uses `router.refresh()` on view to dodge the App Router cache.
 - [ ] E-signature flow — DocuSeal integration (send for signature, webhook for completion)
 - [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added)
 - [ ] Quote "Send" flow — generate PDF → create DocuSeal submission → email signers
