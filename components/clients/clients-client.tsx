@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Plus, Search, Building2, Mail, Phone, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
@@ -19,6 +19,32 @@ export function ClientsClient({ initialClients }: Props) {
   const [filterActive, setFilterActive] = useState<"active" | "inactive" | "all">("active");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [logoMap, setLogoMap] = useState<Record<string, string>>({});
+
+  // Resolve each client's sb-storage:// logo to a signed URL for the cards.
+  useEffect(() => {
+    let active = true;
+    const SCHEME = "sb-storage://";
+    (async () => {
+      const entries = await Promise.all(
+        clients
+          .filter(c => c.logo_url?.startsWith(SCHEME))
+          .map(async (c) => {
+            const rest = (c.logo_url as string).slice(SCHEME.length);
+            const slash = rest.indexOf("/");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data } = await (supabase as any).storage
+              .from(rest.slice(0, slash)).createSignedUrl(rest.slice(slash + 1), 3600);
+            return [c.id, data?.signedUrl] as [string, string | undefined];
+          })
+      );
+      if (!active) return;
+      const map: Record<string, string> = {};
+      for (const [id, signed] of entries) if (signed) map[id] = signed;
+      setLogoMap(map);
+    })();
+    return () => { active = false; };
+  }, [clients, supabase]);
 
   const refreshClients = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,9 +143,18 @@ export function ClientsClient({ initialClients }: Props) {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm shrink-0">
-                    {client.company_name.slice(0, 2).toUpperCase()}
-                  </div>
+                  {logoMap[client.id] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoMap[client.id]}
+                      alt={client.company_name}
+                      className="w-10 h-10 rounded-md object-contain bg-white border shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm shrink-0">
+                      {client.company_name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <p className="font-semibold leading-tight">{client.company_name}</p>
                     {client.contact_name && (
