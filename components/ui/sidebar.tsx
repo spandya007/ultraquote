@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -25,8 +26,11 @@ const navItems = [
 
 export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function signOut() {
+    setSigningOut(true);
     await createClient().auth.signOut();
     // Full navigation so server state + middleware re-evaluate cleanly.
     window.location.href = "/login";
@@ -73,13 +77,41 @@ export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: 
       </nav>
       <div className="px-3 py-3 border-t">
         <button
-          onClick={signOut}
+          onClick={() => setConfirmOpen(true)}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign out
         </button>
       </div>
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background rounded-xl border shadow-2xl w-full max-w-sm p-5">
+            <h3 className="font-semibold">Sign out?</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              You’ll need to sign in again to access your quotes.
+            </p>
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                disabled={signingOut}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={signOut}
+                disabled={signingOut}
+                className="flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <LogOut className="w-4 h-4" />
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
