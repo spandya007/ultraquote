@@ -87,11 +87,11 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
                     rows={2}
                     className="w-full text-sm text-muted-foreground bg-transparent border-none outline-none focus:ring-0 p-0 mt-1 resize-none"
                   />
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center justify-between mt-3">
                     <p className="text-xs text-muted-foreground">Created {formatDate(t.created_at)}</p>
                     <Link
                       href={`/templates/${t.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                     >
                       <PenLine className="w-3.5 h-3.5" /> Open editor
                     </Link>
