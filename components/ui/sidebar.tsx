@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   FileText,
@@ -10,6 +11,7 @@ import {
   Package,
   BookTemplate,
   Settings,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -23,6 +25,12 @@ const navItems = [
 
 export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: string | null }) {
   const pathname = usePathname();
+
+  async function signOut() {
+    await createClient().auth.signOut();
+    // Full navigation so server state + middleware re-evaluate cleanly.
+    window.location.href = "/login";
+  }
 
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col h-screen">
@@ -63,6 +71,15 @@ export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: 
           );
         })}
       </nav>
+      <div className="px-3 py-3 border-t">
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }
