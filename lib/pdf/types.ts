@@ -72,4 +72,7 @@ export interface SerializeInput {
   tenant: SerializeTenant;
   /** Maps `sb-storage://bucket/path` → signed https URL (pre-resolved by caller). */
   imageUrlMap?: Record<string, string>;
+  /** When true, signature-field blocks emit DocuSeal field tags (for /submissions/html)
+   *  instead of a plain signature line. */
+  forSigning?: boolean;
 }

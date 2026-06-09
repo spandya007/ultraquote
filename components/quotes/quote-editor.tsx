@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -232,6 +232,42 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
+
+  // ── Send for signature (DocuSeal) ───────────────────────────────────────────
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [noSigField, setNoSigField] = useState(false);
+  const [clientEmail, setClientEmail] = useState(quote.client.contact_email ?? "");
+  const [clientName, setClientName]   = useState(quote.client.contact_name ?? quote.client.company_name ?? "");
+  const [companyEmail, setCompanyEmail] = useState(tenant?.email ?? "");
+  const [companyName, setCompanyName]   = useState(tenant?.contact_name ?? tenant?.name ?? "");
+
+  async function openSend() {
+    // Flush the latest document so the signing copy is current.
+    await proposalApiRef.current?.saveNow();
+    setNoSigField(proposalApiRef.current ? !proposalApiRef.current.hasSignatureField() : false);
+    setSendOpen(true);
+  }
+
+  async function handleSend() {
+    setSending(true);
+    try {
+      const res = await fetch(`/api/quotes/${quote.id}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+      setQuote(q => ({ ...q, status: "sent" }));
+      setSendOpen(false);
+      toast.success(`Sent for signature to ${(data.signers ?? []).join(", ")}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSending(false);
+    }
+  }
 
   // Fetch the PDF with a loading indicator (the Railway render takes a few
   // seconds), then trigger the download. Shows a real error instead of saving an
@@ -593,6 +629,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
           >
             <Eye className="w-4 h-4" />
             Preview
+          </button>
+
+          <button
+            onClick={openSend}
+            className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Send className="w-4 h-4" />
+            Send for signature
           </button>
 
           {/* Auto-save status (replaces the manual Save button) */}
@@ -1156,6 +1200,56 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               title="Quote preview"
               className="w-full h-full bg-white rounded-lg shadow-xl border"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Send for signature modal */}
+      {sendOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-background rounded-xl border shadow-2xl w-full max-w-md">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Send className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Send for signature — {quote.quote_number}</span>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {noSigField && (
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>No <strong>signature field</strong> in the document. Add one in the Document tab (type <kbd className="px-1 rounded border bg-white text-xs">/signature</kbd>) so signers have somewhere to sign.</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                DocuSeal will email each signer a link. The client signs first, then your company counter-signs.
+              </p>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client signer</label>
+                <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name"
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="email@client.com"
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your company (counter-sign)</label>
+                <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Name"
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} placeholder="you@company.com"
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button onClick={() => setSendOpen(false)} disabled={sending}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50">
+                Cancel
+              </button>
+              <button onClick={handleSend} disabled={sending}
+                className="flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sending ? "Sending…" : "Send"}
+              </button>
+            </div>
           </div>
         </div>
       )}

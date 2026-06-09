@@ -235,6 +235,28 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      case "signatureField": {
+        const signer = props.signer === "tenant" ? "tenant" : "client";
+        if (input.forSigning) {
+          // DocuSeal HTML field tags assigned to a submitter role.
+          const role = signer === "tenant" ? "Company" : "Client";
+          out.push(
+            `<div class="sig-field">{{Signature;role=${role};type=signature}}` +
+            `<div class="sig-meta">{{Name;role=${role};type=text}} &nbsp;·&nbsp; {{Date;role=${role};type=date}}</div></div>`
+          );
+        } else {
+          const label = signer === "tenant"
+            ? escapeHtml(input.tenant.name || "Authorized signature")
+            : escapeHtml(input.client.company_name || "Client");
+          out.push(
+            `<div class="sig-line"><div class="sig-rule"></div>` +
+            `<div class="sig-label">${label} — Signature &nbsp;·&nbsp; Date</div></div>`
+          );
+        }
+        i++;
+        break;
+      }
+
       case "table": {
         // BlockNote table content: { type:"tableContent", rows:[{ cells: InlineContent[][] }] }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,6 +338,12 @@ export function buildHeaderFooterMeta(input: SerializeInput): HeaderFooterMeta {
 }
 
 /** Renders a complete, print-ready HTML page. */
+/** HTML for the e-signature copy: same as the PDF, but signature-field blocks
+ *  emit DocuSeal field tags. Sent to DocuSeal's /submissions/html. */
+export function buildSigningHtml(input: SerializeInput): string {
+  return buildFullHtml({ ...input, forSigning: true });
+}
+
 export function buildFullHtml(input: SerializeInput): string {
   const body = buildDocumentBody(input);
   const { quote, client, tenant, imageUrlMap = {} } = input;
@@ -370,6 +398,13 @@ export function buildFullHtml(input: SerializeInput): string {
   .doc-logo { margin-bottom: 16px; }
   .doc-logo img { max-height: 72px; max-width: 260px; object-fit: contain; }
   .inline-logo { max-height: 80px; max-width: 240px; vertical-align: middle; object-fit: contain; }
+
+  /* Signature blocks */
+  .sig-line { margin: 28px 0 8px; max-width: 320px; }
+  .sig-rule { border-bottom: 1px solid #475569; height: 28px; }
+  .sig-label { font-size: 9.5pt; color: #64748b; margin-top: 4px; }
+  .sig-field { margin: 24px 0 8px; }
+  .sig-meta { font-size: 9.5pt; color: #64748b; margin-top: 6px; }
 
   /* Imported (Word) tables */
   .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }

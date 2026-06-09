@@ -66,6 +66,18 @@ checks the **whole repo**, so the root `next` version must stay patched
    | `PDF_SERVICE_URL` | Railway PDF service URL (from step 2) |
    | `PDF_SERVICE_TOKEN` | Same random string set on Railway |
    | `GEMINI_API_KEY` | Google Gemini key — https://aistudio.google.com/apikey |
+   | `DOCUSEAL_API_TOKEN` | DocuSeal API token — https://console.docuseal.com → API |
+   | `DOCUSEAL_WEBHOOK_SECRET` | A long random string; appended to the webhook URL |
+
+## DocuSeal (e-signature) setup
+
+1. Create a DocuSeal **cloud** account → **console.docuseal.com → API** → copy the API token → set `DOCUSEAL_API_TOKEN` (+ a random `DOCUSEAL_WEBHOOK_SECRET`) in Netlify.
+2. **console.docuseal.com → Webhooks** → add endpoint:
+   `https://ultraquote.netlify.app/api/webhooks/docuseal?secret=<DOCUSEAL_WEBHOOK_SECRET>`
+   Subscribe to **form.viewed**, **form.completed**, **form.declined** (and submission.completed).
+3. In a quote's **Document**, place a **Signature Field** (type `/signature`, choose client or your company) → use **Send for signature**. DocuSeal emails the signer(s); the webhook flips the quote to `viewed` → `signed`.
+   - Until `DOCUSEAL_API_TOKEN` is set, the Send button returns a clean 501.
+   - The signing document is currently rendered by DocuSeal from our HTML (can later switch to the exact Puppeteer PDF for pixel-perfect fidelity).
 
 4. Set the variables for the **Production** context (and Deploy Previews if used).
 

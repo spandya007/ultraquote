@@ -9,7 +9,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -60,6 +60,46 @@ const PageBreakBlock = createReactBlockSpec(
         </div>
       </div>
     ),
+  }
+);
+
+// ─── Custom: Signature field block ────────────────────────────────────────────
+// Marks where a party signs. `signer` = "client" or "tenant" (your company).
+// In the normal Preview/PDF it renders a signature line; in the DocuSeal signing
+// copy the serializer emits a {{...;role=...;type=signature}} field tag.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function SignatureFieldView({ block, editor }: { block: any; editor: any }) {
+  const signer: string = block.props?.signer ?? "client";
+  return (
+    <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        border: "1px dashed #93c5fd", background: "#eff6ff", color: "#1e40af",
+        borderRadius: 6, padding: "8px 12px", fontSize: 12,
+      }}>
+        <span>✍ Signature field —</span>
+        <select
+          value={signer}
+          onChange={(e) => editor.updateBlock(block, { props: { signer: e.target.value } })}
+          style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+        >
+          <option value="client">Client signs here</option>
+          <option value="tenant">My company signs here</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+const SignatureFieldBlock = createReactBlockSpec(
+  {
+    type: "signatureField" as const,
+    propSchema: { signer: { default: "client" } },
+    content: "none",
+  },
+  {
+    render: (props) => <SignatureFieldView block={props.block} editor={props.editor} />,
   }
 );
 
@@ -240,6 +280,7 @@ const schema = BlockNoteSchema.create({
     ...defaultBlockSpecs,
     pageBreak: PageBreakBlock,
     scenarioTable: ScenarioTableBlock,
+    signatureField: SignatureFieldBlock,
   },
 });
 
@@ -277,6 +318,25 @@ function getScenarioSlashItem(editor: typeof schema.BlockNoteEditor) {
     aliases: ["scenario", "pricing", "price", "table", "quote"],
     group: "Layout",
     icon: <Table2 className="w-4 h-4" />,
+  };
+}
+
+// Slash-menu item for inserting a signature field
+function getSignatureSlashItem(editor: typeof schema.BlockNoteEditor) {
+  return {
+    title: "Signature Field",
+    subtext: "Place where a party signs (for Send for signature)",
+    onItemClick: () => {
+      editor.insertBlocks(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ type: "signatureField", props: { signer: "client" } } as any],
+        editor.getTextCursorPosition().block,
+        "after"
+      );
+    },
+    aliases: ["signature", "sign", "esign", "docuseal"],
+    group: "Layout",
+    icon: <PenLine className="w-4 h-4" />,
   };
 }
 
@@ -362,6 +422,8 @@ export interface ProposalEditorApi {
   /** scenarioRef values of every pricing table in the live document
    *  (e.g. "recommended", "all", or a specific scenario id). */
   documentScenarioRefs: () => string[];
+  /** True if the live document has at least one signature field. */
+  hasSignatureField: () => boolean;
 }
 
 type TextAlignment = "left" | "center" | "right";
@@ -509,6 +571,7 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
           .filter(b => b.type === "scenarioTable")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map(b => String((b.props as any)?.scenarioRef ?? "recommended")),
+      hasSignatureField: () => editorRef.current.document.some(b => b.type === "signatureField"),
     });
   // save is stable; onReady is memoised by the parent.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1306,6 +1369,7 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
                         ...getDefaultReactSlashMenuItems(editor),
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
+                        getSignatureSlashItem(editor),
                       ],
                       query
                     )

@@ -92,6 +92,8 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 | `/api/ai/extract-pricing` | POST | Gemini JSON mode: document tables → proposed scenarios + line items, classified against catalog |
 | `/api/documents/parse-docx` | POST | mammoth .docx → HTML |
 | `/api/quotes/[id]/apply-pricing` | POST | Creates scenarios + line items from reviewed extraction; link/create(+audit)/freetext per item |
+| `/api/quotes/[id]/send` | POST | DocuSeal: build signing HTML → create submission (client + MSP counter-sign) → records signers/session, sets quote `sent` |
+| `/api/webhooks/docuseal` | POST | DocuSeal webhook (secret-checked): updates signer/session/quote status (viewed→signed/declined), stores signed PDF URL |
 
 #### PDF / Preview pipeline ✅ (renderer needs Railway deploy)
 - **Serializer** (`lib/pdf/serialize.ts`) — pure function: BlockNote blocks → print-ready HTML. Handles token substitution (`{{client.*}}`/`{{tenant.*}}`), `pageBreak`→CSS `page-break-after`, `scenarioTable`→live pricing tables, inline styles, lists, images, `table` blocks. **Recurses into block `children`** (nested content, e.g. a table nested under a paragraph). Includes full `<style>` (Letter @page, scenario table styling). NOTE: `gatherTables()` in `proposal-editor.tsx` (pricing extraction) also recurses children — nested tables were previously missed
@@ -141,9 +143,8 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
 - [x] ~~PDF generation + Preview~~ ✅ DONE (deployed to Railway; header/footer + per-document toggle)
 - [x] ~~Templates~~ ✅ DONE — `/templates` page (`templates-client.tsx`): list/rename/describe/soft-delete (`is_active=false`), "Open editor" link → `/templates/[id]` (`template-editor.tsx`) which reuses **`ProposalEditor` in `isTemplate` mode** (saves to `templates.document_content`; quote-only actions Extract pricing + Templates dropdown hidden; pricing-table block shows a placeholder note when no scenarios). Quote Document toolbar has a **Templates** dropdown: "Save current document as template" + "Apply a template" (shared `insertBlocksIntoDoc`). `/templates` uses `router.refresh()` on view to dodge the App Router cache.
-- [ ] E-signature flow — DocuSeal integration (send for signature, webhook for completion)
-- [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added)
-- [ ] Quote "Send" flow — generate PDF → create DocuSeal submission → email signers
+- [x] ~~E-signature + Send flow (DocuSeal)~~ ✅ DONE (code) — **`/signature` block** (`signatureField`, signer=client|tenant) → serializer emits `{{...;role=Client|Company;type=signature}}` tags only in **signing mode** (`buildSigningHtml`), a plain signature line in normal Preview/PDF. **"Send for signature"** button → modal (client + your-company signers, prefilled) → `/api/quotes/[id]/send` builds signing HTML, calls DocuSeal `/submissions/html` (sequential order: client then MSP counter-sign, `send_email:true`), records `quote_signers` + `quote_signature_sessions`, sets quote `sent`. **`/api/webhooks/docuseal`** (service-role admin client, `?secret=` checked) maps `form.viewed/completed/declined` → updates signers/session/quote (`viewed`→`signed`/`declined`) + stores signed PDF URL. **Needs env: `DOCUSEAL_API_TOKEN`, `DOCUSEAL_WEBHOOK_SECRET` + webhook configured in DocuSeal console.** Uses `/submissions/html` (DocuSeal renders) — can upgrade to PDF-based for exact fidelity later.
+- [ ] Settings page — tenant profile, logo, quote number prefix, tax rate, payment terms (note: `tenants.contact_name` column + Company Profile field already added) ✅ (Settings built earlier)
 - [x] ~~Dashboard — meaningful stats~~ ✅ DONE — `app/(dashboard)/page.tsx`: open-pipeline value, monthly-recurring (open), won/win-rate, active clients; quotes-by-status bars; expiring-soon (≤14d); recent quotes. Uses each quote's recommended (or first) scenario totals. `force-dynamic`.
 
 ### Backlog / Reminders (user-requested — do not lose)
