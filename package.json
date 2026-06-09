@@ -9,33 +9,31 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@blocknote/core": "^0.14.4",
+    "@blocknote/mantine": "^0.14.4",
+    "@blocknote/react": "^0.14.4",
+    "@hookform/resolvers": "^3.9.0",
+    "@supabase/ssr": "^0.4.0",
+    "@supabase/supabase-js": "^2.44.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.414.0",
+    "mammoth": "^1.8.0",
     "next": "^14.2.35",
     "react": "^18",
     "react-dom": "^18",
-    "@supabase/supabase-js": "^2.44.4",
-    "@supabase/ssr": "^0.4.0",
-    "@tanstack/react-query": "^5.51.1",
-    "@tanstack/react-query-devtools": "^5.51.1",
-    "@blocknote/core": "^0.14.4",
-    "@blocknote/react": "^0.14.4",
-    "@blocknote/mantine": "^0.14.4",
-    "mammoth": "^1.8.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.4.0",
-    "lucide-react": "^0.414.0",
-    "date-fns": "^3.6.0",
-    "zod": "^3.23.8",
     "react-hook-form": "^7.52.1",
-    "@hookform/resolvers": "^3.9.0"
+    "tailwind-merge": "^2.4.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.0.1",
     "postcss": "^8",
-    "autoprefixer": "^10.0.1"
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
