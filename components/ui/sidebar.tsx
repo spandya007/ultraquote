@@ -27,9 +27,13 @@ export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: 
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col h-screen">
       <div className="px-6 py-5 border-b space-y-2">
-        <span className="block text-xs font-semibold text-muted-foreground tracking-wide">
-          UltraQuote Builder for
-        </span>
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md shrink-0" />
+          <span className="text-xs font-semibold text-muted-foreground tracking-wide">
+            UltraQuote Builder for
+          </span>
+        </div>
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt={brandName || "Company logo"} className="max-h-10 max-w-full object-contain" />
