@@ -1,5 +1,8 @@
 # MSP QuoteBuilder — Project Context
 
+## ⚠️ Workflow rule
+**Do not `git push` after every change.** Netlify auto-deploys on each push to `main` and the user is on the free tier (build minutes). Commit locally as work lands; push only when the user asks ("push"/"deploy") or wants to test on the live site. Remind the user of unpushed commits before ending a session.
+
 ## What This App Does
 Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create, manage, and send professional proposals/quotes to clients.
 
