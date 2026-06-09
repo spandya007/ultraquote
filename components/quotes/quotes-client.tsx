@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, FileText, Copy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -48,6 +48,9 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
   // Use the server prop directly (don't freeze it in state) so the list always
   // reflects the latest fetch after navigation/refresh.
   const quotes = initialQuotes;
+  // Re-fetch on every visit — the App Router client cache can serve a stale
+  // payload on soft navigation (e.g. returning here after sending a quote).
+  useEffect(() => { router.refresh(); }, [router]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | "all">("all");
   const [filterClient, setFilterClient] = useState<string>("all");

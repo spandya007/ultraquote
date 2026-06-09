@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { RefreshOnMount } from "@/components/ui/refresh-on-mount";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { DollarSign, Repeat, CheckCircle2, Users, FileText, Clock, ArrowRight } from "lucide-react";
@@ -81,6 +82,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <RefreshOnMount />
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Your pipeline at a glance</p>
