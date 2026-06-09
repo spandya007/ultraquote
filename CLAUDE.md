@@ -120,7 +120,9 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
-- Code on GitHub `spandya007/ultraquote` (branch `main`, latest commit `3d60352`).
+- Code on GitHub `spandya007/ultraquote` (branch `main`, latest commit `c7f9f4e`).
+- Recently also: removed unused React Query (provider+deps); **app icons/branding** (favicon/apple/PWA + manifest, icon in sidebar & login) from `docs/brand/uq512.png`; **Sign out** button (confirm dialog) in sidebar; **manual tenant-onboarding runbook** (`docs/manual-tenant-onboarding.md`).
+- **Decision:** next = **deploy to Netlify** (unblocks testing), then **DocuSeal Send flow**, then **tenant onboarding/Super Admin** (backlog #11). DocuSeal + onboarding both need deployment (webhook/email).
 - **PDF service deployed on Railway** (Docker, `/pdf-service`), `/health` ok, auto-redeploys on push. **Web app NOT yet deployed to Netlify** (see `DEPLOY.md`).
 - **Built, tested, working locally** (everything below): AI writing (Gemini 2.5-flash, retry on 429/503), Duplicate Quote, optional pricing + warning, scenario color-coding, scenario-delete guard, PDF header/footer (cover excluded, numbering from p2) + per-doc toggle, **Dashboard** (pipeline/status/expiring/recent), **Templates** (page + editor `/templates/[id]` + Save/Apply in Document toolbar), **Document import** `.docx/.html/.md` (custom `html-to-blocks`, tables), **Extract pricing → scenarios** (Gemini JSON + catalog match/create/freetext, dedup, confirm-before-add), **tenant logo** (Settings, first-page PDF) + sidebar branding, **client logo** (`{{client.logo}}` field, client cards), **app icons** (favicon/apple/PWA from `docs/brand/uq512.png`) + manifest + icon in sidebar/login, **Sign out** button (confirm dialog).
 - Fixed: App Router cache staleness (`staleTimes:0` + `force-dynamic` on list pages; `router.refresh()` on /templates), duplicate quote-title rejection, nested-table extraction/serialization, toolbar reorg + tooltips.
