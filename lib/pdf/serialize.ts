@@ -238,11 +238,16 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       case "signatureField": {
         const signer = props.signer === "tenant" ? "tenant" : "client";
         if (input.forSigning) {
-          // DocuSeal HTML field tags assigned to a submitter role.
+          // DocuSeal HTML element field tags ({{...}} text tags are PDF-only).
           const role = signer === "tenant" ? "Company" : "Client";
           out.push(
-            `<div class="sig-field">{{Signature;role=${role};type=signature}}` +
-            `<div class="sig-meta">{{Name;role=${role};type=text}} &nbsp;·&nbsp; {{Date;role=${role};type=date}}</div></div>`
+            `<div class="sig-field">` +
+            `<signature-field name="${role} Signature" role="${role}" style="width:260px;height:70px;display:inline-block"></signature-field>` +
+            `<div class="sig-meta">` +
+            `<text-field name="${role} Name" role="${role}" style="width:180px;height:18px;display:inline-block"></text-field>` +
+            `&nbsp;·&nbsp;` +
+            `<date-field name="${role} Date" role="${role}" style="width:120px;height:18px;display:inline-block"></date-field>` +
+            `</div></div>`
           );
         } else {
           const label = signer === "tenant"

@@ -41,7 +41,9 @@ export async function createHtmlSubmission(opts: {
       send_email: true,
       ...(opts.message ? { message: opts.message } : {}),
       ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
-      documents: [{ name: opts.name, file: opts.html }],
+      // NOTE: the /submissions/html endpoint takes the markup under `html`
+      // (`file` is for the PDF/DOCX endpoints — using it yields a BLANK document).
+      documents: [{ name: opts.name, html: opts.html }],
       submitters: opts.submitters.map((s, i) => ({
         role: s.role, email: s.email, name: s.name, order: s.order ?? i,
       })),
