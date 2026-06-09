@@ -141,16 +141,19 @@ export function ClientsClient({ initialClients }: Props) {
               onClick={() => openDrawer(client)}
               className="group rounded-lg border bg-card p-5 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
             >
+              {logoMap[client.id] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <div className="-mx-5 -mt-5 mb-4 h-16 px-5 flex items-center justify-center bg-muted/20 border-b rounded-t-lg">
+                  <img
+                    src={logoMap[client.id]}
+                    alt={client.company_name}
+                    className="max-h-10 max-w-[75%] object-contain"
+                  />
+                </div>
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  {logoMap[client.id] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={logoMap[client.id]}
-                      alt={client.company_name}
-                      className="w-10 h-10 rounded-md object-contain bg-white border shrink-0"
-                    />
-                  ) : (
+                  {!logoMap[client.id] && (
                     <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm shrink-0">
                       {client.company_name.slice(0, 2).toUpperCase()}
                     </div>
