@@ -4,13 +4,14 @@
 Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create, manage, and send professional proposals/quotes to clients.
 
 ## Tech Stack
-- **Next.js 14.2** (App Router, TypeScript)
-- **Supabase** (Postgres + Auth + RLS) — project: `pibipcdkxtldjbrsdbua`
+- **Next.js 14.2** (App Router, TypeScript) — data via server components + direct Supabase client calls (no React Query; it was unused and removed)
+- **Supabase** (Postgres + Auth + RLS + Storage) — project: `pibipcdkxtldjbrsdbua`
 - **Tailwind CSS** with CSS variable theming
-- **TanStack React Query** (client-side caching)
-- **BlockNote** (block editor — not yet integrated)
-- **Puppeteer** (PDF generation — not yet built)
-- **DocuSeal** (e-signature — not yet built)
+- **BlockNote 0.14** (block editor — ✅ integrated as the Document editor)
+- **Puppeteer + pdf-lib** (PDF generation — ✅ built, `/pdf-service` deployed on Railway)
+- **Google Gemini 2.5-flash** (AI writing + pricing extraction)
+- **mammoth** (.docx import)
+- **DocuSeal** (e-signature — not yet built; pairs with the Send flow)
 
 ## Current State (as of last session)
 
