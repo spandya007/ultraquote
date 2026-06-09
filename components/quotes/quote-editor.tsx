@@ -255,6 +255,21 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   const [clientName, setClientName]   = useState(quote.client.contact_name ?? quote.client.company_name ?? "");
   const [companyEmail, setCompanyEmail] = useState(tenant?.email ?? "");
   const [companyName, setCompanyName]   = useState(tenant?.contact_name ?? tenant?.name ?? "");
+  const [emailSubject, setEmailSubject] = useState(() =>
+    `${tenant?.name ?? "Your service provider"} — proposal ${initialQuote.quote_number} is ready for your signature`
+  );
+  const [emailMessage, setEmailMessage] = useState(() => [
+    "Hello,",
+    "",
+    `${tenant?.name ?? "We"} ${tenant?.name ? "has" : "have"} prepared the proposal “${initialQuote.title || initialQuote.quote_number}” for your review and signature.`,
+    "",
+    "Please open the secure link below to review and sign:",
+    "",
+    "{{submitter.link}}",
+    "",
+    "Thank you,",
+    tenant?.name ?? "",
+  ].join("\n"));
 
   async function openSend() {
     // Flush the latest document so the signing copy is current.
@@ -268,7 +283,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
       const res = await fetch(`/api/quotes/${quote.id}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName, firstSigner }),
+        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName, firstSigner, emailSubject, emailMessage }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
@@ -1229,7 +1244,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               <Send className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold">Send for signature — {quote.quote_number}</span>
             </div>
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               <p className="text-xs text-muted-foreground">
                 DocuSeal will email each signer a link. Signers below match the
                 signature fields placed in the document.
@@ -1269,6 +1284,22 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                   </select>
                 </div>
               )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email subject</label>
+                <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email message</label>
+                <textarea value={emailMessage} onChange={e => setEmailMessage(e.target.value)} rows={6}
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
+                <p className="text-xs text-muted-foreground">
+                  <code className="px-1 rounded bg-muted">{"{{submitter.link}}"}</code> becomes the signing link
+                  (added automatically if you remove it).
+                </p>
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
               <button onClick={() => setSendOpen(false)} disabled={sending}

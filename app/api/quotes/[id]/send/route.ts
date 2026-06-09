@@ -11,6 +11,9 @@ interface Body {
   companyEmail?: string; companyName?: string;
   /** When both parties sign: who goes first, or "together" for parallel signing. */
   firstSigner?: "client" | "tenant" | "together";
+  /** Custom notification email (defaults built from the quote/tenant if omitted). */
+  emailSubject?: string;
+  emailMessage?: string;
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -65,6 +68,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const html = buildSigningHtml(input);
   const name = `${input.quote.quote_number || "Proposal"}${input.quote.title ? ` — ${input.quote.title}` : ""}`;
 
+  // ── Notification email (custom or sensible default) ─────────────────────────
+  const tenantName = input.tenant.name || "Your service provider";
+  const subject = (body.emailSubject || "").trim()
+    || `${tenantName} — proposal ${input.quote.quote_number} is ready for your signature`;
+  let emailBody = (body.emailMessage || "").trim()
+    || [
+      "Hello,",
+      "",
+      `${tenantName} has prepared the proposal “${input.quote.title || input.quote.quote_number}” for your review and signature.`,
+      "",
+      "Please open the secure link below to review and sign:",
+      "",
+      "{{submitter.link}}",
+      "",
+      "Thank you,",
+      tenantName,
+    ].join("\n");
+  // The signing link is essential — append it if a custom message omitted it.
+  if (!emailBody.includes("{{submitter.link}}")) {
+    emailBody += "\n\nReview and sign here:\n{{submitter.link}}";
+  }
+
   // ── Create the DocuSeal submission ─────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let result: any;
@@ -73,6 +98,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       name,
       html,
       submitters: submitters.map(s => ({ role: s.role, email: s.email, name: s.name, order: s.order })),
+      message: { subject, body: emailBody },
+      replyTo: input.tenant.email || undefined,
     });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });

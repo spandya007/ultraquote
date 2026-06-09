@@ -270,6 +270,11 @@ Send a finished quote to the client for e-signature, with you counter-signing.
    field, pre-filled with name/email (adjust if needed).
 3. **Signing order:** when both parties sign, choose the order in the dialog —
    client first (default), your company first, or send to both at the same time.
+3a. **Email subject & message:** the dialog pre-fills a professional subject and
+   message (built from your company name and the quote) — edit them freely before
+   sending. The `{{submitter.link}}` placeholder becomes the secure signing link
+   (it's added automatically if you remove it). Replies to the email go to your
+   company email address.
 4. The signer(s) get an email with a signing link. As they act, the quote status
    updates automatically: **sent → viewed → signed** (or **declined**). The
    signed PDF is captured when complete.

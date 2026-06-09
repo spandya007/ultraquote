@@ -24,6 +24,10 @@ export async function createHtmlSubmission(opts: {
   name: string;
   html: string;
   submitters: DocusealSubmitter[];
+  /** Custom notification email. Body may use {{submitter.link}} (the signing link),
+   *  {{submission.name}}, {{account.name}}. */
+  message?: { subject: string; body: string };
+  replyTo?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }): Promise<any> {
   const res = await fetch(`${BASE.replace(/\/$/, "")}/submissions/html`, {
@@ -35,6 +39,8 @@ export async function createHtmlSubmission(opts: {
     body: JSON.stringify({
       name: opts.name,
       send_email: true,
+      ...(opts.message ? { message: opts.message } : {}),
+      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
       documents: [{ name: opts.name, file: opts.html }],
       submitters: opts.submitters.map((s, i) => ({
         role: s.role, email: s.email, name: s.name, order: s.order ?? i,
