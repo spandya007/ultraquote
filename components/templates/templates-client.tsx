@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { BookTemplate, Trash2, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
@@ -20,8 +21,15 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
   const db = supabase as any;
   const toast = useToast();
 
+  const router = useRouter();
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  // Pull the latest server data when this page is shown (bypasses the App Router
+  // client cache so a just-created template appears immediately)…
+  useEffect(() => { router.refresh(); }, [router]);
+  // …and adopt the refreshed server data into local state.
+  useEffect(() => { setTemplates(initialTemplates); }, [initialTemplates]);
 
   async function rename(id: string, name: string) {
     setTemplates(prev => prev.map(t => t.id === id ? { ...t, name } : t));
