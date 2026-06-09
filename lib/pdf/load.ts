@@ -18,7 +18,7 @@ export async function loadSerializeInput(
     .from("quotes")
     .select(`
       id, tenant_id, quote_number, title, valid_until, tax_rate, payment_terms, document_content,
-      client:clients(company_name, contact_name, contact_email, contact_phone, address),
+      client:clients(company_name, contact_name, contact_email, contact_phone, address, logo_url),
       scenarios:quote_scenarios!quote_id(
         id, name, is_recommended, sort_order,
         line_items:quote_line_items(description, billing_period, quantity, unit_price, is_taxable)
@@ -38,11 +38,12 @@ export async function loadSerializeInput(
   const blocks: DocBlock[] = Array.isArray(quote.document_content) ? quote.document_content : [];
   const imageUrlMap = await buildImageUrlMap(blocks, supabase);
 
-  // Resolve the tenant logo (also an sb-storage:// URL) into the same map so the
-  // serializer can render it on the first page.
-  if (tenant?.logo_url) {
+  // Resolve the tenant + client logos (also sb-storage:// URLs) into the same map
+  // so the serializer can render them (first page logo + {{*.logo}} tokens).
+  const logoUrls = [tenant?.logo_url, quote.client?.logo_url].filter(Boolean) as string[];
+  if (logoUrls.length) {
     const logoMap = await buildImageUrlMap(
-      [{ type: "image", props: { url: tenant.logo_url } }],
+      logoUrls.map(url => ({ type: "image", props: { url } })),
       supabase
     );
     Object.assign(imageUrlMap, logoMap);
@@ -59,7 +60,7 @@ export async function loadSerializeInput(
     blocks,
     scenarios: quote.scenarios ?? [],
     client: quote.client ?? {
-      company_name: "", contact_name: null, contact_email: null, contact_phone: null, address: null,
+      company_name: "", contact_name: null, contact_email: null, contact_phone: null, address: null, logo_url: null,
     },
     tenant: tenant ?? {
       name: "", contact_name: null, email: null, phone: null, address: null, logo_url: null,

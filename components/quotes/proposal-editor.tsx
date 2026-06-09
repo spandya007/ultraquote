@@ -304,6 +304,7 @@ const CLIENT_VARS: FieldVariable[] = [
   { label: "Email",         token: "{{client.email}}"         },
   { label: "Phone",         token: "{{client.phone}}"         },
   { label: "Address",       token: "{{client.address}}"       },
+  { label: "Logo",          token: "{{client.logo}}"          },
 ];
 
 const TENANT_VARS: FieldVariable[] = [
@@ -312,6 +313,7 @@ const TENANT_VARS: FieldVariable[] = [
   { label: "Email",         token: "{{tenant.email}}"         },
   { label: "Phone",         token: "{{tenant.phone}}"         },
   { label: "Address",       token: "{{tenant.address}}"       },
+  { label: "Logo",          token: "{{tenant.logo}}"          },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -938,6 +940,8 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
 
   // Resolve display value for a variable token (shows actual data if available)
   function tokenPreview(token: string): string {
+    // Logo tokens render as an image at PDF/Preview time, not text.
+    if (token === "{{client.logo}}" || token === "{{tenant.logo}}") return "🖼 logo image";
     if (clientData) {
       if (token === "{{client.company_name}}")  return clientData.company_name   || token;
       if (token === "{{client.contact_name}}")  return clientData.contact_name   || token;

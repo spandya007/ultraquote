@@ -68,7 +68,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - Built on **BlockNote 0.14** (`@blocknote/react` + `@blocknote/mantine`); lazy-loaded via `dynamic(ssr:false)`
 - **Custom `pageBreak` block** (`createReactBlockSpec`, `content:"none"`) — renders a dashed "✂ Page Break" divider; emits `data-page-break="true"` for the future Puppeteer PDF generator. Insertable via slash menu (`/page break`)
 - **Persistent toolbar** — alignment buttons (left/center/right) + "Insert Field" dropdown
-- **Insert Field dropdown** — inserts `{{client.*}}` / `{{tenant.*}}` variable tokens as styled inline text (violet theme, shows live preview values from client/tenant data). Tokens: `company_name, contact_name, email, phone, address` for both client and tenant
+- **Insert Field dropdown** — inserts `{{client.*}}` / `{{tenant.*}}` variable tokens as styled inline text (violet theme, shows live preview values from client/tenant data). Tokens: `company_name, contact_name, email, phone, address, logo` for both client and tenant. **`{{client.logo}}` / `{{tenant.logo}}` render as inline `<img>`** at PDF/Preview time (serializer post-substitutes them after escaping; logos resolved into `imageUrlMap` by `load.ts`). Client logo uploaded in the client drawer (`clients.logo_url`, migration 003)
 - **Image upload** — to Supabase Storage bucket `proposal-assets` via custom `sb-storage://` URL scheme; `resolveFileUrl` generates 1-hour signed URLs
 - Content stored in `quotes.document_content` (JSONB)
 
@@ -115,6 +115,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 ## ⚠️ PENDING MIGRATIONS (run in Supabase SQL editor)
 - `001_add_include_header_footer.sql` — header/footer toggle column
 - `002_product_provenance_and_audit.sql` — `products.source` + `products.source_quote_id` + `product_audit` table + RLS. **Required for the "Extract pricing → scenarios" feature** (creating catalog products writes provenance + audit).
+- `003_add_client_logo.sql` — `clients.logo_url`. **Required for client logo upload + the `{{client.logo}}` document field.**
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**

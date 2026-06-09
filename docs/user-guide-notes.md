@@ -105,7 +105,10 @@ A rich-text editor for the proposal body.
   the toolbar.
 - **Insert Field** — drop in placeholders like client company name, contact,
   email, phone, address, and the same for your own company. These are filled with
-  real values in the Preview/PDF.
+  real values in the Preview/PDF. **Logo** is also a field: `{{client.logo}}` and
+  `{{tenant.logo}}` render as the uploaded logo image in the Preview/PDF — so a
+  **template** can include the client's logo and it fills in per quote. (Upload a
+  client logo on the Clients page; your own logo in Settings.)
 - **Pricing Table** (`/pricing`) — insert a live pricing table anywhere in the
   document. Choose which scenario it shows (Recommended, All, or a specific one).
   It stays in sync as you edit line items — it's a live reference, not a snapshot.

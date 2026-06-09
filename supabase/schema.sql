@@ -76,6 +76,7 @@ create table public.clients (
   contact_email   text,
   contact_phone   text,
   address         text,
+  logo_url        text,
   notes           text,
   is_active       boolean not null default true,
   created_at      timestamptz not null default now()

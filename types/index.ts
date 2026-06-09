@@ -49,6 +49,7 @@ export interface Client {
   contact_email: string | null;
   contact_phone: string | null;
   address: string | null;
+  logo_url: string | null;
   notes: string | null;
   is_active: boolean;
   created_at: string;

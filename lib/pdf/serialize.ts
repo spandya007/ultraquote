@@ -285,7 +285,19 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
  */
 export function buildDocumentBody(input: SerializeInput): string {
   const tokenMap = buildTokenMap(input);
-  return renderBlocks(input, tokenMap);
+  let body = renderBlocks(input, tokenMap);
+
+  // Logo tokens render as inline images (not text). They survive HTML escaping
+  // intact (no special chars), so a final substitution on the body is safe.
+  const map = input.imageUrlMap ?? {};
+  const clientLogo = input.client.logo_url ? (map[input.client.logo_url] ?? input.client.logo_url) : "";
+  const tenantLogo = input.tenant.logo_url ? (map[input.tenant.logo_url] ?? input.tenant.logo_url) : "";
+  const img = (src: string) => src ? `<img class="inline-logo" src="${escapeHtml(src)}" alt="" />` : "";
+  body = body
+    .replace(/\{\{client\.logo\}\}/g, img(clientLogo))
+    .replace(/\{\{tenant\.logo\}\}/g, img(tenantLogo));
+
+  return body;
 }
 
 // Header/footer are stamped onto pages 2+ by the pdf-service using pdf-lib
@@ -357,6 +369,7 @@ export function buildFullHtml(input: SerializeInput): string {
   .doc-header .quote-number { font-family: monospace; font-size: 11pt; color: #475569; }
   .doc-logo { margin-bottom: 16px; }
   .doc-logo img { max-height: 72px; max-width: 260px; object-fit: contain; }
+  .inline-logo { max-height: 80px; max-width: 240px; vertical-align: middle; object-fit: contain; }
 
   /* Imported (Word) tables */
   .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { X, Upload, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTenantId } from "@/lib/supabase/use-tenant";
@@ -22,6 +22,7 @@ type FieldErrors = {
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STORAGE_SCHEME = "sb-storage://";
 
 export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
   const supabase = createClient();
@@ -40,6 +41,10 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
   const [address,      setAddress]      = useState("");
   const [notes,        setNotes]        = useState("");
   const [isActive,     setIsActive]     = useState(true);
+  const [logoUrl,      setLogoUrl]      = useState<string | null>(null);
+  const [logoPreview,  setLogoPreview]  = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when drawer opens/closes or switches between add/edit
   useEffect(() => {
@@ -51,12 +56,43 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
       setAddress(client.address ?? "");
       setNotes(client.notes ?? "");
       setIsActive(client.is_active);
+      setLogoUrl(client.logo_url ?? null);
     } else {
       setCompanyName(""); setContactName(""); setContactEmail("");
       setContactPhone(""); setAddress(""); setNotes(""); setIsActive(true);
+      setLogoUrl(null);
     }
     setFieldErrors({ companyName: null, contactName: null, contactEmail: null });
   }, [client, open]);
+
+  // Resolve the stored sb-storage:// logo to a signed URL for preview.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!logoUrl) { setLogoPreview(null); return; }
+      if (logoUrl.startsWith(STORAGE_SCHEME)) {
+        const rest = logoUrl.slice(STORAGE_SCHEME.length);
+        const slash = rest.indexOf("/");
+        const { data } = await supabase.storage.from(rest.slice(0, slash)).createSignedUrl(rest.slice(slash + 1), 3600);
+        if (active) setLogoPreview(data?.signedUrl ?? null);
+      } else if (active) setLogoPreview(logoUrl);
+    })();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logoUrl]);
+
+  async function uploadLogo(file: File) {
+    if (!file.type.startsWith("image/")) { toast.error("Please choose an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2 MB"); return; }
+    if (!tenantId) { toast.error("Still loading — try again in a moment"); return; }
+    setUploadingLogo(true);
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `client-logos/${tenantId}/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("proposal-assets").upload(path, file, { upsert: true, contentType: file.type });
+    setUploadingLogo(false);
+    if (error) { toast.error(`Upload failed: ${error.message}`); return; }
+    setLogoUrl(`${STORAGE_SCHEME}proposal-assets/${path}`);
+  }
 
   // ── Fetch all existing clients once for duplicate checks ──────────────────
   const getOthers = useCallback(async () => {
@@ -141,6 +177,7 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
         contact_email: contactEmail.trim().toLowerCase(),
         contact_phone: contactPhone || null,
         address:       address || null,
+        logo_url:      logoUrl,
         notes:         notes || null,
         is_active:     isActive,
       };
@@ -263,6 +300,46 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
               className={cn(inputCls(false), "resize-none")}
               placeholder="123 Main St, City, CA 94000"
             />
+          </div>
+
+          {/* Logo */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Logo</label>
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-28 shrink-0 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
+                {logoPreview
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={logoPreview} alt="Client logo" className="max-h-full max-w-full object-contain" />
+                  : <span className="text-xs text-muted-foreground">No logo</span>}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted disabled:opacity-50 transition-colors"
+                >
+                  {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploadingLogo ? "Uploading…" : (logoUrl ? "Replace" : "Upload")}
+                </button>
+                {logoUrl && (
+                  <button type="button" onClick={() => setLogoUrl(null)} disabled={uploadingLogo}
+                    className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-destructive hover:bg-muted disabled:opacity-50 transition-colors">
+                    <Trash2 className="w-4 h-4" /> Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ""; }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Usable in proposals via the <strong>Insert Field → Logo</strong> token.
+            </p>
           </div>
 
           {/* Notes */}
