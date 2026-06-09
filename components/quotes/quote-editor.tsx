@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -230,7 +230,36 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   }, []);
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
+
+  // Fetch the PDF with a loading indicator (the Railway render takes a few
+  // seconds), then trigger the download. Shows a real error instead of saving an
+  // error response as a file.
+  async function downloadPdf() {
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch(`/api/quotes/${quote.id}/pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `PDF generation failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${quote.quote_number || "quote"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
 
   const taxRate = quote.tax_rate ?? 0;
 
@@ -1105,13 +1134,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               <span className="text-sm font-medium">Preview — {quote.quote_number}</span>
             </div>
             <div className="flex items-center gap-2">
-              <a
-                href={`/api/quotes/${quote.id}/pdf`}
-                className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity"
+              <button
+                onClick={downloadPdf}
+                disabled={downloadingPdf}
+                className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-70"
               >
-                <Download className="w-4 h-4" />
-                Download PDF
-              </a>
+                {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {downloadingPdf ? "Generating PDF…" : "Download PDF"}
+              </button>
               <button
                 onClick={() => setPreviewOpen(false)}
                 className="p-1.5 rounded hover:bg-muted transition-colors"
