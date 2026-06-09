@@ -9,6 +9,8 @@ export const runtime = "nodejs";
 interface Body {
   clientEmail?: string; clientName?: string;
   companyEmail?: string; companyName?: string;
+  /** When both parties sign: who goes first, or "together" for parallel signing. */
+  firstSigner?: "client" | "tenant" | "together";
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -38,20 +40,27 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
-  // Build submitters in counter-sign order: client first, then your company.
+  // Signing order (only meaningful when both parties sign): user-selected —
+  // client first (default), company first, or both in parallel (same order #).
+  const both = kinds.has("client") && kinds.has("tenant");
+  const first = body.firstSigner ?? "client";
+  const clientOrder = !both ? 0 : first === "tenant" ? 1 : 0;
+  const tenantOrder = !both ? 0 : first === "client" ? 1 : 0; // "together" → both 0
+
   const submitters: (DocusealSubmitter & { signerRole: string; order: number })[] = [];
   if (kinds.has("client")) {
     const email = (body.clientEmail || input.client.contact_email || "").trim();
     const name = (body.clientName || input.client.contact_name || input.client.company_name || "").trim();
     if (!email) return NextResponse.json({ error: "Client signer email is required." }, { status: 400 });
-    submitters.push({ role: "Client", email, name, signerRole: "Client", order: 0 });
+    submitters.push({ role: "Client", email, name, signerRole: "Client", order: clientOrder });
   }
   if (kinds.has("tenant")) {
     const email = (body.companyEmail || input.tenant.email || "").trim();
     const name = (body.companyName || input.tenant.contact_name || input.tenant.name || "").trim();
     if (!email) return NextResponse.json({ error: "Your (company) signer email is required." }, { status: 400 });
-    submitters.push({ role: "Company", email, name, signerRole: "MSP Owner", order: submitters.length });
+    submitters.push({ role: "Company", email, name, signerRole: "MSP Owner", order: tenantOrder });
   }
+  submitters.sort((a, b) => a.order - b.order);
 
   const html = buildSigningHtml(input);
   const name = `${input.quote.quote_number || "Proposal"}${input.quote.title ? ` — ${input.quote.title}` : ""}`;
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     result = await createHtmlSubmission({
       name,
       html,
-      submitters: submitters.map(s => ({ role: s.role, email: s.email, name: s.name })),
+      submitters: submitters.map(s => ({ role: s.role, email: s.email, name: s.name, order: s.order })),
     });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });

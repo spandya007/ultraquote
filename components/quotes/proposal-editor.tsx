@@ -412,6 +412,9 @@ interface Props {
   onReady?: (api: ProposalEditorApi) => void;
   /** Called after pricing tables are extracted into scenarios (so the parent can refresh). */
   onPricingApplied?: () => void;
+  /** Fires whenever the set of signature fields in the live document changes
+   *  (array of "client"/"tenant" per placed field). Drives the Send button. */
+  onSignatureFieldsChange?: (signers: string[]) => void;
 }
 
 export interface ProposalEditorApi {
@@ -430,7 +433,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied }: Props) {
+export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
   const supabaseRef = useRef(createClient());
   const isTemplateRef = useRef(isTemplate);
   isTemplateRef.current = isTemplate;
@@ -577,15 +580,36 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save]);
 
+  // Notify the parent when the set of signature fields changes (drives the
+  // "Send for signature" button). Deduped via a key so we only fire on change;
+  // the initial empty-editor state ("") is the baseline, so the programmatic
+  // content load fires the first real notification.
+  const onSigChangeRef = useRef(onSignatureFieldsChange);
+  onSigChangeRef.current = onSignatureFieldsChange;
+  const lastSigKeyRef = useRef("");
+  const notifySignatureFields = useCallback(() => {
+    if (!onSigChangeRef.current) return;
+    const kinds = editorRef.current.document
+      .filter(b => b.type === "signatureField")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map(b => String((b.props as any)?.signer ?? "client"));
+    const key = kinds.join(",");
+    if (key !== lastSigKeyRef.current) {
+      lastSigKeyRef.current = key;
+      onSigChangeRef.current(kinds);
+    }
+  }, []);
+
   // Subscribe directly to editor.onChange — bypasses BlockNoteView's prop
   // wiring (which can lose the subscription across re-renders) and fires for
   // every TipTap transaction including programmatic ones.
   useEffect(() => {
     return editor.onChange(() => {
+      notifySignatureFields();
       if (skipNextChange.current) { skipNextChange.current = false; return; }
       scheduleSave();
     });
-  }, [editor, scheduleSave]);
+  }, [editor, scheduleSave, notifySignatureFields]);
 
   useEffect(() => {
     return () => {

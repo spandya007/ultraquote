@@ -10,6 +10,8 @@ export interface DocusealSubmitter {
   role: string;            // matches the role= in the HTML field tags
   email: string;
   name?: string;
+  /** Signing order; same number = parallel signing. Defaults to array index. */
+  order?: number;
 }
 
 /**
@@ -35,7 +37,7 @@ export async function createHtmlSubmission(opts: {
       send_email: true,
       documents: [{ name: opts.name, file: opts.html }],
       submitters: opts.submitters.map((s, i) => ({
-        role: s.role, email: s.email, name: s.name, order: i,
+        role: s.role, email: s.email, name: s.name, order: s.order ?? i,
       })),
     }),
   });

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -236,7 +236,21 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   // ── Send for signature (DocuSeal) ───────────────────────────────────────────
   const [sendOpen, setSendOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [noSigField, setNoSigField] = useState(false);
+  // Which signature fields are placed in the document ("client"/"tenant" per
+  // field). Seeded from the saved content (the editor may not be mounted yet);
+  // kept live via onSignatureFieldsChange from the editor.
+  const [sigKinds, setSigKinds] = useState<string[]>(() =>
+    (Array.isArray(initialQuote.document_content) ? initialQuote.document_content : [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((b: any) => b?.type === "signatureField")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((b: any) => String(b?.props?.signer ?? "client"))
+  );
+  const handleSigFieldsChange = useCallback((kinds: string[]) => setSigKinds(kinds), []);
+  const hasClientSig = sigKinds.includes("client");
+  const hasTenantSig = sigKinds.includes("tenant");
+
+  const [firstSigner, setFirstSigner] = useState<"client" | "tenant" | "together">("client");
   const [clientEmail, setClientEmail] = useState(quote.client.contact_email ?? "");
   const [clientName, setClientName]   = useState(quote.client.contact_name ?? quote.client.company_name ?? "");
   const [companyEmail, setCompanyEmail] = useState(tenant?.email ?? "");
@@ -245,7 +259,6 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   async function openSend() {
     // Flush the latest document so the signing copy is current.
     await proposalApiRef.current?.saveNow();
-    setNoSigField(proposalApiRef.current ? !proposalApiRef.current.hasSignatureField() : false);
     setSendOpen(true);
   }
 
@@ -255,7 +268,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
       const res = await fetch(`/api/quotes/${quote.id}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName }),
+        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName, firstSigner }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
@@ -631,13 +644,16 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
             Preview
           </button>
 
-          <button
-            onClick={openSend}
-            className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Send className="w-4 h-4" />
-            Send for signature
-          </button>
+          {sigKinds.length > 0 && (
+            <button
+              onClick={openSend}
+              title="Send the proposal for e-signature via DocuSeal"
+              className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Send className="w-4 h-4" />
+              Send for signature
+            </button>
+          )}
 
           {/* Auto-save status (replaces the manual Save button) */}
           <span
@@ -706,6 +722,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               showMargins={showMargins}
               onReady={handleEditorReady}
               onPricingApplied={refreshScenarios}
+              onSignatureFieldsChange={handleSigFieldsChange}
             />
           </div>
           )}
@@ -1213,31 +1230,45 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
               <span className="text-sm font-semibold">Send for signature — {quote.quote_number}</span>
             </div>
             <div className="px-5 py-4 space-y-4">
-              {noSigField && (
-                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>No <strong>signature field</strong> in the document. Add one in the Document tab (type <kbd className="px-1 rounded border bg-white text-xs">/signature</kbd>) so signers have somewhere to sign.</span>
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">
-                DocuSeal will email each signer a link. The client signs first, then your company counter-signs.
+                DocuSeal will email each signer a link. Signers below match the
+                signature fields placed in the document.
               </p>
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client signer</label>
-                <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name"
-                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                <input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="email@client.com"
-                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-              </div>
+              {hasClientSig && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client signer</label>
+                  <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                  <input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="email@client.com"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+              )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your company (counter-sign)</label>
-                <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Name"
-                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                <input value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} placeholder="you@company.com"
-                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-              </div>
+              {hasTenantSig && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your company signer</label>
+                  <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Name"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                  <input value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} placeholder="you@company.com"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+              )}
+
+              {hasClientSig && hasTenantSig && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Signing order</label>
+                  <select
+                    value={firstSigner}
+                    onChange={e => setFirstSigner(e.target.value as typeof firstSigner)}
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="client">Client signs first, then my company</option>
+                    <option value="tenant">My company signs first, then client</option>
+                    <option value="together">Send to both at the same time</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
               <button onClick={() => setSendOpen(false)} disabled={sending}

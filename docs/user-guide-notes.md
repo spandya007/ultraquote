@@ -260,18 +260,21 @@ you can tell them apart from hand-curated or CSV-imported products.
 
 Send a finished quote to the client for e-signature, with you counter-signing.
 
-1. In the **Document** tab, place a **Signature Field** where each party signs:
-   type `/signature` and pick **Client signs here** or **My company signs here**.
-   (Add one for the client and, if you want to counter-sign, one for your company.)
-2. Click **Send for signature** in the quote header. A dialog pre-fills the client
-   and your-company signer name/email — adjust if needed → **Send**.
-3. The signer(s) get an email with a signing link. The **client signs first, then
-   your company counter-signs.** As they act, the quote status updates
-   automatically: **sent → viewed → signed** (or **declined**). The signed PDF is
-   captured when complete.
+1. In the **Document** tab, place one or more **Signature Fields** where each
+   party signs: type `/signature` and pick **Client signs here** or **My company
+   signs here**. (Add one for the client and, if you want to counter-sign, one
+   for your company.)
+2. The **Send for signature** button appears in the quote header **once at least
+   one signature field is in the document** (and disappears if you remove them
+   all). Click it — the dialog shows a signer section for each party that has a
+   field, pre-filled with name/email (adjust if needed).
+3. **Signing order:** when both parties sign, choose the order in the dialog —
+   client first (default), your company first, or send to both at the same time.
+4. The signer(s) get an email with a signing link. As they act, the quote status
+   updates automatically: **sent → viewed → signed** (or **declined**). The
+   signed PDF is captured when complete.
 
 Notes:
-- You need at least one Signature Field in the document, or the dialog warns you.
 - In the normal **Preview/PDF**, signature fields show as a plain signature line;
   the actual fillable fields only appear in the copy sent for signing.
 
