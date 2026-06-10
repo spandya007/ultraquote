@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loadSerializeInput } from "@/lib/pdf/load";
 import { buildSigningHtml } from "@/lib/pdf/serialize";
-import { docusealConfigured, createHtmlSubmission, type DocusealSubmitter } from "@/lib/docuseal";
+import { docusealConfigured, createHtmlSubmission, archiveSubmission, type DocusealSubmitter } from "@/lib/docuseal";
 
 export const runtime = "nodejs";
 
@@ -123,6 +123,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // ── Persist ────────────────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
+
+  // Re-send hygiene (runs only after the new submission was created):
+  // 1) Archive any still-pending previous submission so stale emailed links
+  //    can't be used to sign an outdated document version.
+  // 2) Remove old pending sessions + ALL old signer rows — the webhook's
+  //    "all signers signed?" completion check must only count the new attempt.
+  //    (Completed/declined sessions are kept for history.)
+  const { data: oldPending } = await db
+    .from("quote_signature_sessions")
+    .select("id, provider_document_id")
+    .eq("quote_id", params.id)
+    .eq("status", "pending");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const os of (oldPending ?? []) as any[]) {
+    if (os.provider_document_id) await archiveSubmission(os.provider_document_id);
+    await db.from("quote_signature_sessions").delete().eq("id", os.id);
+  }
+  await db.from("quote_signers").delete().eq("quote_id", params.id);
+
   await db.from("quote_signature_sessions").insert({
     quote_id: params.id, provider: "docuseal", provider_document_id: submissionId, status: "pending",
   });

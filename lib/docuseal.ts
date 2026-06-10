@@ -6,6 +6,16 @@ export function docusealConfigured(): boolean {
   return !!process.env.DOCUSEAL_API_TOKEN;
 }
 
+/** Archives a submission (voids its signing links). Best-effort. */
+export async function archiveSubmission(submissionId: string): Promise<void> {
+  try {
+    await fetch(`${BASE.replace(/\/$/, "")}/submissions/${submissionId}`, {
+      method: "DELETE",
+      headers: { "X-Auth-Token": process.env.DOCUSEAL_API_TOKEN as string },
+    });
+  } catch { /* non-fatal */ }
+}
+
 export interface DocusealSubmitter {
   role: string;            // matches the role= in the HTML field tags
   email: string;

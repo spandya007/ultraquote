@@ -288,6 +288,10 @@ Send a finished quote to the client for e-signature, with you counter-signing.
 5. **If a signer declines with a comment**, the reason is recorded. On the
    **Quotes** page, hover over the red **Declined** status badge to see it as a
    tooltip, e.g. *"Declined by client@x.com: pricing too high"*.
+6. **Re-sending after a decline (or after edits):** fix up the document and click
+   **Send for signature** again. A fresh signing round starts (new emails, new
+   links) and the status returns to **sent**. Any links from the previous round
+   are voided automatically, so nobody can sign an outdated version.
 
 Notes:
 - In the normal **Preview/PDF**, signature fields show as a plain signature line;
