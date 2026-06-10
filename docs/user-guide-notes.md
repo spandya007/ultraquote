@@ -285,6 +285,10 @@ Send a finished quote to the client for e-signature, with you counter-signing.
 4. The signer(s) get an email with a signing link. As they act, the quote status
    updates automatically: **sent → viewed → signed** (or **declined**). The
    signed PDF is captured when complete.
+5. **If a signer declines with a comment**, the reason is recorded and appended
+   to the quote's **Internal Notes** (right-hand panel), e.g.
+   *"⚠ Declined by client@x.com: pricing too high"* — so you know why and can
+   follow up.
 
 Notes:
 - In the normal **Preview/PDF**, signature fields show as a plain signature line;

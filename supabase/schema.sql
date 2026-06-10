@@ -298,6 +298,7 @@ create table public.quote_signers (
   signing_order       int not null,
   status              text not null default 'pending'
                         check (status in ('pending', 'sent', 'viewed', 'signed', 'declined')),
+  decline_reason      text,
   provider_signer_id  text,
   sent_at             timestamptz,
   signed_at           timestamptz

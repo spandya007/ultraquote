@@ -82,10 +82,25 @@ export async function POST(request: NextRequest) {
     if (signer && signer.status === "sent") await db.from("quote_signers").update({ status: "viewed" }).eq("id", signer.id);
     if (session.status === "pending") await db.from("quotes").update({ status: "viewed" }).eq("id", quoteId).eq("status", "sent");
   } else if (eventType === "form.declined" || eventType === "submission.declined") {
+    const reason: string | null = data.decline_reason || null;
     const signer = await matchSigner();
-    if (signer) await db.from("quote_signers").update({ status: "declined" }).eq("id", signer.id);
+    if (signer) {
+      await db.from("quote_signers")
+        .update({ status: "declined", decline_reason: reason })
+        .eq("id", signer.id);
+    }
     await db.from("quote_signature_sessions").update({ status: "declined" }).eq("id", session.id);
     await db.from("quotes").update({ status: "declined" }).eq("id", quoteId);
+    // Surface the reason in the quote's Internal Notes so it's visible in the
+    // editor's right panel (guarded so a webhook redelivery doesn't duplicate it).
+    if (reason) {
+      const { data: qrow } = await db.from("quotes").select("notes").eq("id", quoteId).single();
+      const line = `⚠ Declined by ${data.email || "signer"}: ${reason}`;
+      const notes: string = qrow?.notes ?? "";
+      if (!notes.includes(line)) {
+        await db.from("quotes").update({ notes: notes ? `${notes}\n${line}` : line }).eq("id", quoteId);
+      }
+    }
   } else if (eventType === "form.completed" || eventType === "submission.completed") {
     const signer = await matchSigner();
     if (signer) await db.from("quote_signers").update({ status: "signed", signed_at: nowIso }).eq("id", signer.id);

@@ -122,6 +122,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - `001_add_include_header_footer.sql` — header/footer toggle column
 - `002_product_provenance_and_audit.sql` — `products.source` + `products.source_quote_id` + `product_audit` table + RLS. **Required for the "Extract pricing → scenarios" feature** (creating catalog products writes provenance + audit).
 - `003_add_client_logo.sql` — `clients.logo_url`. **Required for client logo upload + the `{{client.logo}}` document field.**
+- `004_add_decline_reason.sql` — `quote_signers.decline_reason`. **Required for capturing DocuSeal decline comments** (webhook writes it + appends to quote notes).
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
