@@ -292,7 +292,12 @@ Send a finished quote to the client for e-signature, with you counter-signing.
 6. **If a signer declines with a comment**, the reason is recorded. On the
    **Quotes** page, hover over the red **Declined** status badge to see it as a
    tooltip, e.g. *"Declined by client@x.com: pricing too high"*.
-7. **Re-sending after a decline (or after edits):** fix up the document and click
+7. **Once signed, the quote is final.** The status can no longer be changed (the
+   status dropdown becomes a fixed "Signed" badge), and a green **Signed PDF**
+   button appears in the quote header to download the executed document. To
+   revise a signed deal, use **Duplicate** on the Quotes page — it creates a
+   brand-new quote starting at **Draft**.
+8. **Re-sending after a decline (or after edits):** fix up the document and click
    **Send for signature** again. A fresh signing round starts (new emails, new
    links) and the status returns to **sent**. Any links from the previous round
    are voided automatically, so nobody can sign an outdated version.

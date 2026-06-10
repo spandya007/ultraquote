@@ -79,6 +79,7 @@ interface Quote {
   payment_terms: string | null;
   show_margins: boolean;
   include_header_footer: boolean;
+  pdf_url: string | null;
   notes: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   document_content: any[] | null;
@@ -638,16 +639,28 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Status */}
-          <select
-            value={quote.status}
-            onChange={(e) => setQuote(q => ({ ...q, status: e.target.value as QuoteStatus }))}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {(["draft","sent","viewed","signed","declined","expired"] as QuoteStatus[]).map(s => (
-              <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
+          {/* Status — `signed` is terminal: set only by the e-signature webhook,
+              never manually, and once reached it cannot be changed (use
+              Duplicate to start a new draft). */}
+          {quote.status === "signed" ? (
+            <span
+              title="Signed is final — use Duplicate on the Quotes page to start a new draft version"
+              className="inline-flex items-center gap-1.5 rounded-md bg-green-100 text-green-700 px-3 py-1.5 text-sm font-medium cursor-help"
+            >
+              <Check className="w-4 h-4" />
+              Signed
+            </span>
+          ) : (
+            <select
+              value={quote.status}
+              onChange={(e) => setQuote(q => ({ ...q, status: e.target.value as QuoteStatus }))}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {(["draft","sent","viewed","declined","expired"] as QuoteStatus[]).map(s => (
+                <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+          )}
 
           <label
             className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
@@ -664,6 +677,19 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
             <Eye className="w-4 h-4" />
             Preview
           </button>
+
+          {quote.status === "signed" && quote.pdf_url && (
+            <a
+              href={quote.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Download the executed (signed) PDF"
+              className="flex items-center gap-2 rounded-md bg-green-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-green-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Signed PDF
+            </a>
+          )}
 
           {sigKinds.length > 0 && quote.status !== "signed" && (
             <button
