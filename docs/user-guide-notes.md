@@ -285,10 +285,14 @@ Send a finished quote to the client for e-signature, with you counter-signing.
 4. The signer(s) get an email with a signing link. As they act, the quote status
    updates automatically: **sent → viewed → signed** (or **declined**). The
    signed PDF is captured when complete.
-5. **If a signer declines with a comment**, the reason is recorded. On the
+5. **Signing progress:** while a quote is **sent** or **viewed**, hover over its
+   status badge on the **Quotes** page to see per-signer progress, e.g.
+   *"Client (a@x.com): signed ✓ · My company (b@y.com): awaiting"*. The quote
+   only becomes **signed** once **all** parties have signed.
+6. **If a signer declines with a comment**, the reason is recorded. On the
    **Quotes** page, hover over the red **Declined** status badge to see it as a
    tooltip, e.g. *"Declined by client@x.com: pricing too high"*.
-6. **Re-sending after a decline (or after edits):** fix up the document and click
+7. **Re-sending after a decline (or after edits):** fix up the document and click
    **Send for signature** again. A fresh signing round starts (new emails, new
    links) and the status returns to **sent**. Any links from the previous round
    are voided automatically, so nobody can sign an outdated version.

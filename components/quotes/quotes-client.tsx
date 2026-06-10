@@ -19,15 +19,30 @@ interface QuoteRow {
   sent_at: string | null;
   signed_at: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
-  signers?: { signer_email: string; status: string; decline_reason: string | null }[];
+  signers?: { signer_email: string; role: string | null; status: string; signing_order: number; decline_reason: string | null }[];
 }
 
-// Tooltip for the status badge — surfaces the decline comment on declined quotes.
+// Tooltip for the status badge — decline comment on declined quotes, and
+// per-signer signing progress while a round is in flight (sent/viewed).
 function statusTooltip(q: QuoteRow): string | undefined {
-  if (q.status !== "declined") return undefined;
-  const decliner = (q.signers ?? []).find(s => s.status === "declined" && s.decline_reason);
-  if (!decliner) return "Declined (no reason given)";
-  return `Declined by ${decliner.signer_email}: ${decliner.decline_reason}`;
+  if (q.status === "declined") {
+    const decliner = (q.signers ?? []).find(s => s.status === "declined" && s.decline_reason);
+    if (!decliner) return "Declined (no reason given)";
+    return `Declined by ${decliner.signer_email}: ${decliner.decline_reason}`;
+  }
+  if (q.status === "sent" || q.status === "viewed") {
+    const sigs = [...(q.signers ?? [])].sort((a, b) => (a.signing_order ?? 0) - (b.signing_order ?? 0));
+    if (sigs.length === 0) return undefined;
+    return sigs.map(s => {
+      const who = s.role === "MSP Owner" ? "My company" : "Client";
+      const state =
+        s.status === "signed" ? "signed ✓" :
+        s.status === "viewed" ? "viewed, awaiting signature" :
+        "awaiting";
+      return `${who} (${s.signer_email}): ${state}`;
+    }).join("  ·  ");
+  }
+  return undefined;
 }
 
 interface ClientOption {
@@ -205,7 +220,7 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
                       className={cn(
                         "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
                         STATUS_STYLES[q.status],
-                        q.status === "declined" && "cursor-help"
+                        statusTooltip(q) && "cursor-help"
                       )}
                     >
                       {q.status}
