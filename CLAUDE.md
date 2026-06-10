@@ -126,22 +126,13 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
-- Code on GitHub `spandya007/ultraquote` (branch `main`).
-- **✅ DEPLOYED to Netlify: https://ultraquote.netlify.app** (`netlify.toml` = `@netlify/plugin-nextjs`, Node 20). Env vars set (Supabase ×3, PDF_SERVICE_URL/TOKEN, GEMINI_API_KEY). Smoke-tested live: login, dashboard, document/AI/preview/**PDF download** (Railway), templates, clients, settings, sign out — all working. **Dev and prod share the same Supabase project** (`pibipcdkxtldjbrsdbua`).
-- Post-deploy fixes: middleware matcher now excludes `manifest.webmanifest`/robots/sitemap/.ico (was 307→/login); **Download PDF** is now a fetch-based button with spinner ("Generating PDF…") + success/error toast.
-- Recently also: removed unused React Query; app icons/branding from `docs/brand/uq512.png`; Sign out (confirm dialog); manual tenant-onboarding runbook (`docs/manual-tenant-onboarding.md`).
-- **TODO on Supabase:** set Auth URL config — Site URL `https://ultraquote.netlify.app` + redirect `https://ultraquote.netlify.app/**` (needed for password reset / magic links / OAuth callback; email-password login already works).
-- **Decision:** next = **DocuSeal Send flow** (now testable — public webhook + email available post-deploy), then **tenant onboarding/Super Admin** (backlog #11).
-- **PDF service deployed on Railway** (Docker, `/pdf-service`), `/health` ok, auto-redeploys on push. **Web app NOT yet deployed to Netlify** (see `DEPLOY.md`).
-- **Built, tested, working locally** (everything below): AI writing (Gemini 2.5-flash, retry on 429/503), Duplicate Quote, optional pricing + warning, scenario color-coding, scenario-delete guard, PDF header/footer (cover excluded, numbering from p2) + per-doc toggle, **Dashboard** (pipeline/status/expiring/recent), **Templates** (page + editor `/templates/[id]` + Save/Apply in Document toolbar), **Document import** `.docx/.html/.md` (custom `html-to-blocks`, tables), **Extract pricing → scenarios** (Gemini JSON + catalog match/create/freetext, dedup, confirm-before-add), **tenant logo** (Settings, first-page PDF) + sidebar branding, **client logo** (`{{client.logo}}` field, client cards), **app icons** (favicon/apple/PWA from `docs/brand/uq512.png`) + manifest + icon in sidebar/login, **Sign out** button (confirm dialog).
-- Fixed: App Router cache staleness (`staleTimes:0` + `force-dynamic` on list pages; `router.refresh()` on /templates), duplicate quote-title rejection, nested-table extraction/serialization, toolbar reorg + tooltips.
+- **LIVE on Netlify: https://ultraquote.netlify.app** · GitHub `spandya007/ultraquote` `main` (pushed through `a2033a7`). PDF service on Railway healthy.
+- **DocuSeal Send flow FULLY TESTED end-to-end** (sandbox): send w/ custom email subject/body + reply_to → viewed → decline-with-reason (tooltip on badge) → edit + re-send (old links voided, tracking reset) → client signs → counter-sign → **signed + executed-PDF URL captured** (`pdf_url`). Webhook secret is URL-encoded in the DocuSeal webhook URL (rotate to hex — tech debt).
+- **Quote lifecycle is SYSTEM-MANAGED** (`lib/quote-status.ts`): no status dropdown; client never writes status; signed terminal (+ green "Signed PDF" download button); `expired` derived from valid_until (extend date to reactivate; send blocked while past); **stale drafts** (inactive > Default Valid Days, basis updated_at) hidden from Quotes/Dashboard with count hint; signing-progress + decline-reason tooltips on status badges.
+- Also this session: tax rate moved to company level (Settings → **Company Settings**); conditional per-line Tax column; Dashboard/Quotes refresh-on-view fix; all four migrations (001–004) run in Supabase.
+- **DocuSeal is on the free Developer Sandbox** — upgrade to Pro ($20/mo + $0.20/doc) + swap to the production API key/webhook when going live with real clients.
 
-**Outstanding manual steps:**
-1. **Run pending migrations** in Supabase SQL editor (see "PENDING MIGRATIONS" above): `001` (header/footer — done earlier), `002` (product provenance/audit — done earlier), **`003_add_client_logo.sql`** (clients.logo_url — needed for client logo).
-2. Restart `npm run dev` after any `next.config.mjs` change (staleTimes).
-3. Netlify env vars (in `DEPLOY.md`): Supabase ×3, `PDF_SERVICE_URL`, `PDF_SERVICE_TOKEN`, `GEMINI_API_KEY`.
-
-**Good next features:** DocuSeal e-sign + **Send flow** (do after Netlify deploy — needs public webhook + email) · Dark mode (#7) · BlockNote upgrade + two-column (#10, see `docs/blocknote-upgrade-plan.md`) · Polish product docs (#8, `docs/user-guide-notes.md`).
+**Backlog (for prioritization):** see "Backlog / Reminders" below — open items: dark mode (#7), product docs polish (#8), BlockNote upgrade + two-column (#10), tenant onboarding/Super Admin (#11, now unblocked by deploy), Withdraw (#12), offline-sign (#13); tech debt: hex webhook secret, Next major upgrade, signed-quote content immutability (candidate, not yet backlogged).
 
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
