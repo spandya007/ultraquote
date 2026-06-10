@@ -158,7 +158,12 @@ server component guarded by `requirePlatformAdmin()`.
   also be present in Netlify env.
 - Supabase Auth redirect-URL allowlist (above).
 - Supabase invite **email template** (Auth → Email Templates → "Invite user")
-  — optional copy polish; default works.
+  — optional copy polish; default works. The invite metadata is exposed to the
+  template as `{{ .Data.full_name }}`, `{{ .Data.role }}` (branch owner vs
+  member copy), and `{{ .Data.tenant_name }}` (the inviting company);
+  `{{ .ConfirmationURL }}` must be kept. Changing the from-name/address (and
+  lifting the built-in mailer's rate limit) requires custom SMTP: Project
+  Settings → Authentication → SMTP Settings.
 - Note: Supabase's built-in SMTP is rate-limited (~a few emails/hour) and fine
   for low-volume tenant/member invites; configure custom SMTP in the Supabase
   dashboard later if volume grows (no code change).

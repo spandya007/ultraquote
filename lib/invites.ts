@@ -24,8 +24,22 @@ export async function sendInviteEmail(opts: {
   origin: string;
 }): Promise<{ error?: string }> {
   const admin = createAdminClient();
+
+  // tenant_name is metadata for the invite email template only
+  // ({{ .Data.tenant_name }}); the handle_new_auth_user trigger ignores it.
+  const { data: tenant } = await admin
+    .from("tenants")
+    .select("name")
+    .eq("id", opts.tenantId)
+    .maybeSingle();
+
   const { error } = await admin.auth.admin.inviteUserByEmail(opts.email, {
-    data: { tenant_id: opts.tenantId, role: opts.role, full_name: opts.fullName },
+    data: {
+      tenant_id: opts.tenantId,
+      role: opts.role,
+      full_name: opts.fullName,
+      tenant_name: tenant?.name ?? null,
+    },
     redirectTo: inviteRedirectUrl(opts.origin),
   });
   return error ? { error: error.message } : {};
