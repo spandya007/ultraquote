@@ -32,7 +32,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
   const isApiRoute = pathname.startsWith("/api");
-  const isPublicRoute = isAuthRoute || isApiRoute;
+  // /auth/* must be reachable unauthenticated: invite links arrive with the
+  // session tokens in the URL hash (implicit flow), which the server never
+  // sees — the page establishes the session client-side.
+  const isInviteRoute = pathname.startsWith("/auth");
+  const isPublicRoute = isAuthRoute || isApiRoute || isInviteRoute;
 
   if (!user && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone();

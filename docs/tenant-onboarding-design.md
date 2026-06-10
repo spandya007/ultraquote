@@ -100,14 +100,21 @@ explicit tenant delete is out of scope for this pass.
 ## Flow B — invite acceptance (owner or member)
 
 1. Invite email link → Supabase verify endpoint → redirects to
-   `/api/auth/callback?code=…&next=/auth/set-password` → existing callback
-   exchanges the code for a session → redirect `/auth/set-password`.
-2. `/auth/set-password` (authenticated page, outside the dashboard shell):
-   password + confirm form → `supabase.auth.updateUser({ password })` →
+   `/api/auth/callback?next=/auth/set-password` **with the session tokens in
+   the URL hash** (`#access_token=…&type=invite`). Admin-sent invites use the
+   implicit flow, NOT PKCE — there is no `?code=`, and the hash never reaches
+   the server. The callback therefore just forwards to `next` (the browser
+   preserves the fragment across the redirect); it still exchanges `?code=`
+   when present (OAuth/PKCE). `next` is sanitized to same-site paths.
+2. `/auth/set-password` is **public** (middleware allows `/auth/*`) and
+   establishes the session client-side: explicit `setSession()` from the hash
+   tokens (plus `createBrowserClient`'s own `detectSessionInUrl`), strips the
+   hash from history, then shows the password form (email + inviting tenant
+   name fetched under RLS) → `supabase.auth.updateUser({ password })` →
    `POST /api/auth/accept-invite` (service role marks the user's pending
    `tenant_invites` rows `accepted`, sets `accepted_at`) → redirect `/`.
-3. If the link is expired/invalid the callback already bounces to
-   `/login?error=auth_callback_failed`; the admin can Resend.
+3. If the link is expired/already used (they're single-use), the page shows an
+   "invalid or expired" state telling the user to ask for a re-send.
 
 **Manual Supabase config (one-time):** Auth → URL Configuration → add redirect
 URLs `https://ultraquote.netlify.app/api/auth/callback` and

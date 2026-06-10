@@ -59,19 +59,22 @@ async function findInviteAuthUser(invite: TenantInvite) {
   return data?.user ?? null;
 }
 
-function hasAccepted(authUser: { email_confirmed_at?: string | null; last_sign_in_at?: string | null }) {
-  return Boolean(authUser.email_confirmed_at || authUser.last_sign_in_at);
-}
+// "Accepted" means the invitee finished set-password (our tenant_invites row
+// is flipped by /api/auth/accept-invite). Deliberately NOT based on the auth
+// user's email_confirmed_at/last_sign_in_at: just clicking the (single-use)
+// link sets those, and a click-but-abandoned invite must stay resendable.
 
 // Supabase can't re-send an invite to an existing auth user, so resend =
-// delete the still-unconfirmed auth user (and its users row) and invite again
+// delete the not-yet-accepted auth user (and its users row) and invite again
 // with the same metadata.
 export async function resendInvite(invite: TenantInvite, origin: string): Promise<{ error?: string }> {
   const admin = createAdminClient();
+  if (invite.status === "accepted") {
+    return { error: "Invite was already accepted — nothing to resend." };
+  }
 
   const authUser = await findInviteAuthUser(invite);
   if (authUser) {
-    if (hasAccepted(authUser)) return { error: "Invite was already accepted — nothing to resend." };
     const { error: delErr } = await admin.auth.admin.deleteUser(authUser.id);
     if (delErr) return { error: delErr.message };
     await admin.from("users").delete().eq("id", authUser.id);
@@ -95,10 +98,12 @@ export async function resendInvite(invite: TenantInvite, origin: string): Promis
 
 export async function revokeInvite(invite: TenantInvite): Promise<{ error?: string }> {
   const admin = createAdminClient();
+  if (invite.status === "accepted") {
+    return { error: "Invite was already accepted — it can no longer be revoked." };
+  }
 
   const authUser = await findInviteAuthUser(invite);
   if (authUser) {
-    if (hasAccepted(authUser)) return { error: "Invite was already accepted — it can no longer be revoked." };
     const { error: delErr } = await admin.auth.admin.deleteUser(authUser.id);
     if (delErr) return { error: delErr.message };
     await admin.from("users").delete().eq("id", authUser.id);
