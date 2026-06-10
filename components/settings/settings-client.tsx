@@ -139,42 +139,32 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
       phone:        phone.trim()       || null,
       address:      address.trim()     || null,
     }).eq("id", tenantId);
+
+    // The company-wide tax rate lives in tenant_settings (applied to all quotes).
+    const parsedTax = taxRate !== "" ? parseFloat(taxRate) / 100 : null;
+    const { error: taxError } = await db
+      .from("tenant_settings")
+      .upsert({ tenant_id: tenantId, default_tax_rate: parsedTax }, { onConflict: "tenant_id" });
+
     setSavingProfile(false);
-    if (error) toast.error("Failed to save profile");
-    else toast.success("Company profile saved");
+    if (error || taxError) toast.error("Failed to save company settings");
+    else toast.success("Company settings saved");
   }
 
   async function saveDefaults() {
-    const parsedTax = taxRate !== "" ? parseFloat(taxRate) / 100 : null;
     const parsedDays = parseInt(validDays) || 30;
     const prefixClean = prefix.trim().toUpperCase() || "QUOTE";
 
     setSavingDefaults(true);
-
-    if (settings) {
-      // Update existing row
-      const { error } = await db.from("tenant_settings").update({
-        quote_number_prefix:  prefixClean,
-        default_tax_rate:     parsedTax,
-        default_valid_days:   parsedDays,
-        default_payment_terms: paymentTerms.trim() || "Net 30",
-      }).eq("tenant_id", tenantId);
-      setSavingDefaults(false);
-      if (error) toast.error("Failed to save quote defaults");
-      else toast.success("Quote defaults saved");
-    } else {
-      // Create settings row for the first time
-      const { error } = await db.from("tenant_settings").insert({
-        tenant_id:             tenantId,
-        quote_number_prefix:   prefixClean,
-        default_tax_rate:      parsedTax,
-        default_valid_days:    parsedDays,
-        default_payment_terms: paymentTerms.trim() || "Net 30",
-      });
-      setSavingDefaults(false);
-      if (error) toast.error("Failed to save quote defaults");
-      else toast.success("Quote defaults saved");
-    }
+    const { error } = await db.from("tenant_settings").upsert({
+      tenant_id:             tenantId,
+      quote_number_prefix:   prefixClean,
+      default_valid_days:    parsedDays,
+      default_payment_terms: paymentTerms.trim() || "Net 30",
+    }, { onConflict: "tenant_id" });
+    setSavingDefaults(false);
+    if (error) toast.error("Failed to save quote defaults");
+    else toast.success("Quote defaults saved");
 
     // Sync display state (capitalised prefix)
     setPrefix(prefixClean);
@@ -185,8 +175,8 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* ── Company Profile ── */}
-      <SectionCard icon={<Building2 className="w-4 h-4" />} title="Company Profile">
+      {/* ── Company Settings ── */}
+      <SectionCard icon={<Building2 className="w-4 h-4" />} title="Company Settings">
         <div className="space-y-1">
           <label className="text-sm font-medium">Logo</label>
           <div className="flex items-center gap-4">
@@ -281,13 +271,30 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
           />
         </div>
 
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Tax Rate (%)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={taxRate}
+            onChange={e => setTaxRate(e.target.value)}
+            className={inputCls()}
+            placeholder="0.00"
+          />
+          <p className="text-xs text-muted-foreground">
+            Your company tax rate — applied uniformly to taxable items on all quotes.
+          </p>
+        </div>
+
         <div className="flex justify-end">
           <button
             onClick={saveProfile}
             disabled={savingProfile || !name.trim()}
             className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            {savingProfile ? "Saving…" : "Save Profile"}
+            {savingProfile ? "Saving…" : "Save Settings"}
           </button>
         </div>
       </SectionCard>
@@ -325,20 +332,6 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Default Tax Rate (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={taxRate}
-              onChange={e => setTaxRate(e.target.value)}
-              className={inputCls()}
-              placeholder="0.00"
-            />
-            <p className="text-xs text-muted-foreground">Applied to taxable line items</p>
-          </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Default Payment Terms</label>
             <input

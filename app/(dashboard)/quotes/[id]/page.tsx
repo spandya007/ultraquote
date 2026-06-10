@@ -42,6 +42,7 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
 
   // Fetch tenant separately so we can log errors (e.g. missing column)
   let tenant = null;
+  let companyTaxRate: number | null = null;
   if (userData?.tenant_id) {
     const { data, error } = await db
       .from("tenants")
@@ -53,6 +54,13 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
     } else {
       tenant = data;
     }
+    // Company-wide tax rate (Settings → Company Settings) — applied to all quotes.
+    const { data: settings } = await db
+      .from("tenant_settings")
+      .select("default_tax_rate")
+      .eq("tenant_id", userData.tenant_id)
+      .maybeSingle();
+    companyTaxRate = settings?.default_tax_rate ?? null;
   }
 
   if (!quoteResult.data) {
@@ -78,6 +86,7 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
       products={products ?? []}
       categories={categories ?? []}
       tenant={tenant}
+      companyTaxRate={companyTaxRate}
     />
   );
 }

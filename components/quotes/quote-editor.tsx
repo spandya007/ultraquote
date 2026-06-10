@@ -107,6 +107,8 @@ interface Props {
   products: Product[];
   categories: ProductCategory[];
   tenant: Tenant | null;
+  /** Company-wide tax rate from tenant_settings (Settings → Company Settings). */
+  companyTaxRate: number | null;
 }
 
 // ─── Scenario colour palette (5 pastels, one per slot) ───────────────────────
@@ -174,7 +176,7 @@ function calcScenarioTotals(items: LineItem[], taxRate: number) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function QuoteEditor({ quote: initialQuote, products, categories, tenant }: Props) {
+export function QuoteEditor({ quote: initialQuote, products, categories, tenant, companyTaxRate }: Props) {
   const router = useRouter();
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -325,7 +327,9 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     }
   }
 
-  const taxRate = quote.tax_rate ?? 0;
+  // The company-wide rate (Settings) governs tax; the quote's stored tax_rate is
+  // a synced snapshot (kept for PDFs/older quotes created before a rate change).
+  const taxRate = companyTaxRate ?? quote.tax_rate ?? 0;
 
   // ── Auto-save quote metadata ───────────────────────────────────────────────
   // Debounced save that fires whenever any quote field changes. Replaces the
@@ -345,7 +349,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
         title:                 quote.title,
         status:                quote.status,
         valid_until:           quote.valid_until,
-        tax_rate:              quote.tax_rate,
+        tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
         notes:                 quote.notes,
         show_margins:          showMargins,
@@ -364,7 +368,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
     return () => { if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current); };
   // db/toast are stable enough; we intentionally key off the quote fields only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote.title, quote.status, quote.valid_until, quote.tax_rate, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
+  }, [quote.title, quote.status, quote.valid_until, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
 
   // ── Preview ────────────────────────────────────────────────────────────────
   // Flush both document + metadata saves first so the server-rendered preview
@@ -382,7 +386,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
         title:                 quote.title,
         status:                quote.status,
         valid_until:           quote.valid_until,
-        tax_rate:              quote.tax_rate,
+        tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
         notes:                 quote.notes,
         show_margins:          showMargins,
@@ -1023,17 +1027,13 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Tax Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={quote.tax_rate != null ? (quote.tax_rate * 100).toFixed(2) : ""}
-                  onChange={(e) => setQuote(q => ({ ...q, tax_rate: parseFloat(e.target.value) / 100 || null }))}
-                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="0.00"
-                />
+                <label className="text-xs text-muted-foreground">Tax Rate</label>
+                <p
+                  className="text-sm px-3 py-1.5 rounded-md border bg-muted/30 text-muted-foreground"
+                  title="The company tax rate is set in Settings → Company Settings and applies to all quotes"
+                >
+                  {(taxRate * 100).toFixed(2)}% <span className="text-xs">· set in Settings</span>
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Payment Terms</label>
@@ -1121,7 +1121,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                       <p className={cn("text-xs", color.label)}>One-time: {formatCurrency(totals.onetime)}</p>
                       {totals.tax > 0 && (
                         <p className={cn("text-xs", color.label)}>
-                          Tax ({((quote.tax_rate ?? 0) * 100).toFixed(2)}%): {formatCurrency(totals.tax)}
+                          Tax ({(taxRate * 100).toFixed(2)}%): {formatCurrency(totals.tax)}
                         </p>
                       )}
                       <p className={cn("text-xs font-bold border-t mt-1.5 pt-1.5", color.label, color.divider)}>

@@ -28,8 +28,8 @@ as tabs in the quote editor:
 2. **Document tab** — the narrative proposal (cover letter, scope, terms) written
    in a rich-text editor.
 
-A quote also carries metadata in the right-hand panel (valid-until date, tax
-rate, payment terms, internal notes) and a **status** (Draft, Sent, Viewed,
+A quote also carries metadata in the right-hand panel (valid-until date, the
+company tax rate shown read-only, payment terms, internal notes) and a **status** (Draft, Sent, Viewed,
 Signed, Declined, Expired).
 
 **Everything auto-saves** — there is no Save button. A "Saving… / Saved ✓"
@@ -71,8 +71,8 @@ quantity, unit price, and an auto-calculated total. Scenario totals (monthly
 recurring, one-time, tax, grand total) compute automatically.
 
 **Taxable items:** if a scenario contains at least one taxable item, a **Tax**
-column appears showing the calculated tax per line (line total × the quote's tax
-rate from the right-hand panel); non-taxable lines show "—". The tax sum appears
+column appears showing the calculated tax per line (line total × your company
+tax rate from Settings → Company Settings); non-taxable lines show "—". The tax sum appears
 in the totals at the bottom. Whether an item is taxable comes from its **catalog
 product** (set on the Products page); scenarios with no taxable items show no
 Tax column.
@@ -292,14 +292,16 @@ Notes:
 
 ## Settings
 
-Settings → **Company Profile** (name, contact, email, phone, address, logo) and
-**Quote Defaults** (quote-number prefix, default valid days, default tax rate,
-default payment terms). Company info feeds the Insert Field placeholders and the
-PDF header/first page.
+Settings → **Company Settings** (name, contact, email, phone, address, logo, and
+the company **Tax Rate**) and **Quote Defaults** (quote-number prefix, default
+valid days, default payment terms). Company info feeds the Insert Field
+placeholders and the PDF header/first page. The **Tax Rate** set here applies
+uniformly to taxable items on **all** quotes (it is shown read-only in each
+quote's right-hand panel).
 
 ## Company Logo
 
-**Where:** Settings → Company Profile → **Logo**.
+**Where:** Settings → Company Settings → **Logo**.
 
 **How it works:**
 - Click **Upload** (or **Replace**) and choose an image. **PNG or SVG with a
