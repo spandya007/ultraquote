@@ -14,7 +14,7 @@ export async function loadSerializeInput(
 ): Promise<SerializeInput | null> {
   const db = supabase;
 
-  const { data: quote } = await db
+  const { data: quote, error: quoteError } = await db
     .from("quotes")
     .select(`
       id, tenant_id, quote_number, title, valid_until, tax_rate, payment_terms, document_content,
@@ -27,7 +27,12 @@ export async function loadSerializeInput(
     .eq("id", quoteId)
     .single();
 
-  if (!quote) return null;
+  if (!quote) {
+    // Surface the real cause (e.g. a missing column from an unrun migration)
+    // instead of letting callers report a generic "Quote not found".
+    if (quoteError) console.error("[pdf/load] quote query failed:", quoteError.message);
+    return null;
+  }
 
   const { data: tenant } = await db
     .from("tenants")
