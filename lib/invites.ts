@@ -11,9 +11,14 @@ import type { TenantInvite, UserRole } from "@/types";
 // public.users row from that metadata. The emailed link lands on
 // /api/auth/callback → /auth/set-password, where the user sets a password.
 
+// Straight to the (public) set-password page — invite tokens arrive in the
+// URL hash, so no server callback is involved. Deliberately NO query string:
+// Supabase's redirect-URL allowlist matching is unreliable with query params
+// (silently falls back to the Site URL), so this must stay a plain path that
+// exactly matches the allowlist entries.
 export function inviteRedirectUrl(requestOrigin: string): string {
   const base = process.env.NEXT_PUBLIC_SITE_URL || requestOrigin;
-  return `${base.replace(/\/$/, "")}/api/auth/callback?next=/auth/set-password`;
+  return `${base.replace(/\/$/, "")}/auth/set-password`;
 }
 
 export async function sendInviteEmail(opts: {

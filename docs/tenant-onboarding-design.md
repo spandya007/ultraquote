@@ -99,13 +99,15 @@ explicit tenant delete is out of scope for this pass.
 
 ## Flow B — invite acceptance (owner or member)
 
-1. Invite email link → Supabase verify endpoint → redirects to
-   `/api/auth/callback?next=/auth/set-password` **with the session tokens in
-   the URL hash** (`#access_token=…&type=invite`). Admin-sent invites use the
-   implicit flow, NOT PKCE — there is no `?code=`, and the hash never reaches
-   the server. The callback therefore just forwards to `next` (the browser
-   preserves the fragment across the redirect); it still exchanges `?code=`
-   when present (OAuth/PKCE). `next` is sanitized to same-site paths.
+1. Invite email link → Supabase verify endpoint → redirects **directly to
+   `/auth/set-password` with the session tokens in the URL hash**
+   (`#access_token=…&type=invite`). Admin-sent invites use the implicit flow,
+   NOT PKCE — there is no `?code=`, and the hash never reaches the server, so
+   no server callback is involved. The redirect URL deliberately has NO query
+   string: Supabase's allowlist matching is unreliable with query params and
+   silently falls back to the Site URL on mismatch. (The `/api/auth/callback`
+   route still exists for OAuth/PKCE `?code=` flows and sanitizes its `next`
+   param to same-site paths.)
 2. `/auth/set-password` is **public** (middleware allows `/auth/*`) and
    establishes the session client-side: explicit `setSession()` from the hash
    tokens (plus `createBrowserClient`'s own `detectSessionInUrl`), strips the
@@ -117,8 +119,10 @@ explicit tenant delete is out of scope for this pass.
    "invalid or expired" state telling the user to ask for a re-send.
 
 **Manual Supabase config (one-time):** Auth → URL Configuration → add redirect
-URLs `https://ultraquote.netlify.app/api/auth/callback` and
-`http://localhost:3000/api/auth/callback`.
+URLs `https://ultraquote.netlify.app/auth/set-password` and
+`http://localhost:3000/auth/set-password` (or the wildcard forms
+`https://ultraquote.netlify.app/**` + `http://localhost:3000/**`). Entry order
+in the allowlist does not matter.
 
 ## Flow C — tenant owner invites team members
 
