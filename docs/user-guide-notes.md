@@ -92,8 +92,17 @@ Within a scenario, add line items two ways:
 - **Add free-text item** — a blank row for custom entries.
 
 Each row has a description, billing period (**Monthly** or **One Time**),
-quantity, unit price, and an auto-calculated total. Scenario totals (monthly
-recurring, one-time, tax, grand total) compute automatically.
+quantity, unit price, a **Disc %** (discount), and an auto-calculated total.
+Scenario totals (monthly recurring, one-time, tax, grand total) compute
+automatically on the **discounted** prices.
+
+**Discounts:** enter a percentage in the **Disc %** column to discount that line.
+The line total, tax, and margins all use the discounted price. On the
+client-facing quote (Preview/PDF and document pricing tables), a **Discount
+column appears automatically** whenever any line has a discount — showing the
+regular unit price, the discount (e.g. −10%), the discounted total, and a green
+**"You save $X"** row in the totals, so the client sees the value they're
+getting.
 
 **Taxable items:** if a scenario contains at least one taxable item, a **Tax**
 column appears showing the calculated tax per line (line total × your company

@@ -61,7 +61,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 #### Quote Editor (`/quotes/[id]`)
 - Top bar: editable title, **read-only status badge** (status is SYSTEM-managed — see `lib/quote-status.ts`: send route sets `sent`, webhook sets viewed/signed/declined, `expired` is DERIVED from valid_until for sent/viewed, never stored; client NEVER writes `status` — prevents a stale-editor overwrite race vs the webhook), Profit margins toggle, Preview + Send/Re-send buttons, auto-save indicator. Send is blocked when valid_until has passed (extend first). **Stale drafts** (no activity > `default_valid_days`) are hidden from Quotes list + Dashboard (`isStaleDraft`, basis `updated_at`); raise Default Valid Days in Settings to reveal
 - **Scenario tabs** — add/rename/delete scenarios, star one as Recommended
-- **Line items table** — inline-editable description, billing period, qty (integers), unit price, totals; margin column (toggle)
+- **Line items table** — inline-editable description, billing period, qty (integers), unit price, **Disc %** (per-line discount; all totals/tax/margins compute on discounted price via `lineRevenue()`), totals; margin column (toggle). Client-facing tables (serializer + inline doc preview) show a Discount column + green **"You save $X"** row only when a discount exists
 - **Add from catalog** — spotlight search overlay; shows pricing tier buttons for multi-tier products
 - **Add free-text item** — blank row for custom line items
 - **Right panel** — valid until, tax rate (READ-ONLY — company-wide rate from `tenant_settings.default_tax_rate`, set in Settings → Company Settings; `quotes.tax_rate` is a synced snapshot written on save for PDFs/back-compat), payment terms, internal notes, client info card, scenario totals (Monthly / One-time per scenario)
@@ -123,6 +123,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - `002_product_provenance_and_audit.sql` — `products.source` + `products.source_quote_id` + `product_audit` table + RLS. **Required for the "Extract pricing → scenarios" feature** (creating catalog products writes provenance + audit).
 - `003_add_client_logo.sql` — `clients.logo_url`. **Required for client logo upload + the `{{client.logo}}` document field.**
 - `004_add_decline_reason.sql` — `quote_signers.decline_reason`. **Required for capturing DocuSeal decline comments** (webhook writes it + appends to quote notes).
+- `005_add_line_item_discount.sql` — `quote_line_items.discount_percent` + recreates the `line_total`/`margin_percent` generated columns discount-aware. **Required for the Discount column.**
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**

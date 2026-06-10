@@ -21,7 +21,7 @@ export async function loadSerializeInput(
       client:clients(company_name, contact_name, contact_email, contact_phone, address, logo_url),
       scenarios:quote_scenarios!quote_id(
         id, name, is_recommended, sort_order,
-        line_items:quote_line_items(description, billing_period, quantity, unit_price, is_taxable)
+        line_items:quote_line_items(description, billing_period, quantity, unit_price, is_taxable, discount_percent)
       )
     `)
     .eq("id", quoteId)

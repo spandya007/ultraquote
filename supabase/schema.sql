@@ -278,12 +278,16 @@ create table public.quote_line_items (
   unit_price      decimal(10,2),
   setup_price     decimal(10,2) not null default 0,
   is_taxable      boolean not null default false,
+  discount_percent decimal(5,2) not null default 0,
   margin_percent  decimal(5,2)
     generated always as (
-      case when unit_price > 0 then ((unit_price - unit_cost) / unit_price) * 100 else null end
+      case when unit_price * (1 - discount_percent / 100) > 0
+        then ((unit_price * (1 - discount_percent / 100) - unit_cost)
+              / (unit_price * (1 - discount_percent / 100))) * 100
+        else null end
     ) stored,
   line_total      decimal(10,2)
-    generated always as (quantity * unit_price) stored,
+    generated always as (quantity * unit_price * (1 - discount_percent / 100)) stored,
   sort_order      int not null default 0
 );
 

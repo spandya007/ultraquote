@@ -32,6 +32,7 @@ interface LineItem {
   unit_price: number | null;
   setup_price: number;
   is_taxable: boolean;
+  discount_percent: number;
   sort_order: number;
 }
 
@@ -174,13 +175,15 @@ const STATUS_HINTS: Record<QuoteStatus, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Revenue for a line after its discount — all totals/tax build on this.
+function lineRevenue(i: { quantity: number; unit_price: number | null; discount_percent?: number | null }) {
+  return i.quantity * (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
+}
+
 function calcScenarioTotals(items: LineItem[], taxRate: number) {
-  const monthly  = items.filter(i => i.billing_period === "Monthly")
-    .reduce((s, i) => s + (i.quantity * (i.unit_price ?? 0)), 0);
-  const onetime  = items.filter(i => i.billing_period === "One Time")
-    .reduce((s, i) => s + (i.quantity * (i.unit_price ?? 0)), 0);
-  const taxable  = items.filter(i => i.is_taxable)
-    .reduce((s, i) => s + (i.quantity * (i.unit_price ?? 0)), 0);
+  const monthly  = items.filter(i => i.billing_period === "Monthly").reduce((s, i) => s + lineRevenue(i), 0);
+  const onetime  = items.filter(i => i.billing_period === "One Time").reduce((s, i) => s + lineRevenue(i), 0);
+  const taxable  = items.filter(i => i.is_taxable).reduce((s, i) => s + lineRevenue(i), 0);
   const tax      = taxable * taxRate;
   return { monthly, onetime, tax, total: monthly + onetime + tax };
 }
@@ -522,6 +525,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
       unit_price:      tier?.unit_price ?? product.unit_price,
       setup_price:     product.setup_price,
       is_taxable:      product.is_taxable,
+      discount_percent: 0,
       sort_order:      scenario.line_items.length,
     };
 
@@ -564,6 +568,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
       unit_price:   null,
       setup_price:  0,
       is_taxable:   false,
+      discount_percent: 0,
       sort_order:   scenario.line_items.length,
     };
 
@@ -871,6 +876,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
+                    <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount % off the unit price — shown to the client on the quote">Disc %</th>
                     {hasTaxable && (
                       <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the quote's tax rate)">Tax</th>
                     )}
@@ -882,15 +888,16 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 <tbody className="divide-y">
                   {currentScenario.line_items.length === 0 ? (
                     <tr>
-                      <td colSpan={6 + (showMargins ? 2 : 0) + (hasTaxable ? 1 : 0)} className="text-center py-8 text-muted-foreground text-sm">
+                      <td colSpan={7 + (showMargins ? 2 : 0) + (hasTaxable ? 1 : 0)} className="text-center py-8 text-muted-foreground text-sm">
                         No line items yet — add products below.
                       </td>
                     </tr>
                   ) : (
                     currentScenario.line_items.map((item) => {
-                      const lineTotal = item.quantity * (item.unit_price ?? 0);
-                      const margin = item.unit_price && item.unit_cost && item.unit_price > 0
-                        ? (((item.unit_price - item.unit_cost) / item.unit_price) * 100)
+                      const effUnit = (item.unit_price ?? 0) * (1 - (item.discount_percent ?? 0) / 100);
+                      const lineTotal = item.quantity * effUnit;
+                      const margin = item.unit_price && item.unit_cost && effUnit > 0
+                        ? (((effUnit - item.unit_cost) / effUnit) * 100)
                         : null;
 
                       return (
@@ -942,6 +949,18 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                               className="w-24 text-right bg-transparent border-none outline-none focus:ring-0 p-0 font-medium"
                             />
                           </td>
+                          <td className="px-2 py-2 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={item.discount_percent || ""}
+                              placeholder="0"
+                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { discount_percent: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
+                              className="w-14 text-right bg-transparent border-none outline-none focus:ring-0 p-0 text-muted-foreground"
+                            />
+                          </td>
                           {hasTaxable && (
                             <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                               {item.is_taxable ? formatCurrency(lineTotal * taxRate) : "—"}
@@ -980,8 +999,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 {/* Totals footer */}
                 {currentScenario.line_items.length > 0 && (() => {
                   const t = calcScenarioTotals(currentScenario.line_items, taxRate);
-                  // Label spans Description…Unit Price (+Cost, +Tax when shown).
-                  const cols = (showMargins ? 5 : 4) + (hasTaxable ? 1 : 0);
+                  // Label spans Description…Disc% (+Cost, +Tax when shown).
+                  const cols = (showMargins ? 6 : 5) + (hasTaxable ? 1 : 0);
                   return (
                     <tfoot className={cn("border-t", activeColor.tile)}>
                       <tr>
@@ -1140,7 +1159,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                   const color  = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
                   // Internal profit margin across line items that have a cost set.
                   const costed = s.line_items.filter(i => i.unit_cost != null && i.unit_price != null);
-                  const mRev  = costed.reduce((sum, i) => sum + i.quantity * (i.unit_price ?? 0), 0);
+                  const mRev  = costed.reduce((sum, i) => sum + lineRevenue(i), 0);
                   const mCost = costed.reduce((sum, i) => sum + i.quantity * (i.unit_cost ?? 0), 0);
                   const marginPct = mRev > 0 ? ((mRev - mCost) / mRev) * 100 : null;
                   return (

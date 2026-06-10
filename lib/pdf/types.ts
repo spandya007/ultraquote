@@ -26,6 +26,7 @@ export interface SerializeLineItem {
   quantity: number;
   unit_price: number | null;
   is_taxable: boolean;
+  discount_percent: number | null;
 }
 
 export interface SerializeScenario {

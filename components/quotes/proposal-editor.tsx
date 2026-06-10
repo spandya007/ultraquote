@@ -115,6 +115,12 @@ export interface EditorLineItem {
   unit_price: number | null;
   unit_cost: number | null;
   is_taxable: boolean;
+  discount_percent?: number | null;
+}
+
+// Revenue for a line after its discount.
+function editorLineRev(i: EditorLineItem) {
+  return i.quantity * (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
 }
 export interface EditorScenario {
   id: string;
@@ -131,8 +137,9 @@ interface ScenarioCtx {
 const ScenarioContext = createContext<ScenarioCtx>({ scenarios: [], taxRate: 0, showMargins: false });
 
 function lineMargin(i: EditorLineItem): number | null {
-  if (i.unit_price == null || i.unit_cost == null || i.unit_price <= 0) return null;
-  return ((i.unit_price - i.unit_cost) / i.unit_price) * 100;
+  const eff = (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
+  if (i.unit_price == null || i.unit_cost == null || eff <= 0) return null;
+  return ((eff - i.unit_cost) / eff) * 100;
 }
 function marginColor(pct: number | null): string {
   if (pct == null) return "#94a3b8";
@@ -140,12 +147,14 @@ function marginColor(pct: number | null): string {
 }
 
 function scenarioMonthly(s: EditorScenario) {
-  return s.line_items.filter(i => i.billing_period === "Monthly")
-    .reduce((sum, i) => sum + i.quantity * (i.unit_price ?? 0), 0);
+  return s.line_items.filter(i => i.billing_period === "Monthly").reduce((sum, i) => sum + editorLineRev(i), 0);
 }
 function scenarioOnetime(s: EditorScenario) {
-  return s.line_items.filter(i => i.billing_period === "One Time")
-    .reduce((sum, i) => sum + i.quantity * (i.unit_price ?? 0), 0);
+  return s.line_items.filter(i => i.billing_period === "One Time").reduce((sum, i) => sum + editorLineRev(i), 0);
+}
+function scenarioSavings(s: EditorScenario) {
+  return s.line_items.reduce(
+    (sum, i) => sum + i.quantity * (i.unit_price ?? 0) * ((i.discount_percent ?? 0) / 100), 0);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,6 +206,9 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
       ) : shown.map(s => {
         const monthly = scenarioMonthly(s);
         const onetime = scenarioOnetime(s);
+        const savings = scenarioSavings(s);
+        const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0);
+        const tcols = cols + (hasDisc ? 1 : 0);
         const c = scenarioColor(sorted.findIndex(x => x.id === s.id));
         const th = { padding: "4px 8px", border: `1px solid ${c.border}`, background: c.footBg, color: c.headText, fontWeight: 600 as const, fontSize: 10 };
         const td = { padding: "4px 8px", border: "1px solid #f1f5f9" };
@@ -208,7 +220,7 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
           }}>
             <thead>
               <tr>
-                <th colSpan={cols} style={{
+                <th colSpan={tcols} style={{
                   textAlign: "left", background: c.headBg, color: c.headText,
                   padding: "6px 8px", border: `1px solid ${c.border}`, fontSize: 12,
                 }}>
@@ -220,13 +232,14 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 <th style={{ ...th, textAlign: "left" }}>Billing</th>
                 <th style={{ ...th, textAlign: "right" }}>Qty</th>
                 <th style={{ ...th, textAlign: "right" }}>Unit Price</th>
+                {hasDisc && <th style={{ ...th, textAlign: "right" }}>Discount</th>}
                 <th style={{ ...th, textAlign: "right" }}>Total</th>
                 {showMargins && <th style={{ ...th, textAlign: "right" }}>Margin</th>}
               </tr>
             </thead>
             <tbody>
               {s.line_items.length === 0 ? (
-                <tr><td colSpan={cols} style={{ padding: "6px 8px", color: "#94a3b8", textAlign: "center" }}>No line items</td></tr>
+                <tr><td colSpan={tcols} style={{ padding: "6px 8px", color: "#94a3b8", textAlign: "center" }}>No line items</td></tr>
               ) : s.line_items.map((i, idx) => {
                 const m = lineMargin(i);
                 return (
@@ -235,7 +248,10 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                   <td style={td}>{i.billing_period ?? "—"}</td>
                   <td style={tdR}>{Math.round(i.quantity)}</td>
                   <td style={tdR}>{formatCurrency(i.unit_price ?? 0)}</td>
-                  <td style={tdR}>{formatCurrency(i.quantity * (i.unit_price ?? 0))}</td>
+                  {hasDisc && (
+                    <td style={tdR}>{(i.discount_percent ?? 0) > 0 ? `−${i.discount_percent}%` : "—"}</td>
+                  )}
+                  <td style={tdR}>{formatCurrency(editorLineRev(i))}</td>
                   {showMargins && (
                     <td style={{ ...tdR, color: marginColor(m), fontWeight: 600 }}>
                       {m != null ? `${m.toFixed(1)}%` : "—"}
@@ -246,15 +262,22 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td>
+                <td colSpan={hasDisc ? 5 : 4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>Monthly</td>
                 <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(monthly)}</td>
                 {showMargins && <td style={{ background: c.footBg }} />}
               </tr>
               <tr>
-                <td colSpan={4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td>
+                <td colSpan={hasDisc ? 5 : 4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td>
                 <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td>
                 {showMargins && <td style={{ background: c.footBg }} />}
               </tr>
+              {savings > 0 && (
+                <tr>
+                  <td colSpan={hasDisc ? 5 : 4} style={{ padding: "4px 8px", textAlign: "right", background: "#f0fdf4", color: "#16a34a", fontWeight: 700 }}>You save</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 700, background: "#f0fdf4", color: "#16a34a" }}>{formatCurrency(savings)}</td>
+                  {showMargins && <td style={{ background: "#f0fdf4" }} />}
+                </tr>
+              )}
             </tfoot>
           </table>
         );

@@ -174,6 +174,7 @@ export interface QuoteLineItem {
   unit_price: number | null;
   setup_price: number;
   is_taxable: boolean;
+  discount_percent: number;
   margin_percent: number | null;        // computed: ((price-cost)/price)*100
   line_total: number | null;            // computed: qty * unit_price
   sort_order: number;
