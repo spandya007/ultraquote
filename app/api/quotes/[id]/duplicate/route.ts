@@ -29,7 +29,7 @@ export async function POST(
         monthly_recurring_total, onetime_total, tax_amount, total,
         line_items:quote_line_items(
           product_id, pricing_tier_id, description, billing_period,
-          quantity, unit_cost, unit_price, setup_price, is_taxable, discount_percent, sort_order
+          quantity, unit_cost, unit_price, setup_price, is_taxable, discount_percent, discount_amount, sort_order
         )
       )
     `)
@@ -118,6 +118,7 @@ export async function POST(
         setup_price:     i.setup_price,
         is_taxable:      i.is_taxable,
         discount_percent: i.discount_percent ?? 0,
+        discount_amount: i.discount_amount ?? 0,
         sort_order:      i.sort_order,
       }));
       const { error: liErr } = await db.from("quote_line_items").insert(payload);

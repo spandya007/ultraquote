@@ -96,11 +96,13 @@ quantity, unit price, a **Disc %** (discount), and an auto-calculated total.
 Scenario totals (monthly recurring, one-time, tax, grand total) compute
 automatically on the **discounted** prices.
 
-**Discounts:** enter a percentage in the **Disc %** column to discount that line.
-The line total, tax, and margins all use the discounted price. On the
-client-facing quote (Preview/PDF and document pricing tables), a **Discount
-column appears automatically** whenever any line has a discount — showing the
-regular unit price, the discount (e.g. −10%), the discounted total, and a green
+**Discounts:** use the **Disc** column to discount a line — enter a value and
+pick **%** (percent of the line) or **$** (a fixed dollar amount off the line
+total) from the little selector; each line uses one or the other. The line
+total, tax, and margins all use the discounted price. On the client-facing quote
+(Preview/PDF and document pricing tables), a **Discount column appears
+automatically** whenever any line has a discount — showing the regular unit
+price, the discount (e.g. −10% or −$50.00), the discounted total, and a green
 **"You save $X"** row in the totals, so the client sees the value they're
 getting.
 

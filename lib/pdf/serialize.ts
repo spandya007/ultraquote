@@ -108,9 +108,10 @@ function alignStyle(props: Record<string, unknown> | undefined): string {
 
 // ─── Scenario pricing table ─────────────────────────────────────────────────────
 
-// Revenue after the line's discount; `savings` is the total discount amount.
-function lineRev(i: { quantity: number; unit_price: number | null; discount_percent?: number | null }) {
-  return i.quantity * (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
+// Revenue after the line's discount (percent and/or fixed amount, floored at 0).
+function lineRev(i: { quantity: number; unit_price: number | null; discount_percent?: number | null; discount_amount?: number | null }) {
+  const gross = i.quantity * (i.unit_price ?? 0);
+  return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 
 function calcTotals(s: SerializeScenario, taxRate: number) {
@@ -119,14 +120,14 @@ function calcTotals(s: SerializeScenario, taxRate: number) {
   const taxable = s.line_items.filter(i => i.is_taxable).reduce((sum, i) => sum + lineRev(i), 0);
   const tax = taxable * taxRate;
   const savings = s.line_items.reduce(
-    (sum, i) => sum + i.quantity * (i.unit_price ?? 0) * ((i.discount_percent ?? 0) / 100), 0);
+    (sum, i) => sum + (i.quantity * (i.unit_price ?? 0) - lineRev(i)), 0);
   return { monthly, onetime, tax, total: monthly + onetime + tax, savings };
 }
 
 function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioColor): string {
   const t = calcTotals(s, taxRate);
   // Show the Discount column only when a discount exists in this scenario.
-  const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0);
+  const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0 || (i.discount_amount ?? 0) > 0);
   const colCount = hasDisc ? 6 : 5;
   const labelSpan = hasDisc ? 5 : 4;
   const rows = s.line_items.map((i) => `
@@ -135,7 +136,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
       <td class="bill">${i.billing_period ?? "—"}</td>
       <td class="num">${Math.round(i.quantity)}</td>
       <td class="num">${fmtCurrency(i.unit_price)}</td>
-      ${hasDisc ? `<td class="num">${(i.discount_percent ?? 0) > 0 ? `−${i.discount_percent}%` : "—"}</td>` : ""}
+      ${hasDisc ? `<td class="num">${(i.discount_percent ?? 0) > 0 ? `−${i.discount_percent}%` : (i.discount_amount ?? 0) > 0 ? `−${fmtCurrency(i.discount_amount)}` : "—"}</td>` : ""}
       <td class="num">${fmtCurrency(lineRev(i))}</td>
     </tr>`).join("");
 

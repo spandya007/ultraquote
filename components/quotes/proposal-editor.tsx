@@ -116,11 +116,13 @@ export interface EditorLineItem {
   unit_cost: number | null;
   is_taxable: boolean;
   discount_percent?: number | null;
+  discount_amount?: number | null;
 }
 
-// Revenue for a line after its discount.
+// Revenue for a line after its discount (percent or fixed $, floored at 0).
 function editorLineRev(i: EditorLineItem) {
-  return i.quantity * (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
+  const gross = i.quantity * (i.unit_price ?? 0);
+  return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 export interface EditorScenario {
   id: string;
@@ -154,7 +156,7 @@ function scenarioOnetime(s: EditorScenario) {
 }
 function scenarioSavings(s: EditorScenario) {
   return s.line_items.reduce(
-    (sum, i) => sum + i.quantity * (i.unit_price ?? 0) * ((i.discount_percent ?? 0) / 100), 0);
+    (sum, i) => sum + (i.quantity * (i.unit_price ?? 0) - editorLineRev(i)), 0);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +209,7 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
         const monthly = scenarioMonthly(s);
         const onetime = scenarioOnetime(s);
         const savings = scenarioSavings(s);
-        const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0);
+        const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0 || (i.discount_amount ?? 0) > 0);
         const tcols = cols + (hasDisc ? 1 : 0);
         const c = scenarioColor(sorted.findIndex(x => x.id === s.id));
         const th = { padding: "4px 8px", border: `1px solid ${c.border}`, background: c.footBg, color: c.headText, fontWeight: 600 as const, fontSize: 10 };
@@ -249,7 +251,10 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                   <td style={tdR}>{Math.round(i.quantity)}</td>
                   <td style={tdR}>{formatCurrency(i.unit_price ?? 0)}</td>
                   {hasDisc && (
-                    <td style={tdR}>{(i.discount_percent ?? 0) > 0 ? `−${i.discount_percent}%` : "—"}</td>
+                    <td style={tdR}>
+                      {(i.discount_percent ?? 0) > 0 ? `−${i.discount_percent}%`
+                        : (i.discount_amount ?? 0) > 0 ? `−${formatCurrency(i.discount_amount ?? 0)}` : "—"}
+                    </td>
                   )}
                   <td style={tdR}>{formatCurrency(editorLineRev(i))}</td>
                   {showMargins && (

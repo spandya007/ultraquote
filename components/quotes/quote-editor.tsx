@@ -33,6 +33,7 @@ interface LineItem {
   setup_price: number;
   is_taxable: boolean;
   discount_percent: number;
+  discount_amount: number;
   sort_order: number;
 }
 
@@ -175,9 +176,11 @@ const STATUS_HINTS: Record<QuoteStatus, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Revenue for a line after its discount — all totals/tax build on this.
-function lineRevenue(i: { quantity: number; unit_price: number | null; discount_percent?: number | null }) {
-  return i.quantity * (i.unit_price ?? 0) * (1 - (i.discount_percent ?? 0) / 100);
+// Revenue for a line after its discount (percent OR fixed $ amount, floored at
+// zero) — all totals/tax/margins build on this.
+function lineRevenue(i: { quantity: number; unit_price: number | null; discount_percent?: number | null; discount_amount?: number | null }) {
+  const gross = i.quantity * (i.unit_price ?? 0);
+  return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 
 function calcScenarioTotals(items: LineItem[], taxRate: number) {
@@ -526,6 +529,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
       setup_price:     product.setup_price,
       is_taxable:      product.is_taxable,
       discount_percent: 0,
+      discount_amount: 0,
       sort_order:      scenario.line_items.length,
     };
 
@@ -569,6 +573,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
       setup_price:  0,
       is_taxable:   false,
       discount_percent: 0,
+      discount_amount: 0,
       sort_order:   scenario.line_items.length,
     };
 
@@ -876,7 +881,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
-                    <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount % off the unit price — shown to the client on the quote">Disc %</th>
+                    <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount — percent or fixed $ off the line; shown to the client on the quote">Disc</th>
                     {hasTaxable && (
                       <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the quote's tax rate)">Tax</th>
                     )}
@@ -894,11 +899,12 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                     </tr>
                   ) : (
                     currentScenario.line_items.map((item) => {
-                      const effUnit = (item.unit_price ?? 0) * (1 - (item.discount_percent ?? 0) / 100);
-                      const lineTotal = item.quantity * effUnit;
+                      const lineTotal = lineRevenue(item);
+                      const effUnit = item.quantity > 0 ? lineTotal / item.quantity : 0;
                       const margin = item.unit_price && item.unit_cost && effUnit > 0
                         ? (((effUnit - item.unit_cost) / effUnit) * 100)
                         : null;
+                      const discIsAmount = (item.discount_amount ?? 0) > 0;
 
                       return (
                         <tr key={item.id} className="hover:bg-muted/10 group">
@@ -950,16 +956,34 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                             />
                           </td>
                           <td className="px-2 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={item.discount_percent || ""}
-                              placeholder="0"
-                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { discount_percent: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
-                              className="w-14 text-right bg-transparent border-none outline-none focus:ring-0 p-0 text-muted-foreground"
-                            />
+                            <div className="flex items-center justify-end gap-0.5">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={discIsAmount ? (item.discount_amount || "") : (item.discount_percent || "")}
+                                placeholder="0"
+                                onChange={(e) => {
+                                  const v = Math.max(0, parseFloat(e.target.value) || 0);
+                                  if (discIsAmount) updateLineItem(currentScenario.id, item.id, { discount_amount: v, discount_percent: 0 });
+                                  else updateLineItem(currentScenario.id, item.id, { discount_percent: Math.min(100, v), discount_amount: 0 });
+                                }}
+                                className="w-14 text-right bg-transparent border-none outline-none focus:ring-0 p-0 text-muted-foreground"
+                              />
+                              <select
+                                value={discIsAmount ? "$" : "%"}
+                                title="Discount as a percent of the line, or a fixed dollar amount off the line total"
+                                onChange={(e) => {
+                                  const cur = discIsAmount ? (item.discount_amount ?? 0) : (item.discount_percent ?? 0);
+                                  if (e.target.value === "$") updateLineItem(currentScenario.id, item.id, { discount_amount: cur, discount_percent: 0 });
+                                  else updateLineItem(currentScenario.id, item.id, { discount_percent: Math.min(100, cur), discount_amount: 0 });
+                                }}
+                                className="bg-transparent border-none outline-none text-xs text-muted-foreground focus:ring-0 p-0 cursor-pointer"
+                              >
+                                <option value="%">%</option>
+                                <option value="$">$</option>
+                              </select>
+                            </div>
                           </td>
                           {hasTaxable && (
                             <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">

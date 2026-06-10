@@ -279,15 +279,19 @@ create table public.quote_line_items (
   setup_price     decimal(10,2) not null default 0,
   is_taxable      boolean not null default false,
   discount_percent decimal(5,2) not null default 0,
+  discount_amount decimal(10,2) not null default 0,
   margin_percent  decimal(5,2)
     generated always as (
-      case when unit_price * (1 - discount_percent / 100) > 0
-        then ((unit_price * (1 - discount_percent / 100) - unit_cost)
-              / (unit_price * (1 - discount_percent / 100))) * 100
+      case when greatest(quantity * unit_price * (1 - discount_percent / 100) - discount_amount, 0) > 0
+        then ((greatest(quantity * unit_price * (1 - discount_percent / 100) - discount_amount, 0)
+               - quantity * unit_cost)
+              / greatest(quantity * unit_price * (1 - discount_percent / 100) - discount_amount, 0)) * 100
         else null end
     ) stored,
   line_total      decimal(10,2)
-    generated always as (quantity * unit_price * (1 - discount_percent / 100)) stored,
+    generated always as (
+      greatest(quantity * unit_price * (1 - discount_percent / 100) - discount_amount, 0)
+    ) stored,
   sort_order      int not null default 0
 );
 
