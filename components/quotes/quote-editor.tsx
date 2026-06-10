@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -665,14 +665,23 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
             Preview
           </button>
 
-          {sigKinds.length > 0 && (
+          {sigKinds.length > 0 && quote.status !== "signed" && (
             <button
               onClick={openSend}
-              title="Send the proposal for e-signature via DocuSeal"
-              className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+              title={
+                quote.status === "sent" || quote.status === "viewed"
+                  ? "Already sent — re-sending voids the previous signing links and starts a fresh round"
+                  : "Send the proposal for e-signature via DocuSeal"
+              }
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                quote.status === "sent" || quote.status === "viewed"
+                  ? "border text-muted-foreground hover:bg-muted"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
             >
               <Send className="w-4 h-4" />
-              Send for signature
+              {quote.status === "sent" || quote.status === "viewed" ? "Re-send for signature" : "Send for signature"}
             </button>
           )}
 
@@ -1256,6 +1265,15 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               <span className="text-sm font-semibold">Send for signature — {quote.quote_number}</span>
             </div>
             <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              {(quote.status === "sent" || quote.status === "viewed") && (
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>
+                    This quote was <strong>already sent</strong>. Re-sending voids the previously
+                    emailed signing links and starts a fresh signing round with the current document.
+                  </span>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 DocuSeal will email each signer a link. Signers below match the
                 signature fields placed in the document.
