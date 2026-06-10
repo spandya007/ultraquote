@@ -164,6 +164,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 4. **Quote ↔ Document relationship** — RESOLVED via the inline `scenarioTable` block: loosely integrated (document controls layout via placed pricing tables; line items remain the structured data). Revisit only if a tighter merge is wanted.
 
 ### Known follow-ups / tech debt
+- **Rotate DOCUSEAL_WEBHOOK_SECRET to a hex-only value** (e.g. `openssl rand -hex 32`). The current secret contains `&`/`^` and only works because it's URL-encoded inside the DocuSeal webhook URL (`?secret=...`). On the next natural Netlify deploy: update the Netlify env var + put the new plain value in the DocuSeal webhook URL (no encoding needed), then Resend a test event to confirm 200.
 - Variable tokens are now substituted by `lib/pdf/serialize.ts` (tokenMap) at PDF/Preview render time
 - Re-enable `reactStrictMode` once BlockNote is upgraded past the `getPos` bug
 - PDF download returns 501 until `PDF_SERVICE_URL` is set (deploy `/pdf-service` to Railway)
