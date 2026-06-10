@@ -601,6 +601,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
   const currentScenarioIdx = scenarios.findIndex(s => s.id === activeScenario);
   const currentScenario    = scenarios[currentScenarioIdx];
   const activeColor        = SCENARIO_COLORS[currentScenarioIdx % SCENARIO_COLORS.length];
+  // Tax column appears only when the scenario contains at least one taxable item.
+  const hasTaxable         = (currentScenario?.line_items ?? []).some(i => i.is_taxable);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -822,7 +824,9 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
-                    <th className="text-center px-2 py-2 font-medium text-muted-foreground" title="Taxable — included in the tax calculation">Tax</th>
+                    {hasTaxable && (
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the quote's tax rate)">Tax</th>
+                    )}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Total</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Margin</th>}
                     <th className="px-2 py-2" />
@@ -831,7 +835,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 <tbody className="divide-y">
                   {currentScenario.line_items.length === 0 ? (
                     <tr>
-                      <td colSpan={showMargins ? 9 : 7} className="text-center py-8 text-muted-foreground text-sm">
+                      <td colSpan={6 + (showMargins ? 2 : 0) + (hasTaxable ? 1 : 0)} className="text-center py-8 text-muted-foreground text-sm">
                         No line items yet — add products below.
                       </td>
                     </tr>
@@ -891,15 +895,11 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                               className="w-24 text-right bg-transparent border-none outline-none focus:ring-0 p-0 font-medium"
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
-                            <input
-                              type="checkbox"
-                              checked={item.is_taxable}
-                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { is_taxable: e.target.checked })}
-                              title={item.is_taxable ? "Taxable — counted in the tax total" : "Not taxable"}
-                              className="rounded cursor-pointer"
-                            />
-                          </td>
+                          {hasTaxable && (
+                            <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                              {item.is_taxable ? formatCurrency(lineTotal * taxRate) : "—"}
+                            </td>
+                          )}
                           <td className="px-4 py-2 text-right font-medium tabular-nums">
                             {formatCurrency(lineTotal)}
                           </td>
@@ -933,7 +933,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 {/* Totals footer */}
                 {currentScenario.line_items.length > 0 && (() => {
                   const t = calcScenarioTotals(currentScenario.line_items, taxRate);
-                  const cols = showMargins ? 6 : 5; // label spans through the Tax column
+                  // Label spans Description…Unit Price (+Cost, +Tax when shown).
+                  const cols = (showMargins ? 5 : 4) + (hasTaxable ? 1 : 0);
                   return (
                     <tfoot className={cn("border-t", activeColor.tile)}>
                       <tr>
@@ -956,7 +957,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                         {showMargins && <td />}
                         <td />
                       </tr>
-                      {taxRate > 0 && (
+                      {(taxRate > 0 || hasTaxable) && (
                         <tr>
                           <td colSpan={cols} className={cn("px-4 py-2 text-sm text-right", activeColor.label)}>
                             Tax ({(taxRate * 100).toFixed(2)}%)
