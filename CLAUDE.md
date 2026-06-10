@@ -124,7 +124,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - `003_add_client_logo.sql` — `clients.logo_url`. **Required for client logo upload + the `{{client.logo}}` document field.**
 - `004_add_decline_reason.sql` — `quote_signers.decline_reason`. **Required for capturing DocuSeal decline comments** (webhook writes it + appends to quote notes).
 - `005_add_line_item_discount.sql` — `quote_line_items.discount_percent` + recreates the `line_total`/`margin_percent` generated columns discount-aware. **Required for the Discount column.** ✅ run
-- `006_add_discount_amount.sql` — `quote_line_items.discount_amount` (fixed $ off the line total; UI keeps %/$ mutually exclusive per line) + generated columns recreated again. **Required for the $ discount option.**
+- `006_add_discount_amount.sql` — `quote_line_items.discount_amount` (fixed $ off the line total; UI keeps %/$ mutually exclusive per line) + generated columns recreated again. **Required for the $ discount option.** ✅ run (Discount %/$ + Preview verified on CMIT-2026-008)
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
