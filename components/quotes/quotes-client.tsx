@@ -19,6 +19,15 @@ interface QuoteRow {
   sent_at: string | null;
   signed_at: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
+  signers?: { signer_email: string; status: string; decline_reason: string | null }[];
+}
+
+// Tooltip for the status badge — surfaces the decline comment on declined quotes.
+function statusTooltip(q: QuoteRow): string | undefined {
+  if (q.status !== "declined") return undefined;
+  const decliner = (q.signers ?? []).find(s => s.status === "declined" && s.decline_reason);
+  if (!decliner) return "Declined (no reason given)";
+  return `Declined by ${decliner.signer_email}: ${decliner.decline_reason}`;
 }
 
 interface ClientOption {
@@ -191,10 +200,14 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{q.title ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={cn(
-                      "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-                      STATUS_STYLES[q.status]
-                    )}>
+                    <span
+                      title={statusTooltip(q)}
+                      className={cn(
+                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+                        STATUS_STYLES[q.status],
+                        q.status === "declined" && "cursor-help"
+                      )}
+                    >
                       {q.status}
                     </span>
                   </td>
