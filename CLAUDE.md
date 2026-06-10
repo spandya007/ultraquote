@@ -55,8 +55,10 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 | `/products` | ✅ | Table with search/filter, CSV import, edit drawer with pricing tiers |
 | `/quotes` | ✅ | Table with status badges, New Quote modal |
 | `/quotes/[id]` | ✅ | Full quote editor (see below) |
-| `/templates` | 🔲 | Stub page only |
-| `/settings` | 🔲 | Stub page only |
+| `/templates` | ✅ | Template list + editor (see Templates in Next Up) |
+| `/settings` | ✅ | Company Settings + Quote Defaults + Team (member invites) |
+| `/admin` | ✅ | Platform Admin console — tenant list + invite-first onboarding (platform admins only) |
+| `/auth/set-password` | ✅ | Invite-acceptance landing (invited user sets password) |
 
 #### Quote Editor (`/quotes/[id]`)
 - Top bar: editable title, **read-only status badge** (status is SYSTEM-managed — see `lib/quote-status.ts`: send route sets `sent`, webhook sets viewed/signed/declined, `expired` is DERIVED from valid_until for sent/viewed, never stored; client NEVER writes `status` — prevents a stale-editor overwrite race vs the webhook), Profit margins toggle, Preview + Send/Re-send buttons, auto-save indicator. Send is blocked when valid_until has passed (extend first). **Stale drafts** (no activity > `default_valid_days`) are hidden from Quotes list + Dashboard (`isStaleDraft`, basis `updated_at`); raise Default Valid Days in Settings to reveal
@@ -125,6 +127,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - `004_add_decline_reason.sql` — `quote_signers.decline_reason`. **Required for capturing DocuSeal decline comments** (webhook writes it + appends to quote notes).
 - `005_add_line_item_discount.sql` — `quote_line_items.discount_percent` + recreates the `line_total`/`margin_percent` generated columns discount-aware. **Required for the Discount column.** ✅ run
 - `006_add_discount_amount.sql` — `quote_line_items.discount_amount` (fixed $ off the line total; UI keeps %/$ mutually exclusive per line) + generated columns recreated again. **Required for the $ discount option.** ✅ run (Discount %/$ + Preview verified on CMIT-2026-008)
+- `007_platform_admins_and_invites.sql` — `platform_admins` (RLS, NO policies — service-role only) + `tenant_invites` (+ tenant-member read policy) + `provision_tenant_shell()` (ownerless tenant) + seeds Sameer as platform admin. **Required for the /admin console, invite-first tenant onboarding, and Settings → Team.** ⚠️ NOT yet run. Also one-time Supabase Auth config: add `https://ultraquote.netlify.app/api/auth/callback` + `http://localhost:3000/api/auth/callback` to Auth → URL Configuration → Redirect URLs (invite emails land there).
 
 ## ⏸️ RESUME SNAPSHOT (last session end)
 **Where things stand:**
@@ -135,7 +138,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - Also this session: tax rate moved to company level (Settings → **Company Settings**); conditional per-line Tax column; Dashboard/Quotes refresh-on-view fix; all four migrations (001–004) run in Supabase.
 - **DocuSeal is on the free Developer Sandbox** — upgrade to Pro ($20/mo + $0.20/doc) + swap to the production API key/webhook when going live with real clients.
 
-**Backlog (for prioritization):** see "Backlog / Reminders" below — open items: dark mode (#7), product docs polish (#8), BlockNote upgrade + two-column (#10), tenant onboarding/Super Admin (#11, now unblocked by deploy), Withdraw (#12), offline-sign (#13); tech debt: hex webhook secret, Next major upgrade, signed-quote content immutability (candidate, not yet backlogged).
+**Backlog (for prioritization):** see "Backlog / Reminders" below — open items: dark mode (#7), product docs polish (#8), BlockNote upgrade + two-column (#10), Withdraw (#12), offline-sign (#13); tech debt: hex webhook secret, Next major upgrade, signed-quote content immutability (candidate, not yet backlogged). Tenant onboarding/Super Admin (#11) ✅ built this session (2026-06-10) — pending: run migration 007, add Auth redirect URLs, then test the invite flow end-to-end.
 
 ## Next Up (not yet built)
 - [x] ~~BlockNote document editor tab on quote (proposal narrative body)~~ ✅ DONE
@@ -153,7 +156,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 7. **Dark mode** — add a dark-mode toggle/setting in the UI. Tailwind is already CSS-variable themed (`app/globals.css` has `.dark` tokens); needs a theme toggle + persistence (e.g. `next-themes` or a `class` on `<html>`).
 9. ~~**Document pricing tables → scenarios**~~ ✅ DONE — "Extract pricing" button in Document toolbar. `/api/ai/extract-pricing` (Gemini JSON) extracts line items grouped into scenarios + classifies each against the catalog (conservative normalized-name match). Review modal: per-item action — **link** (duplicate → forced catalog values), **create** (new product in Professional Services + `product_audit`), or **freetext**. `/api/quotes/[id]/apply-pricing` creates scenarios+line items; replaces the lone empty default scenario, caps at 5. **Create-dedup:** a normalized-name map (seeded from the catalog, extended per run) ensures the same service across multiple scenarios maps to ONE catalog product (line items keep their own quoted price). Parent refreshes via `onPricingApplied`. **Needs migration 002.**
 10. **BlockNote upgrade + two-column layout** — upgrade `@blocknote/*` from 0.14 → 0.51 to enable `@blocknote/xl-multi-column` (true two-column documents) and fix the `getPos` StrictMode crash (re-enable `reactStrictMode`). **High-risk, dedicated effort on a worktree** — confirmed breaking changes (custom-block factory API, schema `.extend()`, render signature) + existing-document compatibility risk. Full research, breaking-change list, migration plan, and test matrix in **`docs/blocknote-upgrade-plan.md`**.
-11. **Tenant onboarding + Super Admin / invites** — NOT built. Today tenants are added by hand (`docs/manual-tenant-onboarding.md`). Wanted: a platform-level **Super Admin** role that invites/validates new MSP tenants → self-serve signup → becomes tenant owner. Needs: super-admin modeling (flag vs. `platform_admins` table), invite mechanism (Supabase `inviteUserByEmail` vs. custom `tenant_invites` table), approval/validation step, email, cross-tenant admin access (via service-role admin routes, not broad RLS). **Best after Netlify deploy** (needs email/invite links). Write a design doc first.
+11. ~~**Tenant onboarding + Super Admin / invites**~~ ✅ DONE (code; needs migration 007 + Auth redirect-URL config before testing) — design doc: **`docs/tenant-onboarding-design.md`**. **Invite-first:** `/admin` console (own layout outside the dashboard shell; guarded by `platform_admins` via service role — `lib/platform-admin.ts`; sidebar shows a "Platform Admin" link for admins) lists tenants w/ **user counts (future billing basis — live count of `public.users`)**, quote counts, owner + invite-status badge; "Invite tenant" → `provision_tenant_shell()` (ownerless shell) → `inviteUserByEmail` with `tenant_id`/`role` metadata (the EXISTING `handle_new_auth_user` trigger creates the `users` row at invite time) → owner's email link lands on `/api/auth/callback?next=/auth/set-password` → sets password (`/auth/set-password`) → `POST /api/auth/accept-invite` marks the `tenant_invites` row accepted. **Member invites:** Settings → **Team** card (`components/settings/team-card.tsx`) — owner-only invite/resend/revoke via `/api/team/invite` + `/api/team/invites/[id]`; members see the list read-only. Shared mechanics in `lib/invites.ts`: **resend** = delete the still-unconfirmed auth user + `users` row, re-invite (same metadata); **revoke** = same delete + mark invite revoked; both refuse once accepted (`email_confirmed_at`/`last_sign_in_at`). Tenant-invite failure cleans up the shell tenant; revoking an owner invite keeps the tenant ("No owner" in console) for re-invite. Optional env `NEXT_PUBLIC_SITE_URL` overrides the redirect origin. Manual runbook stays as fallback (e.g. attaching an existing email to a tenant). Out of scope (listed in design doc): tenant delete/suspend, seat limits/Stripe, role changes, removing existing users, self-serve request queue.
 12. **Withdraw action** — no way to "unsend" a sent quote (manual status control was removed). If needed: a deliberate Withdraw button that archives the DocuSeal submission and returns the quote to draft.
 13. **Mark as signed (offline)** — `signed` is webhook-only; paper/offline signatures can't be recorded. If needed: explicit confirm action.
 8. **Product user documentation** — turn `docs/user-guide-notes.md` (running draft notes on Quotes/Scenarios/Line Items/Margins/Document/Ask AI/Preview/PDF/Header&Footer/Logo/Settings) into polished end-user docs. Keep adding to the notes file as features ship.
@@ -180,27 +183,39 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
   /api/documents/parse-docx/route.ts ← mammoth .docx → HTML (for Document import)
   /api/ai/extract-pricing/route.ts   ← document tables → scenarios (Gemini JSON) + catalog match
   /api/quotes/[id]/apply-pricing/route.ts ← create scenarios/line items + catalog products from review
+  /api/admin/tenants/invite/route.ts ← Super Admin: provision tenant shell + email owner invite
+  /api/admin/invites/[id]/route.ts   ← Super Admin: resend/revoke any invite
+  /api/auth/accept-invite/route.ts   ← marks tenant_invites accepted after set-password
+  /api/team/invite/route.ts          ← tenant owner invites a member
+  /api/team/invites/[id]/route.ts    ← tenant owner resend/revoke member invite
   /(auth)/login/
+  /admin/                     ← Platform Admin console (own layout; platform_admins-guarded)
+    layout.tsx, page.tsx
+  /auth/set-password/page.tsx ← invite-acceptance landing
   /(dashboard)/
     page.tsx                  ← dashboard home
-    layout.tsx                ← auth guard + sidebar
+    layout.tsx                ← auth guard + sidebar (+ platform-admin link check)
     /clients/page.tsx
     /products/page.tsx
     /quotes/page.tsx
     /quotes/[id]/page.tsx     ← quote editor
-    /templates/page.tsx       ← stub
-    /settings/page.tsx        ← stub
+    /templates/page.tsx
+    /settings/page.tsx
 /components
   /ui/sidebar.tsx, login-form.tsx, toast.tsx
+  /admin/admin-client.tsx     ← tenant table + invite-tenant form
+  /auth/set-password-form.tsx
   /clients/clients-client.tsx, client-drawer.tsx
   /products/products-client.tsx, product-drawer.tsx
   /quotes/quotes-client.tsx, new-quote-modal.tsx, quote-editor.tsx, proposal-editor.tsx
-  /settings/settings-client.tsx
+  /settings/settings-client.tsx, team-card.tsx
 /lib
-  /supabase/client.ts, server.ts, use-tenant.ts
+  /supabase/client.ts, server.ts, admin.ts, use-tenant.ts
   /import/csv-products.ts
   /utils/cn.ts, format.ts
   /pdf/types.ts, serialize.ts, resolve-images.ts, load.ts  ← PDF/Preview pipeline
+  platform-admin.ts           ← getPlatformAdminUser() guard
+  invites.ts                  ← shared invite mechanics (send/resend/revoke)
 /pdf-service/                 ← standalone Puppeteer microservice (deploy to Railway)
   server.js, Dockerfile, package.json, README.md
 /types/index.ts               ← all TypeScript interfaces

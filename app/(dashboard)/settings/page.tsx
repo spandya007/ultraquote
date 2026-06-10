@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SettingsClient } from "@/components/settings/settings-client";
+import { TeamCard } from "@/components/settings/team-card";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
         tenant={tenant}
         settings={settings}
       />
+      <TeamCard />
     </div>
   );
 }

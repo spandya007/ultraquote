@@ -39,6 +39,27 @@ export interface User {
   created_at: string;
 }
 
+// ─── Platform admins / tenant invites ────────────────────────────────────────
+
+export interface PlatformAdmin {
+  user_id: string;           // matches Supabase Auth user id
+  created_at: string;
+}
+
+export type InviteStatus = "pending" | "accepted" | "revoked";
+
+export interface TenantInvite {
+  id: string;
+  tenant_id: string;
+  email: string;
+  full_name: string | null;
+  role: UserRole;
+  invited_by: string | null;
+  status: InviteStatus;
+  created_at: string;
+  accepted_at: string | null;
+}
+
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 export interface Client {
@@ -234,6 +255,8 @@ export interface Database {
       tenants: { Row: Tenant; Insert: Omit<Tenant, "id" | "created_at">; Update: Partial<Omit<Tenant, "id">> };
       tenant_settings: { Row: TenantSettings; Insert: Omit<TenantSettings, "id">; Update: Partial<Omit<TenantSettings, "id">> };
       users: { Row: User; Insert: Omit<User, "created_at">; Update: Partial<Omit<User, "id">> };
+      platform_admins: { Row: PlatformAdmin; Insert: Omit<PlatformAdmin, "created_at">; Update: never };
+      tenant_invites: { Row: TenantInvite; Insert: Omit<TenantInvite, "id" | "created_at">; Update: Partial<Omit<TenantInvite, "id">> };
       clients: { Row: Client; Insert: Omit<Client, "id" | "created_at">; Update: Partial<Omit<Client, "id">> };
       product_categories: { Row: ProductCategory; Insert: Omit<ProductCategory, "id">; Update: Partial<Omit<ProductCategory, "id">> };
       products: { Row: Product; Insert: Omit<Product, "id" | "created_at">; Update: Partial<Omit<Product, "id">> };

@@ -12,6 +12,7 @@ import {
   Package,
   BookTemplate,
   Settings,
+  ShieldCheck,
   LogOut,
 } from "lucide-react";
 
@@ -24,7 +25,7 @@ const navItems = [
   { href: "/settings",  label: "Settings",   icon: Settings },
 ];
 
-export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: string | null }) {
+export function Sidebar({ brandName, logoUrl, showAdmin }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean }) {
   const pathname = usePathname();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -74,6 +75,15 @@ export function Sidebar({ brandName, logoUrl }: { brandName?: string; logoUrl?: 
             </Link>
           );
         })}
+        {showAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            Platform Admin
+          </Link>
+        )}
       </nav>
       <div className="px-3 py-3 border-t">
         <button

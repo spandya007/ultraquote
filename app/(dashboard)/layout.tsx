@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/ui/sidebar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -31,9 +32,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   }
 
+  // Platform-admin check (service role: platform_admins has no client policies).
+  const { data: platformAdmin } = await createAdminClient()
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar brandName={brandName} logoUrl={logoUrl} />
+      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} />
       <main className="flex-1 overflow-y-auto bg-muted/20">
         {children}
       </main>

@@ -1,7 +1,12 @@
 # Manual Tenant Onboarding (runbook)
 
-How to add a new MSP **tenant** (and its owner login) by hand, until the
-self-serve onboarding / Super Admin invite flow is built. ~5 minutes per tenant.
+> **⚠️ Superseded for normal use:** tenants are now onboarded from the
+> **Platform Admin console** (`/admin` → "Invite a new MSP tenant"), and team
+> members from **Settings → Team** — see `docs/tenant-onboarding-design.md`.
+> Keep this runbook as a fallback (e.g. attaching an email that already has an
+> auth account to a tenant, or when invite email isn't an option).
+
+How to add a new MSP **tenant** (and its owner login) by hand. ~5 minutes per tenant.
 
 > Background: the app is multi-tenant. RLS isolates data by tenant via
 > `current_tenant_id()` = `select tenant_id from public.users where id = auth.uid()`.

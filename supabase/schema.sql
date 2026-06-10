@@ -66,6 +66,36 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_auth_user();
 
+-- ─── Platform Admins ─────────────────────────────────────────────────────────
+-- Platform-level (cross-tenant) Super Admin role. Deliberately NOT a value in
+-- users.role (which is tenant-scoped). RLS enabled with NO policies — readable
+-- only via the service-role key inside guarded /api/admin routes.
+
+create table public.platform_admins (
+  user_id     uuid primary key,   -- matches auth.users.id
+  created_at  timestamptz not null default now()
+);
+
+-- ─── Tenant Invites ──────────────────────────────────────────────────────────
+-- One row per invite (tenant owners via /admin, members via Settings → Team).
+-- Writes only through service-role API routes; tenant members may read their
+-- own tenant's invites.
+
+create table public.tenant_invites (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null references public.tenants(id) on delete cascade,
+  email        text not null,
+  full_name    text,
+  role         text not null default 'member' check (role in ('owner', 'member')),
+  invited_by   uuid,               -- auth.users.id of the inviter
+  status       text not null default 'pending' check (status in ('pending', 'accepted', 'revoked')),
+  created_at   timestamptz not null default now(),
+  accepted_at  timestamptz
+);
+
+create index tenant_invites_tenant_idx on public.tenant_invites (tenant_id);
+create index tenant_invites_email_idx  on public.tenant_invites (email);
+
 -- ─── Clients ─────────────────────────────────────────────────────────────────
 
 create table public.clients (
@@ -361,6 +391,8 @@ alter table public.quote_scenarios      enable row level security;
 alter table public.quote_line_items     enable row level security;
 alter table public.quote_signers        enable row level security;
 alter table public.quote_signature_sessions enable row level security;
+alter table public.platform_admins         enable row level security;  -- no policies: service-role only
+alter table public.tenant_invites          enable row level security;
 
 -- ── tenants ──────────────────────────────────────────────────────────────────
 create policy "tenants: own tenant only"
@@ -454,6 +486,12 @@ create policy "quote_signature_sessions: via quote tenant"
     )
   );
 
+-- ── tenant_invites ───────────────────────────────────────────────────────────
+-- Read-only for tenant members (Settings → Team card); writes via service role.
+create policy "tenant_invites: read own tenant"
+  on public.tenant_invites for select
+  using (tenant_id = public.current_tenant_id());
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- TENANT PROVISIONING FUNCTION
 -- Creates tenant + settings + seeded product categories in one call
@@ -485,6 +523,37 @@ begin
   on conflict (id) do update set tenant_id = v_tenant_id, role = 'owner';
 
   -- Seed product categories
+  insert into public.product_categories (tenant_id, name, sort_order)
+  values
+    (v_tenant_id, 'Managed Services',      1),
+    (v_tenant_id, 'Hardware',              2),
+    (v_tenant_id, 'Software',              3),
+    (v_tenant_id, 'Security',              4),
+    (v_tenant_id, 'Cloud',                 5),
+    (v_tenant_id, 'Professional Services', 6);
+
+  return v_tenant_id;
+end;
+$$;
+
+-- Ownerless variant for invite-first onboarding: the owner's public.users row
+-- is created by handle_new_auth_user when inviteUserByEmail inserts the auth
+-- user with tenant_id/role metadata. See docs/tenant-onboarding-design.md.
+create or replace function public.provision_tenant_shell(
+  p_name  text,
+  p_email text
+)
+returns uuid language plpgsql security definer as $$
+declare
+  v_tenant_id uuid;
+begin
+  insert into public.tenants (name, email)
+  values (p_name, p_email)
+  returning id into v_tenant_id;
+
+  insert into public.tenant_settings (tenant_id)
+  values (v_tenant_id);
+
   insert into public.product_categories (tenant_id, name, sort_order)
   values
     (v_tenant_id, 'Managed Services',      1),
