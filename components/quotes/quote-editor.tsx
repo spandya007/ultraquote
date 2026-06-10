@@ -822,6 +822,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
+                    <th className="text-center px-2 py-2 font-medium text-muted-foreground" title="Taxable — included in the tax calculation">Tax</th>
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Total</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Margin</th>}
                     <th className="px-2 py-2" />
@@ -830,7 +831,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 <tbody className="divide-y">
                   {currentScenario.line_items.length === 0 ? (
                     <tr>
-                      <td colSpan={showMargins ? 8 : 6} className="text-center py-8 text-muted-foreground text-sm">
+                      <td colSpan={showMargins ? 9 : 7} className="text-center py-8 text-muted-foreground text-sm">
                         No line items yet — add products below.
                       </td>
                     </tr>
@@ -890,6 +891,15 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                               className="w-24 text-right bg-transparent border-none outline-none focus:ring-0 p-0 font-medium"
                             />
                           </td>
+                          <td className="px-2 py-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={item.is_taxable}
+                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { is_taxable: e.target.checked })}
+                              title={item.is_taxable ? "Taxable — counted in the tax total" : "Not taxable"}
+                              className="rounded cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-2 text-right font-medium tabular-nums">
                             {formatCurrency(lineTotal)}
                           </td>
@@ -923,7 +933,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant 
                 {/* Totals footer */}
                 {currentScenario.line_items.length > 0 && (() => {
                   const t = calcScenarioTotals(currentScenario.line_items, taxRate);
-                  const cols = showMargins ? 5 : 4;
+                  const cols = showMargins ? 6 : 5; // label spans through the Tax column
                   return (
                     <tfoot className={cn("border-t", activeColor.tile)}>
                       <tr>

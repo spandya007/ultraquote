@@ -67,8 +67,13 @@ Within a scenario, add line items two ways:
 - **Add free-text item** — a blank row for custom entries.
 
 Each row has a description, billing period (**Monthly** or **One Time**),
-quantity, unit price, and an auto-calculated total. Scenario totals (monthly
-recurring, one-time, tax, grand total) compute automatically.
+quantity, unit price, a **Tax** checkbox, and an auto-calculated total. Scenario
+totals (monthly recurring, one-time, tax, grand total) compute automatically.
+
+**Taxable items:** the **Tax** checkbox marks a line item as taxable. Checked
+items are included in the scenario's tax calculation (using the quote's tax rate
+from the right-hand panel); unchecked items are tax-exempt. Items added from the
+catalog inherit the product's taxable setting — toggle per line as needed.
 
 ## Profit margins
 
