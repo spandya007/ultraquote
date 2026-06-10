@@ -31,11 +31,38 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
 
   // Find the quote via the signature session.
-  const { data: session } = await db
+  let { data: session } = await db
     .from("quote_signature_sessions")
     .select("id, quote_id, status")
     .eq("provider_document_id", submissionId)
     .maybeSingle();
+
+  // Fallback: match via the submitter id recorded on a signer row, then
+  // backfill the session's provider_document_id for future events.
+  if (!session && submitterId) {
+    const { data: signerRow } = await db
+      .from("quote_signers")
+      .select("quote_id")
+      .eq("provider_signer_id", submitterId)
+      .maybeSingle();
+    if (signerRow) {
+      const { data: fallback } = await db
+        .from("quote_signature_sessions")
+        .select("id, quote_id, status")
+        .eq("quote_id", signerRow.quote_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (fallback) {
+        session = fallback;
+        if (submissionId) {
+          await db.from("quote_signature_sessions")
+            .update({ provider_document_id: submissionId })
+            .eq("id", fallback.id);
+        }
+      }
+    }
+  }
   if (!session) return NextResponse.json({ ok: true }); // unknown submission — ignore
 
   const quoteId = session.quote_id;

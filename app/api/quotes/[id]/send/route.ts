@@ -105,9 +105,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }
 
-  // Response is an array of submitter objects; all share submission_id.
-  const list = Array.isArray(result) ? result : [];
-  const submissionId = String(list[0]?.submission_id ?? list[0]?.submission?.id ?? "");
+  // /submissions/html returns a SUBMISSION OBJECT ({ id, submitters: [...] });
+  // other endpoints return a bare array of submitters. Handle both shapes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list: any[] = Array.isArray(result) ? result : (result?.submitters ?? []);
+  const submissionId = String(
+    (Array.isArray(result)
+      ? (list[0]?.submission_id ?? list[0]?.submission?.id)
+      : (result?.id ?? result?.submission_id)) ?? ""
+  );
+  if (!submissionId) {
+    // The webhook matches events to quotes via this id — surface shape surprises.
+    console.error("[send] could not parse DocuSeal submission id from response:",
+      JSON.stringify(result).slice(0, 500));
+  }
 
   // ── Persist ────────────────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
