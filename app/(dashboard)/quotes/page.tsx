@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function QuotesPage() {
   const supabase = await createClient();
 
-  const [{ data: quotes }, { data: clients }] = await Promise.all([
+  const [{ data: quotes }, { data: clients }, { data: settings }] = await Promise.all([
     supabase
       .from("quotes")
       .select("*, client:clients(id, company_name, contact_name), signers:quote_signers(signer_email, role, status, signing_order, decline_reason)")
@@ -17,11 +17,14 @@ export default async function QuotesPage() {
       .select("id, company_name, contact_name, contact_email")
       .eq("is_active", true)
       .order("company_name"),
+    // Default Valid Days also controls how long inactive drafts stay visible.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("tenant_settings").select("default_valid_days").maybeSingle(),
   ]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <QuotesClient initialQuotes={quotes ?? []} clients={clients ?? []} />
+      <QuotesClient initialQuotes={quotes ?? []} clients={clients ?? []} validDays={settings?.default_valid_days ?? 30} />
     </div>
   );
 }

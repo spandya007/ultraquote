@@ -32,6 +32,31 @@ A quote also carries metadata in the right-hand panel (valid-until date, the
 company tax rate shown read-only, payment terms, internal notes) and a **status** (Draft, Sent, Viewed,
 Signed, Declined, Expired).
 
+## Quote lifecycle (statuses)
+
+**Statuses are managed by the system — there is nothing to set manually.** The
+colored badge in the quote header (and on the Quotes page) updates on its own;
+hover it for an explanation of the current state.
+
+- **Draft** — every new quote starts here (including copies made with Duplicate).
+- **Sent** — set when you click **Send for signature** (or re-send).
+- **Viewed** — a signer opened the document (hover the badge for per-signer progress).
+- **Declined** — a signer declined (hover the badge for their comment). Edit and
+  re-send to start a new round.
+- **Signed** — all parties signed. **This is final**: the status can never change
+  again. A green **Signed PDF** button appears to download the executed document.
+  To revise a signed deal, use **Duplicate** — it creates a new quote at Draft.
+- **Expired** — automatic: a sent/viewed quote past its **Valid Until** date shows
+  as Expired. **Extending the date reactivates it** (no button needed). Drafts
+  never expire. You can't send a quote whose Valid Until has passed — extend the
+  date first.
+
+**Older drafts are tidied away automatically:** a draft with no activity for
+longer than your **Default Valid Days** (Settings → Quote Defaults, default 30)
+is hidden from the Quotes page and Dashboard. A note on the Quotes page shows how
+many are hidden; to see them again, temporarily raise Default Valid Days in
+Settings. (Hidden drafts are never deleted — editing a draft resets its clock.)
+
 **Everything auto-saves** — there is no Save button. A "Saving… / Saved ✓"
 indicator in the top bar shows progress. Line item edits save instantly;
 text/metadata edits save about a second after you stop typing.

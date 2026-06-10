@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/utils/format";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import type { QuoteStatus, ProductCategory } from "@/types";
+import { STATUS_STYLES, effectiveStatus } from "@/lib/quote-status";
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -162,6 +163,15 @@ const SCENARIO_COLORS = [
   },
 ] as const;
 
+const STATUS_HINTS: Record<QuoteStatus, string> = {
+  draft:    "Draft — status updates automatically once you send for signature",
+  sent:     "Sent — updates automatically as signers view and sign",
+  viewed:   "A signer has viewed the document — updates automatically",
+  signed:   "Signed is final — use Duplicate on the Quotes page to start a new draft version",
+  declined: "Declined by a signer — edit the document and re-send to start a new round",
+  expired:  "Past its Valid Until date — extend the date to reactivate this quote",
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function calcScenarioTotals(items: LineItem[], taxRate: number) {
@@ -275,6 +285,10 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   ].join("\n"));
 
   async function openSend() {
+    if (quote.valid_until && new Date(`${quote.valid_until}T23:59:59`) < new Date()) {
+      toast.error("This quote's Valid Until date has passed — extend it (right panel) before sending.");
+      return;
+    }
     // Flush the latest document so the signing copy is current.
     await proposalApiRef.current?.saveNow();
     setSendOpen(true);
@@ -348,7 +362,6 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
     quoteSaveTimer.current = setTimeout(async () => {
       const { error } = await db.from("quotes").update({
         title:                 quote.title,
-        status:                quote.status,
         valid_until:           quote.valid_until,
         tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
@@ -369,7 +382,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
     return () => { if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current); };
   // db/toast are stable enough; we intentionally key off the quote fields only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote.title, quote.status, quote.valid_until, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
+  }, [quote.title, quote.valid_until, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
 
   // ── Preview ────────────────────────────────────────────────────────────────
   // Flush both document + metadata saves first so the server-rendered preview
@@ -385,7 +398,6 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
       proposalApiRef.current?.saveNow(),
       db.from("quotes").update({
         title:                 quote.title,
-        status:                quote.status,
         valid_until:           quote.valid_until,
         tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
@@ -639,28 +651,24 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Status — `signed` is terminal: set only by the e-signature webhook,
-              never manually, and once reached it cannot be changed (use
-              Duplicate to start a new draft). */}
-          {quote.status === "signed" ? (
-            <span
-              title="Signed is final — use Duplicate on the Quotes page to start a new draft version"
-              className="inline-flex items-center gap-1.5 rounded-md bg-green-100 text-green-700 px-3 py-1.5 text-sm font-medium cursor-help"
-            >
-              <Check className="w-4 h-4" />
-              Signed
-            </span>
-          ) : (
-            <select
-              value={quote.status}
-              onChange={(e) => setQuote(q => ({ ...q, status: e.target.value as QuoteStatus }))}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {(["draft","sent","viewed","declined","expired"] as QuoteStatus[]).map(s => (
-                <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-              ))}
-            </select>
-          )}
+          {/* Status is SYSTEM-MANAGED (read-only): draft → sent (Send button) →
+              viewed/signed/declined (e-signature webhook); expired is derived
+              from the Valid Until date. Signed is terminal — use Duplicate. */}
+          {(() => {
+            const eff = effectiveStatus(quote);
+            return (
+              <span
+                title={STATUS_HINTS[eff]}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium capitalize cursor-help",
+                  STATUS_STYLES[eff]
+                )}
+              >
+                {eff === "signed" && <Check className="w-4 h-4" />}
+                {eff}
+              </span>
+            );
+          })()}
 
           <label
             className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"

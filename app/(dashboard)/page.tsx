@@ -5,19 +5,12 @@ import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { DollarSign, Repeat, CheckCircle2, Users, FileText, Clock, ArrowRight } from "lucide-react";
 import type { QuoteStatus } from "@/types";
+import { STATUS_STYLES, effectiveStatus, isStaleDraft } from "@/lib/quote-status";
 
 export const dynamic = "force-dynamic";
 
 const OPEN_STATUSES: QuoteStatus[] = ["draft", "sent", "viewed"];
 
-const STATUS_STYLES: Record<QuoteStatus, string> = {
-  draft:    "bg-gray-100 text-gray-600",
-  sent:     "bg-blue-100 text-blue-700",
-  viewed:   "bg-purple-100 text-purple-700",
-  signed:   "bg-green-100 text-green-700",
-  declined: "bg-red-100 text-red-700",
-  expired:  "bg-orange-100 text-orange-700",
-};
 const STATUS_BAR: Record<QuoteStatus, string> = {
   draft: "bg-gray-400", sent: "bg-blue-500", viewed: "bg-purple-500",
   signed: "bg-green-500", declined: "bg-red-500", expired: "bg-orange-500",
@@ -26,7 +19,7 @@ const STATUS_BAR: Record<QuoteStatus, string> = {
 interface Scenario { is_recommended: boolean; sort_order: number; monthly_recurring_total: number; onetime_total: number; total: number }
 interface QuoteRow {
   id: string; quote_number: string; title: string | null; status: QuoteStatus;
-  valid_until: string | null; created_at: string;
+  valid_until: string | null; created_at: string; updated_at: string | null;
   client: { company_name: string } | null;
   scenarios: Scenario[];
 }
@@ -42,19 +35,23 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
-  const [{ data: quotesRaw }, { count: clientCount }] = await Promise.all([
+  const [{ data: quotesRaw }, { count: clientCount }, { data: settings }] = await Promise.all([
     db.from("quotes").select(`
-      id, quote_number, title, status, valid_until, created_at,
+      id, quote_number, title, status, valid_until, created_at, updated_at,
       client:clients(company_name),
       scenarios:quote_scenarios!quote_id(is_recommended, sort_order, monthly_recurring_total, onetime_total, total)
     `).order("created_at", { ascending: false }),
     db.from("clients").select("*", { count: "exact", head: true }).eq("is_active", true),
+    db.from("tenant_settings").select("default_valid_days").maybeSingle(),
   ]);
 
-  const quotes: QuoteRow[] = quotesRaw ?? [];
+  const validDays: number = settings?.default_valid_days ?? 30;
+  // Hide stale drafts (inactive > Default Valid Days); use effective status
+  // everywhere so sent/viewed quotes past their valid-until count as expired.
+  const quotes: QuoteRow[] = ((quotesRaw ?? []) as QuoteRow[]).filter(q => !isStaleDraft(q, validDays));
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
-  const open = quotes.filter(q => OPEN_STATUSES.includes(q.status));
+  const open = quotes.filter(q => OPEN_STATUSES.includes(effectiveStatus(q)));
   const signed = quotes.filter(q => q.status === "signed");
 
   const pipeline = open.reduce((s, q) => s + (repScenario(q)?.total ?? 0), 0);
@@ -62,7 +59,7 @@ export default async function DashboardPage() {
   const wonValue = signed.reduce((s, q) => s + (repScenario(q)?.total ?? 0), 0);
 
   const byStatus = (["draft", "sent", "viewed", "signed", "declined", "expired"] as QuoteStatus[])
-    .map(st => ({ status: st, count: quotes.filter(q => q.status === st).length }));
+    .map(st => ({ status: st, count: quotes.filter(q => effectiveStatus(q) === st).length }));
   const maxStatus = Math.max(1, ...byStatus.map(s => s.count));
 
   // Win rate among "decided" quotes (signed vs declined)
@@ -71,8 +68,8 @@ export default async function DashboardPage() {
 
   // Expiring soon: open quotes with a valid_until within the next 14 days (or overdue)
   const now = Date.now();
-  const expiring = open
-    .filter(q => q.valid_until)
+  const expiring = quotes
+    .filter(q => OPEN_STATUSES.includes(q.status) && q.valid_until)
     .map(q => ({ q, days: Math.ceil((new Date(q.valid_until as string).getTime() - now) / 86400000) }))
     .filter(x => x.days <= 14)
     .sort((a, b) => a.days - b.days)
@@ -184,7 +181,7 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-3 py-2.5">{q.client?.company_name ?? "—"}</td>
                     <td className="px-3 py-2.5">
-                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize", STATUS_STYLES[q.status])}>{q.status}</span>
+                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize", STATUS_STYLES[effectiveStatus(q)])}>{effectiveStatus(q)}</span>
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{rep ? formatCurrency(rep.total) : "—"}</td>
                     <td className="px-5 py-2.5 text-right text-muted-foreground">{formatDate(q.created_at)}</td>

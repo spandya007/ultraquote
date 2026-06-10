@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
 import type { QuoteStatus } from "@/types";
+import { STATUS_STYLES, effectiveStatus, isStaleDraft } from "@/lib/quote-status";
 import { NewQuoteModal } from "./new-quote-modal";
 
 interface QuoteRow {
@@ -16,6 +17,7 @@ interface QuoteRow {
   status: QuoteStatus;
   valid_until: string | null;
   created_at: string;
+  updated_at: string | null;
   sent_at: string | null;
   signed_at: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
@@ -25,6 +27,10 @@ interface QuoteRow {
 // Tooltip for the status badge — decline comment on declined quotes, and
 // per-signer signing progress while a round is in flight (sent/viewed).
 function statusTooltip(q: QuoteRow): string | undefined {
+  const eff = effectiveStatus(q);
+  if (eff === "expired") {
+    return "Past its Valid Until date — open the quote and extend the date to reactivate";
+  }
   if (q.status === "declined") {
     const decliner = (q.signers ?? []).find(s => s.status === "declined" && s.decline_reason);
     if (!decliner) return "Declined (no reason given)";
@@ -55,18 +61,11 @@ interface ClientOption {
 interface Props {
   initialQuotes: QuoteRow[];
   clients: ClientOption[];
+  /** tenant_settings.default_valid_days — drafts inactive longer than this are hidden. */
+  validDays: number;
 }
 
-const STATUS_STYLES: Record<QuoteStatus, string> = {
-  draft:    "bg-gray-100 text-gray-600",
-  sent:     "bg-blue-100 text-blue-700",
-  viewed:   "bg-purple-100 text-purple-700",
-  signed:   "bg-green-100 text-green-700",
-  declined: "bg-red-100 text-red-700",
-  expired:  "bg-orange-100 text-orange-700",
-};
-
-export function QuotesClient({ initialQuotes, clients }: Props) {
+export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
   const router = useRouter();
   const toast = useToast();
   // Use the server prop directly (don't freeze it in state) so the list always
@@ -95,9 +94,13 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
     }
   }
 
+  // Hide drafts with no activity for longer than Default Valid Days.
+  const visibleQuotes = useMemo(() => quotes.filter(q => !isStaleDraft(q, validDays)), [quotes, validDays]);
+  const hiddenDrafts = quotes.length - visibleQuotes.length;
+
   const filtered = useMemo(() => {
-    return quotes.filter((q) => {
-      if (filterStatus !== "all" && q.status !== filterStatus) return false;
+    return visibleQuotes.filter((q) => {
+      if (filterStatus !== "all" && effectiveStatus(q) !== filterStatus) return false;
       if (filterClient !== "all" && q.client?.id !== filterClient) return false;
       if (search) {
         const s = search.toLowerCase();
@@ -109,7 +112,7 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
       }
       return true;
     });
-  }, [quotes, search, filterStatus, filterClient]);
+  }, [visibleQuotes, search, filterStatus, filterClient]);
 
   return (
     <>
@@ -118,7 +121,12 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
         <div>
           <h1 className="text-2xl font-bold">Quotes</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {filtered.length} of {quotes.length} quotes
+            {filtered.length} of {visibleQuotes.length} quotes
+            {hiddenDrafts > 0 && (
+              <span className="ml-2 text-xs">
+                · {hiddenDrafts} older draft{hiddenDrafts === 1 ? "" : "s"} hidden (inactive &gt;{validDays} days — raise “Default Valid Days” in Settings to show)
+              </span>
+            )}
           </p>
         </div>
         <button
@@ -172,11 +180,11 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
         <div className="rounded-lg border border-dashed py-16 text-center">
           <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">
-            {quotes.length === 0
+            {visibleQuotes.length === 0
               ? "No quotes yet — create your first quote."
               : "No quotes match your filters."}
           </p>
-          {quotes.length === 0 && (
+          {visibleQuotes.length === 0 && (
             <button
               onClick={() => setModalOpen(true)}
               className="mt-4 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -219,11 +227,11 @@ export function QuotesClient({ initialQuotes, clients }: Props) {
                       title={statusTooltip(q)}
                       className={cn(
                         "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-                        STATUS_STYLES[q.status],
+                        STATUS_STYLES[effectiveStatus(q)],
                         statusTooltip(q) && "cursor-help"
                       )}
                     >
-                      {q.status}
+                      {effectiveStatus(q)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
