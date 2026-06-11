@@ -41,9 +41,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
-  const { data: userData } = await db.from("users").select("tenant_id").eq("id", user.id).single();
+  const { data: userData } = await db.from("users").select("tenant_id, role").eq("id", user.id).single();
   const tenantId = userData?.tenant_id;
   if (!tenantId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  // Owner-only: "create" actions write catalog products (owner-only by RLS too).
+  if (userData.role !== "owner") {
+    return NextResponse.json({ error: "Only the tenant owner can apply extracted pricing" }, { status: 403 });
+  }
 
   const { scenarios } = (await request.json()) as { scenarios: InScenario[] };
   if (!scenarios?.length) return NextResponse.json({ error: "Nothing to apply" }, { status: 400 });

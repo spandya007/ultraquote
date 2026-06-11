@@ -182,6 +182,7 @@ create table public.product_pricing_tiers (
 create table public.templates (
   id                uuid primary key default gen_random_uuid(),
   tenant_id         uuid not null references public.tenants(id) on delete cascade,
+  created_by        uuid references public.users(id) on delete set null,
   name              text not null,
   description       text,
   document_content  jsonb,
@@ -196,6 +197,7 @@ create table public.templates (
 create table public.quotes (
   id                    uuid primary key default gen_random_uuid(),
   tenant_id             uuid not null references public.tenants(id) on delete cascade,
+  created_by            uuid references public.users(id) on delete set null,
   client_id             uuid not null references public.clients(id),
   template_id           uuid references public.templates(id) on delete set null,
   quote_number          text not null,
@@ -376,6 +378,37 @@ returns uuid language sql stable security definer as $$
   select tenant_id from public.users where id = auth.uid()
 $$;
 
+create or replace function public.is_tenant_owner()
+returns boolean language sql stable security definer as $$
+  select coalesce(
+    (select role = 'owner' from public.users where id = auth.uid()),
+    false
+  )
+$$;
+
+-- Quote edit rights: creator or tenant owner (used by child-table policies)
+create or replace function public.can_edit_quote(p_quote_id uuid)
+returns boolean language sql stable security definer as $$
+  select exists (
+    select 1 from public.quotes q
+    where q.id = p_quote_id
+      and q.tenant_id = public.current_tenant_id()
+      and (q.created_by = auth.uid() or public.is_tenant_owner())
+  )
+$$;
+
+create or replace function public.can_edit_scenario(p_scenario_id uuid)
+returns boolean language sql stable security definer as $$
+  select exists (
+    select 1
+    from public.quote_scenarios s
+    join public.quotes q on q.id = s.quote_id
+    where s.id = p_scenario_id
+      and q.tenant_id = public.current_tenant_id()
+      and (q.created_by = auth.uid() or public.is_tenant_owner())
+  )
+$$;
+
 -- Enable RLS on all tables
 alter table public.tenants              enable row level security;
 alter table public.tenant_settings      enable row level security;
@@ -394,72 +427,182 @@ alter table public.quote_signature_sessions enable row level security;
 alter table public.platform_admins         enable row level security;  -- no policies: service-role only
 alter table public.tenant_invites          enable row level security;
 
+-- Policy model (see docs/roles-permissions-design.md): reads are tenant-wide;
+-- writes are role/ownership-gated. Quotes/templates are creator-owned (tenant
+-- owner can always edit); products/settings/client-edits are owner-only;
+-- clients are add-only for members.
+
 -- ── tenants ──────────────────────────────────────────────────────────────────
-create policy "tenants: own tenant only"
-  on public.tenants for all
+create policy "tenants: select own"
+  on public.tenants for select
   using (id = public.current_tenant_id());
+create policy "tenants: owner update"
+  on public.tenants for update
+  using (id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── tenant_settings ──────────────────────────────────────────────────────────
-create policy "tenant_settings: own tenant only"
-  on public.tenant_settings for all
+create policy "tenant_settings: select own tenant"
+  on public.tenant_settings for select
   using (tenant_id = public.current_tenant_id());
+create policy "tenant_settings: owner insert"
+  on public.tenant_settings for insert
+  with check (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "tenant_settings: owner update"
+  on public.tenant_settings for update
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── users ─────────────────────────────────────────────────────────────────────
-create policy "users: own tenant only"
-  on public.users for all
+-- NOTE: no self-update policy — it would allow role self-escalation.
+create policy "users: select own tenant"
+  on public.users for select
   using (tenant_id = public.current_tenant_id());
+create policy "users: owner update"
+  on public.users for update
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner())
+  with check (tenant_id = public.current_tenant_id());
 
 -- ── clients ───────────────────────────────────────────────────────────────────
-create policy "clients: own tenant only"
-  on public.clients for all
+create policy "clients: select own tenant"
+  on public.clients for select
   using (tenant_id = public.current_tenant_id());
+create policy "clients: member insert"
+  on public.clients for insert
+  with check (tenant_id = public.current_tenant_id());
+create policy "clients: owner update"
+  on public.clients for update
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "clients: owner delete"
+  on public.clients for delete
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── product_categories ────────────────────────────────────────────────────────
-create policy "product_categories: own tenant only"
-  on public.product_categories for all
+create policy "product_categories: select own tenant"
+  on public.product_categories for select
   using (tenant_id = public.current_tenant_id());
+create policy "product_categories: owner insert"
+  on public.product_categories for insert
+  with check (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "product_categories: owner update"
+  on public.product_categories for update
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "product_categories: owner delete"
+  on public.product_categories for delete
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── products ──────────────────────────────────────────────────────────────────
-create policy "products: own tenant only"
-  on public.products for all
+create policy "products: select own tenant"
+  on public.products for select
   using (tenant_id = public.current_tenant_id());
+create policy "products: owner insert"
+  on public.products for insert
+  with check (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "products: owner update"
+  on public.products for update
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
+create policy "products: owner delete"
+  on public.products for delete
+  using (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── product_pricing_tiers ─────────────────────────────────────────────────────
-create policy "product_pricing_tiers: own tenant only"
-  on public.product_pricing_tiers for all
+create policy "product_pricing_tiers: select own tenant"
+  on public.product_pricing_tiers for select
   using (
     product_id in (
       select id from public.products where tenant_id = public.current_tenant_id()
     )
   );
+create policy "product_pricing_tiers: owner insert"
+  on public.product_pricing_tiers for insert
+  with check (
+    public.is_tenant_owner() and product_id in (
+      select id from public.products where tenant_id = public.current_tenant_id()
+    )
+  );
+create policy "product_pricing_tiers: owner update"
+  on public.product_pricing_tiers for update
+  using (
+    public.is_tenant_owner() and product_id in (
+      select id from public.products where tenant_id = public.current_tenant_id()
+    )
+  );
+create policy "product_pricing_tiers: owner delete"
+  on public.product_pricing_tiers for delete
+  using (
+    public.is_tenant_owner() and product_id in (
+      select id from public.products where tenant_id = public.current_tenant_id()
+    )
+  );
 
 -- ── product_audit ──────────────────────────────────────────────────────────────
-create policy "product_audit: own tenant only"
-  on public.product_audit for all
+-- Immutable audit trail: no update/delete policies.
+create policy "product_audit: select own tenant"
+  on public.product_audit for select
   using (tenant_id = public.current_tenant_id());
+create policy "product_audit: owner insert"
+  on public.product_audit for insert
+  with check (tenant_id = public.current_tenant_id() and public.is_tenant_owner());
 
 -- ── templates ────────────────────────────────────────────────────────────────
-create policy "templates: own tenant only"
-  on public.templates for all
+create policy "templates: select own tenant"
+  on public.templates for select
   using (tenant_id = public.current_tenant_id());
+create policy "templates: member insert"
+  on public.templates for insert
+  with check (tenant_id = public.current_tenant_id() and created_by = auth.uid());
+create policy "templates: creator or owner update"
+  on public.templates for update
+  using (
+    tenant_id = public.current_tenant_id()
+    and (created_by = auth.uid() or public.is_tenant_owner())
+  );
+create policy "templates: creator or owner delete"
+  on public.templates for delete
+  using (
+    tenant_id = public.current_tenant_id()
+    and (created_by = auth.uid() or public.is_tenant_owner())
+  );
 
 -- ── quotes ───────────────────────────────────────────────────────────────────
-create policy "quotes: own tenant only"
-  on public.quotes for all
+create policy "quotes: select own tenant"
+  on public.quotes for select
   using (tenant_id = public.current_tenant_id());
+create policy "quotes: member insert"
+  on public.quotes for insert
+  with check (tenant_id = public.current_tenant_id() and created_by = auth.uid());
+create policy "quotes: creator or owner update"
+  on public.quotes for update
+  using (
+    tenant_id = public.current_tenant_id()
+    and (created_by = auth.uid() or public.is_tenant_owner())
+  );
+create policy "quotes: creator or owner delete"
+  on public.quotes for delete
+  using (
+    tenant_id = public.current_tenant_id()
+    and (created_by = auth.uid() or public.is_tenant_owner())
+  );
 
 -- ── quote_scenarios ──────────────────────────────────────────────────────────
-create policy "quote_scenarios: via quote tenant"
-  on public.quote_scenarios for all
+create policy "quote_scenarios: select via quote tenant"
+  on public.quote_scenarios for select
   using (
     quote_id in (
       select id from public.quotes where tenant_id = public.current_tenant_id()
     )
   );
+create policy "quote_scenarios: insert via editable quote"
+  on public.quote_scenarios for insert
+  with check (public.can_edit_quote(quote_id));
+create policy "quote_scenarios: update via editable quote"
+  on public.quote_scenarios for update
+  using (public.can_edit_quote(quote_id));
+create policy "quote_scenarios: delete via editable quote"
+  on public.quote_scenarios for delete
+  using (public.can_edit_quote(quote_id));
 
 -- ── quote_line_items ─────────────────────────────────────────────────────────
-create policy "quote_line_items: via scenario → quote tenant"
-  on public.quote_line_items for all
+create policy "quote_line_items: select via quote tenant"
+  on public.quote_line_items for select
   using (
     scenario_id in (
       select s.id from public.quote_scenarios s
@@ -467,24 +610,51 @@ create policy "quote_line_items: via scenario → quote tenant"
       where q.tenant_id = public.current_tenant_id()
     )
   );
+create policy "quote_line_items: insert via editable quote"
+  on public.quote_line_items for insert
+  with check (public.can_edit_scenario(scenario_id));
+create policy "quote_line_items: update via editable quote"
+  on public.quote_line_items for update
+  using (public.can_edit_scenario(scenario_id));
+create policy "quote_line_items: delete via editable quote"
+  on public.quote_line_items for delete
+  using (public.can_edit_scenario(scenario_id));
 
 -- ── quote_signers ─────────────────────────────────────────────────────────────
-create policy "quote_signers: via quote tenant"
-  on public.quote_signers for all
+create policy "quote_signers: select via quote tenant"
+  on public.quote_signers for select
   using (
     quote_id in (
       select id from public.quotes where tenant_id = public.current_tenant_id()
     )
   );
+create policy "quote_signers: insert via editable quote"
+  on public.quote_signers for insert
+  with check (public.can_edit_quote(quote_id));
+create policy "quote_signers: update via editable quote"
+  on public.quote_signers for update
+  using (public.can_edit_quote(quote_id));
+create policy "quote_signers: delete via editable quote"
+  on public.quote_signers for delete
+  using (public.can_edit_quote(quote_id));
 
 -- ── quote_signature_sessions ─────────────────────────────────────────────────
-create policy "quote_signature_sessions: via quote tenant"
-  on public.quote_signature_sessions for all
+create policy "quote_signature_sessions: select via quote tenant"
+  on public.quote_signature_sessions for select
   using (
     quote_id in (
       select id from public.quotes where tenant_id = public.current_tenant_id()
     )
   );
+create policy "quote_signature_sessions: insert via editable quote"
+  on public.quote_signature_sessions for insert
+  with check (public.can_edit_quote(quote_id));
+create policy "quote_signature_sessions: update via editable quote"
+  on public.quote_signature_sessions for update
+  using (public.can_edit_quote(quote_id));
+create policy "quote_signature_sessions: delete via editable quote"
+  on public.quote_signature_sessions for delete
+  using (public.can_edit_quote(quote_id));
 
 -- ── tenant_invites ───────────────────────────────────────────────────────────
 -- Read-only for tenant members (Settings → Team card); writes via service role.
@@ -533,6 +703,35 @@ begin
     (v_tenant_id, 'Professional Services', 6);
 
   return v_tenant_id;
+end;
+$$;
+
+-- Atomic quote-number allocation. Members can create quotes but cannot update
+-- tenant_settings directly (owner-only policy), so the sequence bump runs as
+-- definer here. Called by /api/quotes.
+create or replace function public.next_quote_number(p_tenant_id uuid)
+returns text language plpgsql security definer as $$
+declare
+  v_prefix text;
+  v_seq    int;
+begin
+  if not exists (
+    select 1 from public.users where id = auth.uid() and tenant_id = p_tenant_id
+  ) then
+    raise exception 'next_quote_number: caller is not a member of this tenant';
+  end if;
+
+  insert into public.tenant_settings (tenant_id)
+  values (p_tenant_id)
+  on conflict (tenant_id) do nothing;
+
+  update public.tenant_settings
+     set quote_number_sequence = quote_number_sequence + 1
+   where tenant_id = p_tenant_id
+   returning quote_number_prefix, quote_number_sequence - 1
+   into v_prefix, v_seq;
+
+  return v_prefix || '-' || extract(year from now())::int || '-' || lpad(v_seq::text, 3, '0');
 end;
 $$;
 

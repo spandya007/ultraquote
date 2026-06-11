@@ -4,7 +4,14 @@
       "Bash(npx tsc *)",
       "Bash(git add *)",
       "Bash(git commit -q -m 'Team card: green '\\\\''active'\\\\'' badge; sidebar: '\\\\''Hello, <first name>'\\\\'' greeting *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(sed -n '1,45p' /Users/sameer/ultraquote/app/api/ai/extract-pricing/route.ts)",
+      "Bash(sed -n '1,55p' \"/Users/sameer/ultraquote/app/api/quotes/[id]/apply-pricing/route.ts\")",
+      "Bash(sed -n '1,20p')",
+      "Bash(sed -n '1085,1106p' /Users/sameer/ultraquote/components/quotes/proposal-editor.tsx)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx next *)",
+      "Bash(git commit -q -m 'Roles & quote ownership: creator-owned quotes/templates, owner-only catalog/settings, RLS rewrite *)"
     ]
   }
 }

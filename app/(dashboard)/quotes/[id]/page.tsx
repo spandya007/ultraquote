@@ -11,9 +11,9 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
   const { data: { user } } = await supabase.auth.getUser();
   const { data: userData } = await db
     .from("users")
-    .select("tenant_id")
+    .select("tenant_id, role")
     .eq("id", user?.id)
-    .single() as { data: { tenant_id: string } | null };
+    .single() as { data: { tenant_id: string; role: "owner" | "member" } | null };
 
   const [quoteResult, { data: products }, { data: categories }] =
     await Promise.all([
@@ -80,6 +80,21 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
       line_items: [...s.line_items].sort((a, b) => a.sort_order - b.sort_order),
     }));
 
+  // Ownership: only the creator or the tenant owner may edit (RLS enforces the
+  // same server-side; this drives the read-only UI). Legacy quotes without
+  // created_by are editable by the owner only.
+  const isOwner = userData?.role === "owner";
+  const canEdit = isOwner || (raw.created_by != null && raw.created_by === user?.id);
+  let creatorName: string | null = null;
+  if (raw.created_by) {
+    const { data: creator } = await db
+      .from("users")
+      .select("full_name, email")
+      .eq("id", raw.created_by)
+      .maybeSingle();
+    creatorName = creator?.full_name || creator?.email || null;
+  }
+
   return (
     <QuoteEditor
       quote={{ ...raw, scenarios: sortedScenarios }}
@@ -87,6 +102,9 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
       categories={categories ?? []}
       tenant={tenant}
       companyTaxRate={companyTaxRate}
+      canEdit={canEdit}
+      isOwner={isOwner}
+      creatorName={creatorName}
     />
   );
 }

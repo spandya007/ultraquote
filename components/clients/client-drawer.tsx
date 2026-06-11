@@ -9,6 +9,9 @@ import { useToast } from "@/components/ui/toast";
 import type { Client } from "@/types";
 
 interface Props {
+  /** View-only mode: members can view (and add new) clients, but only the
+   *  tenant owner edits existing ones. */
+  readOnly?: boolean;
   open: boolean;
   client: Client | null;
   onClose: () => void;
@@ -24,7 +27,7 @@ type FieldErrors = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORAGE_SCHEME = "sb-storage://";
 
-export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
+export function ClientDrawer({ open, client, onClose, onSaved, readOnly }: Props) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -226,12 +229,13 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-          <h2 className="text-lg font-semibold">{client ? "Edit Client" : "Add Client"}</h2>
+          <h2 className="text-lg font-semibold">{readOnly ? "Client Details" : client ? "Edit Client" : "Add Client"}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X className="w-5 h-5" /></button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        {/* Body (fieldset natively disables all nested controls in view-only mode) */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <fieldset disabled={readOnly} className="space-y-4 block min-w-0 border-0 m-0 p-0">
 
           {/* Company Name */}
           <div className="space-y-1">
@@ -359,26 +363,34 @@ export function ClientDrawer({ open, client, onClose, onSaved }: Props) {
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border" />
             Active client
           </label>
+        </fieldset>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t shrink-0">
-          {client && (
+          {readOnly && (
+            <span className="text-xs text-muted-foreground">
+              View only — existing clients are edited by the tenant owner.
+            </span>
+          )}
+          {!readOnly && client && (
             <button onClick={handleDeactivate} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {client.is_active ? "Deactivate" : "Reactivate"}
             </button>
           )}
           <div className="flex items-center gap-3 ml-auto">
             <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
-              Cancel
+              {readOnly ? "Close" : "Cancel"}
             </button>
-            <button
-              onClick={handleSave}
-              disabled={saving || !requiredFilled || hasErrors}
-              className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {saving ? "Saving…" : client ? "Save Changes" : "Add Client"}
-            </button>
+            {!readOnly && (
+              <button
+                onClick={handleSave}
+                disabled={saving || !requiredFilled || hasErrors}
+                className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {saving ? "Saving…" : client ? "Save Changes" : "Add Client"}
+              </button>
+            )}
           </div>
         </div>
       </div>

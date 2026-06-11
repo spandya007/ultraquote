@@ -24,9 +24,11 @@ interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   template: { id: string; name: string; document_content: any[] | null };
   tenant: TenantData | null;
+  /** Only the creator or the tenant owner may edit; others view read-only. */
+  canEdit: boolean;
 }
 
-export function TemplateEditor({ template, tenant }: Props) {
+export function TemplateEditor({ template, tenant, canEdit }: Props) {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createClient() as any;
@@ -46,13 +48,16 @@ export function TemplateEditor({ template, tenant }: Props) {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground">Template</span>
+          <span className="text-xs text-muted-foreground">
+            Template{!canEdit && " · read-only (created by another team member)"}
+          </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={saveName}
             placeholder="Template name"
-            className="block text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+            disabled={!canEdit}
+            className="block text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 w-full disabled:opacity-100"
           />
         </div>
       </header>
@@ -61,6 +66,7 @@ export function TemplateEditor({ template, tenant }: Props) {
         <ProposalEditor
           quoteId={template.id}
           isTemplate
+          readOnly={!canEdit}
           initialContent={template.document_content}
           clientData={null}
           tenantData={tenant}

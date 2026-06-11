@@ -427,6 +427,10 @@ interface Props {
   quoteId: string;
   /** Template mode: persist to `templates.document_content`; hides quote-only actions. */
   isTemplate?: boolean;
+  /** Read-only viewer mode: no toolbar, no editing, no auto-save. */
+  readOnly?: boolean;
+  /** Show the "Extract pricing" action (tenant owner only — it can create catalog products). */
+  canExtractPricing?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialContent: any[] | null;
   clientData: ClientData | null;
@@ -461,7 +465,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
+export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricing, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
   const supabaseRef = useRef(createClient());
   const isTemplateRef = useRef(isTemplate);
   isTemplateRef.current = isTemplate;
@@ -631,10 +635,13 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
   // Subscribe directly to editor.onChange — bypasses BlockNoteView's prop
   // wiring (which can lose the subscription across re-renders) and fires for
   // every TipTap transaction including programmatic ones.
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
   useEffect(() => {
     return editor.onChange(() => {
       notifySignatureFields();
       if (skipNextChange.current) { skipNextChange.current = false; return; }
+      if (readOnlyRef.current) return; // viewer mode: never persist
       scheduleSave();
     });
   }, [editor, scheduleSave, notifySignatureFields]);
@@ -881,8 +888,10 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
     setTplBusy(true);
     try {
       const blocks = editorRef.current.document;
+      const { data: { user } } = await supabaseRef.current.auth.getUser();
       const { error } = await (supabaseRef.current as any).from("templates").insert({
-        tenant_id: tenantId, name, document_content: blocks, source_file_type: "native", is_active: true,
+        tenant_id: tenantId, created_by: user?.id, name, document_content: blocks,
+        source_file_type: "native", is_active: true,
       });
       if (error) throw new Error(error.message);
       toastRef.current.success(`Saved template “${name}”`);
@@ -1077,7 +1086,8 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
   return (
     <div className="flex flex-col h-full">
 
-      {/* Persistent toolbar */}
+      {/* Persistent toolbar (hidden entirely in read-only viewer mode) */}
+      {!readOnly && (
       <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-muted/50 shrink-0">
 
         {/* Undo / Redo */}
@@ -1379,8 +1389,9 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
         </div>
         )}
 
-        {/* Extract pricing tables → scenarios (quote-only) */}
-        {!isTemplate && (
+        {/* Extract pricing tables → scenarios (quote-only, tenant owner only —
+            applying can create catalog products) */}
+        {!isTemplate && canExtractPricing && (
         <div>
           <button
             title="Detect pricing tables and turn them into scenarios"
@@ -1403,6 +1414,7 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
           {saveState === "saving" ? "Saving…" : "Saved ✓"}
         </span>
       </div>
+      )}
 
       {/* Editor */}
       <div className="flex-1 overflow-y-auto overflow-x-visible">
@@ -1410,6 +1422,7 @@ export function ProposalEditor({ quoteId, isTemplate, initialContent, clientData
             <ScenarioContext.Provider value={{ scenarios, taxRate, showMargins }}>
               <BlockNoteView
                 editor={editor}
+                editable={!readOnly}
                 theme="light"
                 slashMenu={false}
               >

@@ -40,8 +40,12 @@ export async function POST(request: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
-  const { data: userData } = await db.from("users").select("tenant_id").eq("id", user.id).single();
+  const { data: userData } = await db.from("users").select("tenant_id, role").eq("id", user.id).single();
   const tenantId = userData?.tenant_id;
+  // Owner-only: the downstream apply step can create catalog products.
+  if (userData?.role !== "owner") {
+    return NextResponse.json({ error: "Only the tenant owner can extract pricing" }, { status: 403 });
+  }
 
   // ── Ask Gemini to extract pricing line items grouped into scenarios ─────────
   const prompt = [

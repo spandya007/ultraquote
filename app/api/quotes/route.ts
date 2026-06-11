@@ -41,54 +41,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Fetch (or create) tenant_settings
-  let { data: settings } = await db
+  // Defaults for the new quote (tax rate); reads are tenant-wide under RLS.
+  const { data: settings } = await db
     .from("tenant_settings")
-    .select("quote_number_prefix, quote_number_sequence, default_tax_rate, default_valid_days, default_payment_terms")
+    .select("default_tax_rate")
     .eq("tenant_id", tenant_id)
-    .single() as {
-      data: {
-        quote_number_prefix:    string;
-        quote_number_sequence:  number;
-        default_tax_rate:       number | null;
-        default_valid_days:     number;
-        default_payment_terms:  string;
-      } | null
-    };
+    .maybeSingle() as { data: { default_tax_rate: number | null } | null };
 
-  if (!settings) {
-    await db.from("tenant_settings").insert({ tenant_id });
-    settings = {
-      quote_number_prefix:   "QUOTE",
-      quote_number_sequence: 1,
-      default_tax_rate:      null,
-      default_valid_days:    30,
-      default_payment_terms: "Net 30",
-    };
+  // Atomic number allocation via security-definer RPC: members can't update
+  // tenant_settings directly (owner-only policy), and this also avoids the
+  // old read-then-update race on the sequence.
+  const { data: quote_number, error: numErr } = await db.rpc("next_quote_number", {
+    p_tenant_id: tenant_id,
+  }) as { data: string | null; error: { message: string } | null };
+  if (numErr || !quote_number) {
+    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate quote number" }, { status: 500 });
   }
-
-  // Generate quote number here so we don't depend solely on the trigger
-  const year  = new Date().getFullYear();
-  const seq   = settings.quote_number_sequence;
-  const quote_number = `${settings.quote_number_prefix}-${year}-${String(seq).padStart(3, "0")}`;
-
-  // Increment sequence
-  await db
-    .from("tenant_settings")
-    .update({ quote_number_sequence: seq + 1 })
-    .eq("tenant_id", tenant_id);
 
   // Insert quote — pass explicit quote_number so trigger WHEN clause is skipped
   const { data: quote, error: quoteErr } = await db
     .from("quotes")
     .insert({
       tenant_id,
+      created_by:   user.id,
       client_id,
       title:        title || null,
       status:       "draft",
       valid_until,
       quote_number,
-      tax_rate:     settings.default_tax_rate ?? null,
+      tax_rate:     settings?.default_tax_rate ?? null,
     })
     .select("id, quote_number")
     .single() as { data: { id: string; quote_number: string } | null; error: { message: string } | null };

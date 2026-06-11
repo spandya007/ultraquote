@@ -10,15 +10,18 @@ export default async function TemplateEditorPage({ params }: { params: { id: str
   const db = supabase as any;
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: userData } = await db.from("users").select("tenant_id").eq("id", user?.id).single();
+  const { data: userData } = await db.from("users").select("tenant_id, role").eq("id", user?.id).single();
 
   const { data: template } = await db
     .from("templates")
-    .select("id, name, document_content")
+    .select("id, name, document_content, created_by")
     .eq("id", params.id)
     .single();
 
   if (!template) notFound();
+
+  // Editable by the creator or the tenant owner; everyone else views read-only.
+  const canEdit = userData?.role === "owner" || (template.created_by != null && template.created_by === user?.id);
 
   let tenant = null;
   if (userData?.tenant_id) {
@@ -27,5 +30,5 @@ export default async function TemplateEditorPage({ params }: { params: { id: str
     tenant = data;
   }
 
-  return <TemplateEditor template={template} tenant={tenant} />;
+  return <TemplateEditor template={template} tenant={tenant} canEdit={canEdit} />;
 }

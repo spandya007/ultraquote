@@ -113,6 +113,13 @@ interface Props {
   tenant: Tenant | null;
   /** Company-wide tax rate from tenant_settings (Settings → Company Settings). */
   companyTaxRate: number | null;
+  /** False when the viewer is neither the quote's creator nor the tenant owner
+   *  → full read-only mode (no auto-save, all controls disabled/hidden). */
+  canEdit: boolean;
+  /** Tenant owner: unlocks owner-only actions (Extract pricing). */
+  isOwner: boolean;
+  /** Display name of the quote's creator (for the read-only banner). */
+  creatorName: string | null;
 }
 
 // ─── Scenario colour palette (5 pastels, one per slot) ───────────────────────
@@ -193,7 +200,7 @@ function calcScenarioTotals(items: LineItem[], taxRate: number) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function QuoteEditor({ quote: initialQuote, products, categories, tenant, companyTaxRate }: Props) {
+export function QuoteEditor({ quote: initialQuote, products, categories, tenant, companyTaxRate, canEdit, isOwner, creatorName }: Props) {
   const router = useRouter();
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -348,6 +355,22 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
     }
   }
 
+  // Duplicate (read-only banner): clone into the viewer's own editable copy.
+  const [duplicating, setDuplicating] = useState(false);
+  async function duplicateQuote() {
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/quotes/${quote.id}/duplicate`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Duplicate failed");
+      toast.success(`Created ${data.quote_number}`);
+      window.location.href = `/quotes/${data.id}`;
+    } catch (e) {
+      toast.error((e as Error).message);
+      setDuplicating(false);
+    }
+  }
+
   // The company-wide rate (Settings) governs tax; the quote's stored tax_rate is
   // a synced snapshot (kept for PDFs/older quotes created before a rate change).
   const taxRate = companyTaxRate ?? quote.tax_rate ?? 0;
@@ -362,6 +385,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   useEffect(() => {
     // Skip the initial mount so we don't re-save unchanged server data.
     if (quoteFirstRender.current) { quoteFirstRender.current = false; return; }
+    // Read-only viewers never persist anything (RLS would refuse anyway).
+    if (!canEdit) return;
 
     setQuoteSaveState("saving");
     if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current);
@@ -651,7 +676,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               value={quote.title ?? ""}
               onChange={(e) => setQuote(q => ({ ...q, title: e.target.value }))}
               placeholder="Untitled Quote"
-              className="text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 flex-1 min-w-0"
+              disabled={!canEdit}
+              className="text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 flex-1 min-w-0 disabled:opacity-100"
             />
           </div>
           <p className="text-sm text-muted-foreground truncate">
@@ -709,7 +735,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
             </a>
           )}
 
-          {sigKinds.length > 0 && quote.status !== "signed" && (
+          {canEdit && sigKinds.length > 0 && quote.status !== "signed" && (
             <button
               onClick={openSend}
               title={
@@ -730,22 +756,44 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
           )}
 
           {/* Auto-save status (replaces the manual Save button) */}
-          <span
-            className={cn(
-              "flex items-center gap-1.5 text-xs min-w-[72px] justify-end transition-colors duration-300",
-              quoteSaveState === "saving" ? "text-muted-foreground" :
-              quoteSaveState === "saved"  ? "text-green-600" :
-              "text-muted-foreground/50"
-            )}
-          >
-            {quoteSaveState === "saving" ? (
-              <><Save className="w-3.5 h-3.5 animate-pulse" /> Saving…</>
-            ) : (
-              <><Check className="w-3.5 h-3.5" /> Saved</>
-            )}
-          </span>
+          {canEdit && (
+            <span
+              className={cn(
+                "flex items-center gap-1.5 text-xs min-w-[72px] justify-end transition-colors duration-300",
+                quoteSaveState === "saving" ? "text-muted-foreground" :
+                quoteSaveState === "saved"  ? "text-green-600" :
+                "text-muted-foreground/50"
+              )}
+            >
+              {quoteSaveState === "saving" ? (
+                <><Save className="w-3.5 h-3.5 animate-pulse" /> Saving…</>
+              ) : (
+                <><Check className="w-3.5 h-3.5" /> Saved</>
+              )}
+            </span>
+          )}
         </div>
       </header>
+
+      {/* Read-only banner: viewer is neither the creator nor the tenant owner */}
+      {!canEdit && (
+        <div className="flex items-center gap-2 px-6 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 shrink-0">
+          <Eye className="w-4 h-4 shrink-0" />
+          <span>
+            Read-only — this quote was created by{" "}
+            <span className="font-medium">{creatorName ?? "another team member"}</span>.
+            To work with it, duplicate it into your own copy.
+          </span>
+          <button
+            onClick={duplicateQuote}
+            disabled={duplicating}
+            className="ml-auto flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
+          >
+            {duplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+            Duplicate
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Tab bar + content */}
@@ -788,6 +836,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
           <div className={cn("flex-1 overflow-hidden", activeTab !== "document" && "hidden")}>
             <ProposalEditor
               quoteId={quote.id}
+              readOnly={!canEdit}
+              canExtractPricing={isOwner}
               initialContent={quote.document_content}
               clientData={quote.client}
               tenantData={tenant}
@@ -823,7 +873,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 </button>
               );
             })}
-            {scenarios.length < 5 ? (
+            {canEdit && (scenarios.length < 5 ? (
               <button
                 onClick={addScenario}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm border border-dashed text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -835,12 +885,14 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               <span className="text-xs text-muted-foreground italic px-1">
                 Maximum of 5 scenarios reached
               </span>
-            )}
+            ))}
           </div>
 
-          {/* Active scenario */}
+          {/* Active scenario. The fieldset natively disables every nested
+              input/select/button when the viewer can't edit (RLS backstop). */}
           {currentScenario && (
             <div className="rounded-lg border overflow-hidden">
+              <fieldset disabled={!canEdit} className="contents">
               {/* Scenario header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b">
                 <input
@@ -1075,23 +1127,26 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               </table>
 
               {/* Add item buttons */}
-              <div className="px-4 py-3 border-t bg-muted/10 flex items-center gap-2">
-                <button
-                  onClick={() => setProductSearchOpen(true)}
-                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add from catalog
-                </button>
-                <span className="text-muted-foreground">·</span>
-                <button
-                  onClick={addFreeTextItem}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add free-text item
-                </button>
-              </div>
+              {canEdit && (
+                <div className="px-4 py-3 border-t bg-muted/10 flex items-center gap-2">
+                  <button
+                    onClick={() => setProductSearchOpen(true)}
+                    className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add from catalog
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button
+                    onClick={addFreeTextItem}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add free-text item
+                  </button>
+                </div>
+              )}
+              </fieldset>
             </div>
           )}
           </div>
@@ -1100,6 +1155,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
 
         {/* Right: Quote details panel */}
         <aside className="w-72 shrink-0 border-l overflow-y-auto p-5 space-y-6 bg-muted/5">
+          <fieldset disabled={!canEdit} className="contents">
           <section className="space-y-3">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quote Details</h3>
             <div className="space-y-3">
@@ -1160,6 +1216,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               </span>
             </label>
           </section>
+          </fieldset>
 
           {/* Client info */}
           <section className="space-y-2">

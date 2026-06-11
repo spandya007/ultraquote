@@ -10,9 +10,11 @@ import { ClientDrawer } from "./client-drawer";
 
 interface Props {
   initialClients: Client[];
+  /** Tenant owner edits existing clients; members may only view + add new. */
+  isOwner: boolean;
 }
 
-export function ClientsClient({ initialClients }: Props) {
+export function ClientsClient({ initialClients, isOwner }: Props) {
   const supabase = createClient();
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [search, setSearch] = useState("");
@@ -209,6 +211,7 @@ export function ClientsClient({ initialClients }: Props) {
       <ClientDrawer
         open={drawerOpen}
         client={selectedClient}
+        readOnly={!isOwner && selectedClient !== null}
         onClose={() => setDrawerOpen(false)}
         onSaved={() => { setDrawerOpen(false); refreshClients(); }}
       />

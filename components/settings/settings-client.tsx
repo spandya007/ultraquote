@@ -32,6 +32,8 @@ interface Props {
   tenantId: string;
   tenant: Tenant | null;
   settings: TenantSettings | null;
+  /** Members see settings view-only; only the tenant owner can change them. */
+  isOwner: boolean;
 }
 
 function inputCls(error?: boolean) {
@@ -53,7 +55,7 @@ function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: 
   );
 }
 
-export function SettingsClient({ tenantId, tenant, settings }: Props) {
+export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -175,8 +177,15 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
   return (
     <div className="space-y-6">
 
+      {!isOwner && (
+        <p className="rounded-md bg-muted/50 border px-4 py-2.5 text-sm text-muted-foreground">
+          View only — company settings are managed by the tenant owner.
+        </p>
+      )}
+
       {/* ── Company Settings ── */}
       <SectionCard icon={<Building2 className="w-4 h-4" />} title="Company Settings">
+        <fieldset disabled={!isOwner} className="contents">
         <div className="space-y-1">
           <label className="text-sm font-medium">Logo</label>
           <div className="flex items-center gap-4">
@@ -288,19 +297,23 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
           </p>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={saveProfile}
-            disabled={savingProfile || !name.trim()}
-            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {savingProfile ? "Saving…" : "Save Settings"}
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex justify-end">
+            <button
+              onClick={saveProfile}
+              disabled={savingProfile || !name.trim()}
+              className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {savingProfile ? "Saving…" : "Save Settings"}
+            </button>
+          </div>
+        )}
+        </fieldset>
       </SectionCard>
 
       {/* ── Quote Defaults ── */}
       <SectionCard icon={<SlidersHorizontal className="w-4 h-4" />} title="Quote Defaults">
+        <fieldset disabled={!isOwner} className="contents">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-sm font-medium">Quote Number Prefix</label>
@@ -344,15 +357,18 @@ export function SettingsClient({ tenantId, tenant, settings }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={saveDefaults}
-            disabled={savingDefaults}
-            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {savingDefaults ? "Saving…" : "Save Defaults"}
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex justify-end">
+            <button
+              onClick={saveDefaults}
+              disabled={savingDefaults}
+              className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {savingDefaults ? "Saving…" : "Save Defaults"}
+            </button>
+          </div>
+        )}
+        </fieldset>
       </SectionCard>
 
     </div>

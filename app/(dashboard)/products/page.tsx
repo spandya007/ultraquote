@@ -4,7 +4,8 @@ import { ProductsClient } from "@/components/products/products-client";
 export default async function ProductsPage() {
   const supabase = await createClient();
 
-  const [{ data: products }, { data: categories }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: products }, { data: categories }, { data: me }] = await Promise.all([
     supabase
       .from("products")
       .select("*, category:product_categories(id, name), pricing_tiers:product_pricing_tiers(*)")
@@ -13,6 +14,8 @@ export default async function ProductsPage() {
       .from("product_categories")
       .select("*")
       .order("sort_order"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("users").select("role").eq("id", user?.id ?? "").maybeSingle() as Promise<{ data: { role: string } | null }>,
   ]);
 
   return (
@@ -20,6 +23,7 @@ export default async function ProductsPage() {
       <ProductsClient
         initialProducts={products ?? []}
         categories={categories ?? []}
+        isOwner={me?.role === "owner"}
       />
     </div>
   );

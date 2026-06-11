@@ -40,28 +40,21 @@ export async function POST(
     return NextResponse.json({ error: srcErr?.message ?? "Quote not found" }, { status: 404 });
   }
 
-  // 2. Generate a fresh quote number (same logic as quote creation).
-  let { data: settings } = await db
-    .from("tenant_settings")
-    .select("quote_number_prefix, quote_number_sequence")
-    .eq("tenant_id", tenant_id)
-    .single() as { data: { quote_number_prefix: string; quote_number_sequence: number } | null };
-
-  if (!settings) {
-    await db.from("tenant_settings").insert({ tenant_id });
-    settings = { quote_number_prefix: "QUOTE", quote_number_sequence: 1 };
+  // 2. Generate a fresh quote number (atomic, security-definer RPC).
+  const { data: quote_number, error: numErr } = await db.rpc("next_quote_number", {
+    p_tenant_id: tenant_id,
+  }) as { data: string | null; error: { message: string } | null };
+  if (numErr || !quote_number) {
+    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate quote number" }, { status: 500 });
   }
 
-  const year = new Date().getFullYear();
-  const seq = settings.quote_number_sequence;
-  const quote_number = `${settings.quote_number_prefix}-${year}-${String(seq).padStart(3, "0")}`;
-  await db.from("tenant_settings").update({ quote_number_sequence: seq + 1 }).eq("tenant_id", tenant_id);
-
-  // 3. Insert the new quote (always a fresh draft).
+  // 3. Insert the new quote (always a fresh draft). Any tenant member may
+  // duplicate any quote they can read — the copy belongs to the duplicator.
   const { data: newQuote, error: insErr } = await db
     .from("quotes")
     .insert({
       tenant_id,
+      created_by:       user.id,
       client_id:        src.client_id,
       title:            src.title ? `${src.title} (Copy)` : "Untitled Quote (Copy)",
       status:           "draft",

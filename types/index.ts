@@ -131,6 +131,7 @@ export type TemplateSourceType = "docx" | "md" | "native";
 export interface Template {
   id: string;
   tenant_id: string;
+  created_by: string | null;            // users.id of the creator (null = legacy)
   name: string;
   description: string | null;
   document_content: Json | null;        // BlockNote JSON
@@ -147,6 +148,7 @@ export type QuoteStatus = "draft" | "sent" | "viewed" | "signed" | "declined" | 
 export interface Quote {
   id: string;
   tenant_id: string;
+  created_by: string | null;            // users.id of the creator (null = legacy)
   client_id: string;
   template_id: string | null;
   quote_number: string;

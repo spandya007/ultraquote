@@ -22,6 +22,7 @@ interface QuoteRow {
   signed_at: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
   signers?: { signer_email: string; role: string | null; status: string; signing_order: number; decline_reason: string | null }[];
+  creator?: { full_name: string | null; email: string } | null;
 }
 
 // Tooltip for the status badge — decline comment on declined quotes, and
@@ -203,6 +204,7 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valid Until</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground" title="Only the creator (and the tenant owner) can edit a quote — everyone else sees it read-only">Created by</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -236,6 +238,9 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {q.valid_until ? formatDate(q.valid_until) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[10rem]">
+                    {q.creator?.full_name || q.creator?.email || "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(q.created_at)}</td>
                   <td className="px-4 py-3 text-right">

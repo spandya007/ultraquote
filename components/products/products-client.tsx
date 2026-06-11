@@ -47,11 +47,13 @@ interface ProductRow {
 }
 
 interface Props {
+  /** Tenant owner: may add/edit/import products. Members get read-only. */
+  isOwner: boolean;
   initialProducts: ProductRow[];
   categories: ProductCategory[];
 }
 
-export function ProductsClient({ initialProducts, categories }: Props) {
+export function ProductsClient({ initialProducts, categories, isOwner }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -129,30 +131,32 @@ export function ProductsClient({ initialProducts, categories }: Props) {
             {filtered.length} of {products.length} products
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={handleImport}
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={importing}
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4" />
-            {importing ? "Importing…" : "Import CSV"}
-          </button>
-          <button
-            onClick={() => openDrawer(null)}
-            className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleImport}
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {importing ? "Importing…" : "Import CSV"}
+            </button>
+            <button
+              onClick={() => openDrawer(null)}
+              className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Import result banner */}
@@ -319,11 +323,12 @@ export function ProductsClient({ initialProducts, categories }: Props) {
         </table>
       </div>
 
-      {/* Product edit drawer */}
+      {/* Product edit drawer (view-only for members) */}
       <ProductDrawer
         open={drawerOpen}
         product={selectedProduct}
         categories={categories}
+        readOnly={!isOwner}
         onClose={() => setDrawerOpen(false)}
         onSaved={() => { setDrawerOpen(false); router.refresh(); }}
       />

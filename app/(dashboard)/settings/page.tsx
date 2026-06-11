@@ -12,12 +12,13 @@ export default async function SettingsPage() {
 
   const { data: userData } = await db
     .from("users")
-    .select("tenant_id")
+    .select("tenant_id, role")
     .eq("id", user.id)
-    .single() as { data: { tenant_id: string } | null };
+    .single() as { data: { tenant_id: string; role: "owner" | "member" } | null };
 
   if (!userData) return null;
   const tenantId = userData.tenant_id;
+  const isOwner = userData.role === "owner";
 
   const [{ data: tenant }, { data: settings }] = await Promise.all([
     db.from("tenants").select("*").eq("id", tenantId).single(),
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
         tenantId={tenantId}
         tenant={tenant}
         settings={settings}
+        isOwner={isOwner}
       />
       <TeamCard />
     </div>

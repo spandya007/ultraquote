@@ -14,9 +14,18 @@ interface TemplateRow {
   name: string;
   description: string | null;
   created_at: string;
+  created_by: string | null;
+  creator: { full_name: string | null; email: string } | null;
 }
 
-export function TemplatesClient({ initialTemplates }: { initialTemplates: TemplateRow[] }) {
+interface Props {
+  initialTemplates: TemplateRow[];
+  currentUserId: string;
+  /** Tenant owner may edit any template; others only their own. */
+  isOwner: boolean;
+}
+
+export function TemplatesClient({ initialTemplates, currentUserId, isOwner }: Props) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -70,7 +79,11 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {templates.map(t => (
+          {templates.map(t => {
+            // Templates are usable by everyone, editable by creator + owner.
+            const canEdit = isOwner || t.created_by === currentUserId;
+            const creatorLabel = t.creator?.full_name || t.creator?.email || null;
+            return (
             <div key={t.id} className="rounded-xl border bg-card p-4">
               <div className="flex items-start gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground mt-2 shrink-0" />
@@ -78,26 +91,32 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
                   <input
                     value={t.name}
                     onChange={(e) => rename(t.id, e.target.value)}
-                    className="w-full font-semibold bg-transparent border-none outline-none focus:ring-0 p-0"
+                    disabled={!canEdit}
+                    className="w-full font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 disabled:opacity-100"
                   />
                   <textarea
                     value={t.description ?? ""}
                     onChange={(e) => updateDescription(t.id, e.target.value)}
-                    placeholder="Add a description…"
+                    placeholder={canEdit ? "Add a description…" : ""}
                     rows={2}
+                    disabled={!canEdit}
                     className="w-full text-sm text-muted-foreground bg-transparent border-none outline-none focus:ring-0 p-0 mt-1 resize-none"
                   />
                   <div className="flex items-center justify-between mt-3">
-                    <p className="text-xs text-muted-foreground">Created {formatDate(t.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Created {formatDate(t.created_at)}
+                      {creatorLabel && <> by {creatorLabel}</>}
+                    </p>
                     <Link
                       href={`/templates/${t.id}`}
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                     >
-                      <PenLine className="w-3.5 h-3.5" /> Open editor
+                      {canEdit ? <PenLine className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                      {canEdit ? "Open editor" : "View"}
                     </Link>
                   </div>
                 </div>
-                {confirmId === t.id ? (
+                {canEdit && (confirmId === t.id ? (
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => remove(t.id)} className="rounded border border-destructive text-destructive px-2 py-1 text-xs hover:bg-destructive/10">Delete</button>
                     <button onClick={() => setConfirmId(null)} className="rounded border px-2 py-1 text-xs hover:bg-muted">Cancel</button>
@@ -110,10 +129,11 @@ export function TemplatesClient({ initialTemplates }: { initialTemplates: Templa
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                )}
+                ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </>
