@@ -376,3 +376,41 @@ quote's right-hand panel).
 - Transparent background avoids a white box around the logo on the page.
 - The logo is shared across all quotes for the company (it's a company-level
   setting, not per-quote).
+
+## Team (inviting your co-workers)
+
+**Settings → Team** lists everyone in your company workspace (green **active**
+badge) plus pending invites.
+
+- **Only the owner** can invite, re-send, or revoke. Members see the list
+  read-only.
+- Invite by email (+ optional name). The teammate gets an email, clicks the
+  link, sets a password, and lands in your workspace as a **member**.
+- **Resend** replaces a not-yet-accepted invite with a fresh email (the old
+  link stops working — invite links are single-use). **Revoke** cancels it.
+- An email address can only belong to one workspace.
+
+## Roles & permissions (owner vs member)
+
+Two roles per company: the **owner** (full control) and **members**.
+
+**Quotes are owned by whoever created them.**
+- You can fully edit, send, and delete *your own* quotes.
+- Teammates' quotes open **read-only** (amber banner shows who created it).
+  You can still Preview and download the PDF.
+- Want to build on a teammate's quote? Click **Duplicate** (in the banner or
+  the Quotes list) — the copy is yours, pricing included. The Quotes list has
+  a **Created by** column so you can see ownership at a glance.
+- The owner can edit *every* quote.
+
+**Templates** work the same way: anyone can apply any template to their quote
+or save a new one, but only the template's creator (or the owner) can rename,
+edit, or delete it.
+
+**Owner-only areas** (members see them read-only):
+- **Products** — members use the catalog in quotes but can't add/edit items,
+  import CSVs, or change pricing tiers. "Extract pricing" is owner-only too.
+- **Settings** — company profile, tax rate, quote defaults, Team management.
+- **Clients** — members can *add* a new client (e.g. for a fresh prospect) but
+  can't edit or deactivate existing ones (an edit would change every
+  teammate's quotes for that client).
