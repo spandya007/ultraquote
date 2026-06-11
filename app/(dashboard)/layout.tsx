@@ -12,7 +12,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Tenant branding for the sidebar (name + logo).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
-  const { data: userData } = await db.from("users").select("tenant_id").eq("id", user.id).single();
+  const { data: userData } = await db.from("users").select("tenant_id, full_name").eq("id", user.id).single();
+  const firstName: string =
+    (userData?.full_name as string | null)?.trim().split(/\s+/)[0] ||
+    user.email?.split("@")[0] ||
+    "";
   let brandName = "";
   let logoUrl: string | null = null;
   if (userData?.tenant_id) {
@@ -41,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} />
+      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} userName={firstName} />
       <main className="flex-1 overflow-y-auto bg-muted/20">
         {children}
       </main>

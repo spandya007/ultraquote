@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Mail, RotateCw, Users, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils/cn";
 import type { TenantInvite, User } from "@/types";
 
 // Settings → Team: list the tenant's users + pending invites; owners can
@@ -121,11 +120,15 @@ export function TeamCard() {
                     </div>
                     {u.full_name && <div className="text-xs text-muted-foreground">{u.email}</div>}
                   </div>
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-xs font-medium",
-                    u.role === "owner" ? "bg-violet-100 text-violet-800" : "bg-muted text-muted-foreground"
-                  )}>
-                    {u.role}
+                  <span className="flex items-center gap-1.5">
+                    {u.role === "owner" && (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-800">
+                        owner
+                      </span>
+                    )}
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+                      active
+                    </span>
                   </span>
                 </li>
               ))}

@@ -25,7 +25,7 @@ const navItems = [
   { href: "/settings",  label: "Settings",   icon: Settings },
 ];
 
-export function Sidebar({ brandName, logoUrl, showAdmin }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean }) {
+export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; userName?: string }) {
   const pathname = usePathname();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -40,6 +40,11 @@ export function Sidebar({ brandName, logoUrl, showAdmin }: { brandName?: string;
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col h-screen">
       <div className="px-6 py-5 border-b space-y-2">
+        {userName && (
+          <div className="text-sm font-medium">
+            Hello, {userName} <span aria-hidden>👋</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md shrink-0" />

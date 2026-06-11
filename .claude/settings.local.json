@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Team card: green '\\\\''active'\\\\'' badge; sidebar: '\\\\''Hello, <first name>'\\\\'' greeting *)",
+      "Bash(git push *)"
     ]
   }
 }
