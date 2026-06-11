@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, FileText, Copy, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, Copy, Loader2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
@@ -20,6 +20,7 @@ interface QuoteRow {
   updated_at: string | null;
   sent_at: string | null;
   signed_at: string | null;
+  created_by: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
   signers?: { signer_email: string; role: string | null; status: string; signing_order: number; decline_reason: string | null }[];
   creator?: { full_name: string | null; email: string } | null;
@@ -64,9 +65,14 @@ interface Props {
   clients: ClientOption[];
   /** tenant_settings.default_valid_days — drafts inactive longer than this are hidden. */
   validDays: number;
+  currentUserId: string;
+  /** Tenant owner can edit every quote (no read-only rows). */
+  isOwner: boolean;
+  /** Teammates (for the created-by filter), current user excluded. */
+  teamUsers: { id: string; name: string }[];
 }
 
-export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
+export function QuotesClient({ initialQuotes, clients, validDays, currentUserId, isOwner, teamUsers }: Props) {
   const router = useRouter();
   const toast = useToast();
   // Use the server prop directly (don't freeze it in state) so the list always
@@ -78,6 +84,8 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | "all">("all");
   const [filterClient, setFilterClient] = useState<string>("all");
+  // Default to the user's own quotes ("mine"); "all" or a teammate's user id.
+  const [filterOwner, setFilterOwner] = useState<string>("mine");
   const [modalOpen, setModalOpen] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
@@ -101,6 +109,8 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
 
   const filtered = useMemo(() => {
     return visibleQuotes.filter((q) => {
+      if (filterOwner === "mine" && q.created_by !== currentUserId) return false;
+      if (filterOwner !== "mine" && filterOwner !== "all" && q.created_by !== filterOwner) return false;
       if (filterStatus !== "all" && effectiveStatus(q) !== filterStatus) return false;
       if (filterClient !== "all" && q.client?.id !== filterClient) return false;
       if (search) {
@@ -113,14 +123,14 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
       }
       return true;
     });
-  }, [visibleQuotes, search, filterStatus, filterClient]);
+  }, [visibleQuotes, search, filterStatus, filterClient, filterOwner, currentUserId]);
 
   return (
     <>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Quotes</h1>
+          <h1 className="text-2xl font-bold">{filterOwner === "mine" ? "My Quotes" : "Quotes"}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {filtered.length} of {visibleQuotes.length} quotes
             {hiddenDrafts > 0 && (
@@ -141,6 +151,18 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
 
       {/* Filters */}
       <div className="flex gap-2 mb-4">
+        <select
+          value={filterOwner}
+          onChange={(e) => setFilterOwner(e.target.value)}
+          title="Whose quotes to show — teammates' quotes open read-only"
+          className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="mine">My Quotes</option>
+          <option value="all">All Quotes</option>
+          {teamUsers.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -183,6 +205,8 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
           <p className="text-muted-foreground">
             {visibleQuotes.length === 0
               ? "No quotes yet — create your first quote."
+              : filterOwner === "mine"
+              ? "You haven't created any quotes yet — switch the selector to All Quotes to see your team's, or create your first one."
               : "No quotes match your filters."}
           </p>
           {visibleQuotes.length === 0 && (
@@ -223,7 +247,19 @@ export function QuotesClient({ initialQuotes, clients, validDays }: Props) {
                       <p className="text-xs text-muted-foreground">{q.client.contact_name}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{q.title ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      {q.title ?? "—"}
+                      {!isOwner && q.created_by !== currentUserId && (
+                        <span
+                          title="Created by a teammate — opens read-only (use Duplicate to make your own editable copy)"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-medium shrink-0"
+                        >
+                          <Eye className="w-3 h-3" /> read-only
+                        </span>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       title={statusTooltip(q)}
