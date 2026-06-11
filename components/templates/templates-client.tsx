@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookTemplate, Trash2, FileText, PenLine } from "lucide-react";
+import { BookTemplate, Trash2, FileText, PenLine, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { NewQuoteModal } from "@/components/quotes/new-quote-modal";
 
 interface TemplateRow {
   id: string;
@@ -18,14 +19,23 @@ interface TemplateRow {
   creator: { full_name: string | null; email: string } | null;
 }
 
+interface ClientOption {
+  id: string;
+  company_name: string;
+  contact_name: string | null;
+  contact_email: string | null;
+}
+
 interface Props {
   initialTemplates: TemplateRow[];
   currentUserId: string;
   /** Tenant owner may edit any template; others only their own. */
   isOwner: boolean;
+  /** Active clients — for the "New quote from this template" modal. */
+  clients: ClientOption[];
 }
 
-export function TemplatesClient({ initialTemplates, currentUserId, isOwner }: Props) {
+export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clients }: Props) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -34,6 +44,8 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner }: Pr
   const router = useRouter();
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  // Template-first flow: open the New Quote modal with this template preselected.
+  const [quoteFromTemplateId, setQuoteFromTemplateId] = useState<string | null>(null);
 
   // Pull the latest server data when this page is shown (bypasses the App Router
   // client cache so a just-created template appears immediately)…
@@ -107,13 +119,22 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner }: Pr
                       Created {formatDate(t.created_at)}
                       {creatorLabel && <> by {creatorLabel}</>}
                     </p>
-                    <Link
-                      href={`/templates/${t.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
-                    >
-                      {canEdit ? <PenLine className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-                      {canEdit ? "Open editor" : "View"}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setQuoteFromTemplateId(t.id)}
+                        title="Create a new quote that starts from this template's document"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> New quote
+                      </button>
+                      <Link
+                        href={`/templates/${t.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                      >
+                        {canEdit ? <PenLine className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                        {canEdit ? "Edit" : "View"}
+                      </Link>
+                    </div>
                   </div>
                 </div>
                 {canEdit && (confirmId === t.id ? (
@@ -136,6 +157,15 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner }: Pr
           })}
         </div>
       )}
+
+      <NewQuoteModal
+        open={quoteFromTemplateId !== null}
+        clients={clients}
+        templates={templates.map(t => ({ id: t.id, name: t.name }))}
+        initialTemplateId={quoteFromTemplateId ?? undefined}
+        onClose={() => setQuoteFromTemplateId(null)}
+        onCreated={(id) => { setQuoteFromTemplateId(null); router.push(`/quotes/${id}`); }}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
@@ -11,21 +11,36 @@ interface ClientOption {
   contact_email: string | null;
 }
 
+export interface TemplateOption {
+  id: string;
+  name: string;
+}
+
 interface Props {
   open: boolean;
   clients: ClientOption[];
+  /** Active templates for the "Start from" selector. */
+  templates?: TemplateOption[];
+  /** Pre-select a template (template-first flow from /templates). */
+  initialTemplateId?: string;
   onClose: () => void;
   onCreated: (quoteId: string) => void;
 }
 
-export function NewQuoteModal({ open, clients, onClose, onCreated }: Props) {
+export function NewQuoteModal({ open, clients, templates = [], initialTemplateId, onClose, onCreated }: Props) {
   const toast = useToast();
 
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
   const [validDays, setValidDays] = useState("30");
+  const [templateId, setTemplateId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Adopt the preselected template each time the modal opens.
+  useEffect(() => {
+    if (open) setTemplateId(initialTemplateId ?? "");
+  }, [open, initialTemplateId]);
 
   async function handleCreate() {
     if (!clientId) { setError("Please select a client"); return; }
@@ -43,6 +58,7 @@ export function NewQuoteModal({ open, clients, onClose, onCreated }: Props) {
           client_id:   clientId,
           title:       title || null,
           valid_until: validUntil.toISOString().split("T")[0],
+          template_id: templateId || null,
         }),
       });
 
@@ -64,7 +80,7 @@ export function NewQuoteModal({ open, clients, onClose, onCreated }: Props) {
   }
 
   function handleClose() {
-    setClientId(""); setTitle(""); setValidDays("30"); setError(null);
+    setClientId(""); setTitle(""); setValidDays("30"); setTemplateId(""); setError(null);
     onClose();
   }
 
@@ -107,6 +123,25 @@ export function NewQuoteModal({ open, clients, onClose, onCreated }: Props) {
                 </select>
               )}
             </div>
+
+            {templates.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Start from</label>
+                <select
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Blank document</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  The template&apos;s document becomes this quote&apos;s starting point.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Quote Title</label>

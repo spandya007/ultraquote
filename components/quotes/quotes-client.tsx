@@ -70,9 +70,11 @@ interface Props {
   isOwner: boolean;
   /** Teammates (for the created-by filter), current user excluded. */
   teamUsers: { id: string; name: string }[];
+  /** Active templates for the New Quote "Start from" selector. */
+  templates: { id: string; name: string }[];
 }
 
-export function QuotesClient({ initialQuotes, clients, validDays, currentUserId, isOwner, teamUsers }: Props) {
+export function QuotesClient({ initialQuotes, clients, validDays, currentUserId, isOwner, teamUsers, templates }: Props) {
   const router = useRouter();
   const toast = useToast();
   // Use the server prop directly (don't freeze it in state) so the list always
@@ -302,6 +304,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
       <NewQuoteModal
         open={modalOpen}
         clients={clients}
+        templates={templates}
         onClose={() => setModalOpen(false)}
         onCreated={(id) => { setModalOpen(false); router.push(`/quotes/${id}`); }}
       />

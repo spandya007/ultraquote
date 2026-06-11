@@ -20,9 +20,25 @@ export async function POST(request: NextRequest) {
   const tenant_id = userData.tenant_id;
 
   const body = await request.json();
-  const { client_id, title, valid_until } = body;
+  const { client_id, title, valid_until, template_id } = body;
 
   if (!client_id) return NextResponse.json({ error: "client_id is required" }, { status: 400 });
+
+  // "Start from template": copy the template's document into the new quote.
+  // Templates are tenant-readable under RLS, so this is naturally scoped.
+  let documentContent: unknown = null;
+  if (template_id) {
+    const { data: tpl, error: tplErr } = await db
+      .from("templates")
+      .select("document_content")
+      .eq("id", template_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (tplErr || !tpl) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+    documentContent = tpl.document_content ?? null;
+  }
 
   // Reject a duplicate (case-insensitive) title within this tenant.
   if (title && title.trim()) {
@@ -63,13 +79,15 @@ export async function POST(request: NextRequest) {
     .from("quotes")
     .insert({
       tenant_id,
-      created_by:   user.id,
+      created_by:       user.id,
       client_id,
-      title:        title || null,
-      status:       "draft",
+      template_id:      template_id || null,
+      document_content: documentContent,
+      title:            title || null,
+      status:           "draft",
       valid_until,
       quote_number,
-      tax_rate:     settings?.default_tax_rate ?? null,
+      tax_rate:         settings?.default_tax_rate ?? null,
     })
     .select("id, quote_number")
     .single() as { data: { id: string; quote_number: string } | null; error: { message: string } | null };

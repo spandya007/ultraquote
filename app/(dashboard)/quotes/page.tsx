@@ -28,6 +28,14 @@ export default async function QuotesPage() {
     }>,
   ]);
 
+  // Active templates for the New Quote "Start from" selector.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: templates } = await (supabase as any)
+    .from("templates")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false }) as { data: { id: string; name: string }[] | null };
+
   const me = (teamUsers ?? []).find((u) => u.id === user?.id);
   const others = (teamUsers ?? [])
     .filter((u) => u.id !== user?.id)
@@ -42,6 +50,7 @@ export default async function QuotesPage() {
         currentUserId={user?.id ?? ""}
         isOwner={me?.role === "owner"}
         teamUsers={others}
+        templates={templates ?? []}
       />
     </div>
   );

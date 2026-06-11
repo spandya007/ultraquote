@@ -847,39 +847,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     }
   }
 
-  // ── Templates (apply / save current document as a template) ─────────────────
+  // ── Save current document as a template ─────────────────────────────────────
+  // (Applying templates happens at quote creation — New Quote modal "Start
+  // from", or /templates → "New quote" — not mid-document.)
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [tplOpen, setTplOpen] = useState(false);
   const [tplBusy, setTplBusy] = useState(false);
-  const [tplList, setTplList] = useState<{ id: string; name: string }[] | null>(null);
   const [tplName, setTplName] = useState("");
-
-  async function openTemplates() {
-    setTplOpen(o => !o);
-    if (tplList === null) {
-      const { data } = await (supabaseRef.current as any)
-        .from("templates").select("id, name").eq("is_active", true).order("created_at", { ascending: false });
-      setTplList(data ?? []);
-    }
-  }
-
-  async function applyTemplate(id: string) {
-    setTplBusy(true);
-    try {
-      const { data, error } = await (supabaseRef.current as any)
-        .from("templates").select("document_content").eq("id", id).single();
-      if (error) throw new Error(error.message);
-      const blocks = Array.isArray(data?.document_content) ? data.document_content : [];
-      if (blocks.length === 0) { toastRef.current.error("That template is empty"); return; }
-      insertBlocksIntoDoc(blocks);
-      toastRef.current.success("Template applied — use Undo if needed");
-      setTplOpen(false);
-    } catch (e) {
-      toastRef.current.error((e as Error).message);
-    } finally {
-      setTplBusy(false);
-    }
-  }
 
   async function saveAsTemplate() {
     const name = tplName.trim();
@@ -894,10 +868,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         source_file_type: "native", is_active: true,
       });
       if (error) throw new Error(error.message);
-      toastRef.current.success(`Saved template “${name}”`);
+      toastRef.current.success(`Saved template “${name}” — find it on the Templates page`);
       setTplName("");
       setTplOpen(false);
-      setTplList(null); // refetch next open
     } catch (e) {
       toastRef.current.error((e as Error).message);
     } finally {
@@ -1328,32 +1301,30 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
           />
         </div>
 
-        {/* Templates (not shown while editing a template itself) */}
+        {/* Save as template (not shown while editing a template itself).
+            Applying templates happens at quote creation, not here. */}
         {!isTemplate && (
         <div className="relative">
           <button
-            title="Apply a saved template, or save this document as a template"
-            onMouseDown={(e) => { e.preventDefault(); if (!tplBusy) openTemplates(); }}
+            title="Save this document as a reusable template (new quotes can start from it)"
+            onMouseDown={(e) => { e.preventDefault(); if (!tplBusy) setTplOpen(o => !o); }}
             disabled={tplBusy}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
           >
             {tplBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookTemplate className="w-3.5 h-3.5" />}
-            Templates
-            <ChevronDown className="w-3 h-3" />
+            Save as template
           </button>
 
           {tplOpen && (
             <>
               <div className="fixed inset-0 z-10" onMouseDown={() => setTplOpen(false)} />
               <div className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border bg-white shadow-xl overflow-hidden">
-                <div className="px-4 py-2 bg-muted/40 border-b">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Save as template</p>
-                </div>
                 <div className="p-3 space-y-2">
                   <input
                     value={tplName}
                     onChange={(e) => setTplName(e.target.value)}
                     placeholder="Template name…"
+                    autoFocus
                     className="w-full text-sm rounded-md border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <button
@@ -1363,25 +1334,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   >
                     Save current document
                   </button>
-                </div>
-
-                <div className="px-4 py-2 bg-muted/40 border-y">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Apply a template</p>
-                </div>
-                <div className="max-h-56 overflow-y-auto">
-                  {tplList === null ? (
-                    <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>
-                  ) : tplList.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-muted-foreground">No templates yet.</p>
-                  ) : tplList.map(t => (
-                    <button
-                      key={t.id}
-                      onMouseDown={(e) => { e.preventDefault(); applyTemplate(t.id); }}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-muted/50 transition-colors border-b last:border-0"
-                    >
-                      {t.name}
-                    </button>
-                  ))}
+                  <p className="text-[11px] text-muted-foreground">
+                    New quotes can start from it (New Quote → “Start from”).
+                  </p>
                 </div>
               </div>
             </>
