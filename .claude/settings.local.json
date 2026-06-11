@@ -12,7 +12,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx next *)",
       "Bash(git commit -q -m 'Roles & quote ownership: creator-owned quotes/templates, owner-only catalog/settings, RLS rewrite *)",
-      "Bash(git commit -q -m 'Realtime: presence chips + live quote refresh *)"
+      "Bash(git commit -q -m 'Realtime: presence chips + live quote refresh *)",
+      "Bash(git commit -q -m 'Docs: migration 009 verified \\(presence + live edits\\); post-deploy test item for live signing status flip *)"
     ]
   }
 }
