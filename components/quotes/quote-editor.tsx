@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
+import { usePresence } from "@/lib/realtime/use-presence";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import type { QuoteStatus, ProductCategory } from "@/types";
 import { STATUS_STYLES, effectiveStatus } from "@/lib/quote-status";
 
@@ -233,6 +235,96 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   const handleEditorReady = useCallback((api: ProposalEditorApi) => {
     proposalApiRef.current = api;
   }, []);
+
+  // ── Realtime: presence + live refresh ──────────────────────────────────────
+  // Presence: who else has this quote open right now (chip in the header).
+  const presenceOthers = usePresence(`quote:${initialQuote.id}`);
+
+  // Background sync for remote saves: refetch scenarios+line items WITHOUT
+  // switching tabs or resetting the active scenario (unlike refreshScenarios).
+  const syncScenariosFromServer = useCallback(async () => {
+    const { data } = await db
+      .from("quote_scenarios")
+      .select("*, line_items:quote_line_items(*)")
+      .eq("quote_id", initialQuote.id)
+      .order("sort_order");
+    if (!data) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sorted = (data as any[]).map((s) => ({
+      ...s,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      line_items: [...(s.line_items ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order),
+    }));
+    setScenarios(sorted);
+    setActiveScenario(prev => (sorted.some(s => s.id === prev) ? prev : sorted[0]?.id ?? ""));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Current scenario ids, for matching line-item change events (they carry
+  // scenario_id, not quote_id).
+  const scenarioIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    scenarioIdsRef.current = new Set(scenarios.map(s => s.id));
+  }, [scenarios]);
+
+  // Debounced + typing-safe: never replace state while the user's cursor is in
+  // a form field (our own immediate saves echo back as events too) — retry
+  // shortly instead.
+  const liveSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleLiveSync = useCallback(() => {
+    if (liveSyncTimer.current) clearTimeout(liveSyncTimer.current);
+    const run = () => {
+      const el = document.activeElement;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) {
+        liveSyncTimer.current = setTimeout(run, 2000);
+        return;
+      }
+      syncScenariosFromServer();
+    };
+    liveSyncTimer.current = setTimeout(run, 600);
+  }, [syncScenariosFromServer]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`quote-db:${initialQuote.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "quote_scenarios", filter: `quote_id=eq.${initialQuote.id}` },
+        scheduleLiveSync
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "quote_line_items" },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
+          const sid = payload.new?.scenario_id ?? payload.old?.scenario_id;
+          if (sid && scenarioIdsRef.current.has(sid)) scheduleLiveSync();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quotes", filter: `id=eq.${initialQuote.id}` },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
+          const next = payload.new;
+          if (!next) return;
+          // Adopt ONLY system-managed lifecycle fields (send route / DocuSeal
+          // webhook). Free-text fields stay local — they may be mid-edit here.
+          setQuote(q =>
+            q.status !== next.status || q.pdf_url !== next.pdf_url
+              ? { ...q, status: next.status, pdf_url: next.pdf_url, sent_at: next.sent_at, signed_at: next.signed_at }
+              : q
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (liveSyncTimer.current) clearTimeout(liveSyncTimer.current);
+      supabase.removeChannel(channel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuote.id]);
 
   // After pricing extraction creates scenarios, refetch them and jump to Line Items.
   const refreshScenarios = useCallback(async () => {
@@ -687,6 +779,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <PresenceIndicator others={presenceOthers} noun="quote" />
           {/* Status is SYSTEM-MANAGED (read-only): draft → sent (Send button) →
               viewed/signed/declined (e-signature webhook); expired is derived
               from the Valid Until date. Signed is terminal — use Duplicate. */}

@@ -6,6 +6,8 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
+import { usePresence } from "@/lib/realtime/use-presence";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 
 const ProposalEditor = dynamic(
   () => import("@/components/quotes/proposal-editor").then(m => m.ProposalEditor),
@@ -34,6 +36,7 @@ export function TemplateEditor({ template, tenant, canEdit }: Props) {
   const db = createClient() as any;
   const toast = useToast();
   const [name, setName] = useState(template.name);
+  const presenceOthers = usePresence(`template:${template.id}`);
 
   async function saveName() {
     const clean = name.trim() || "Untitled template";
@@ -60,6 +63,7 @@ export function TemplateEditor({ template, tenant, canEdit }: Props) {
             className="block text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 w-full disabled:opacity-100"
           />
         </div>
+        <PresenceIndicator others={presenceOthers} noun="template" />
       </header>
 
       <div className="flex-1 overflow-hidden">

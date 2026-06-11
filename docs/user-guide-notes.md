@@ -414,3 +414,18 @@ edit, or delete it.
 - **Clients** — members can *add* a new client (e.g. for a fresh prospect) but
   can't edit or deactivate existing ones (an edit would change every
   teammate's quotes for that client).
+
+## Working together on the same quote (presence & live updates)
+
+- If a teammate has the same quote (or template) open, an amber chip appears
+  in the editor header: **"<name> is also in this quote"**. It updates within
+  seconds as people open/close the editor.
+- Saves are last-write-wins — if you both edit the *same field* at the same
+  time, the later save sticks. The chip is your cue to coordinate (or just
+  Duplicate the quote and work on your own copy).
+- Changes a teammate saves to **pricing scenarios and line items** appear in
+  your open editor automatically within a second or two — no reload needed.
+  Same for status changes: if the client signs while you have the quote open,
+  the badge flips to **signed** live.
+- The document (narrative) tab does NOT live-sync while typing — avoid
+  co-writing the same document simultaneously.

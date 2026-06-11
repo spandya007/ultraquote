@@ -766,6 +766,25 @@ begin
 end;
 $$;
 
+-- ─── Realtime ────────────────────────────────────────────────────────────────
+-- Live refresh for open quote editors (postgres_changes; RLS-scoped).
+-- Presence channels need no DB config.
+
+do $$ begin
+  alter publication supabase_realtime add table public.quotes;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.quote_scenarios;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.quote_line_items;
+exception when duplicate_object then null; end $$;
+
+-- Full old-row payloads so DELETE events carry quote_id/scenario_id for
+-- client-side filtering.
+alter table public.quote_scenarios  replica identity full;
+alter table public.quote_line_items replica identity full;
+
 -- ─── Storage ─────────────────────────────────────────────────────────────────
 -- Single private bucket for proposal images, tenant logos, and imported-document
 -- assets. The app references objects via an `sb-storage://proposal-assets/<path>`
