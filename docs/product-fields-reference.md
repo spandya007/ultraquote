@@ -21,7 +21,6 @@ These DB columns exist but have **no edit field anywhere** in the UI:
 
 | Column | Why it's hidden / notes |
 |---|---|
-| `setup_price` | ⚠️ **Imported but not editable.** The CSV `Setup Price` maps into this column, but the drawer has no input for it — so an imported setup fee is stored and invisible. Defaults to 0 for manually-added products. Surface this if setup fees matter. |
 | `unit_cost` (product-level) | Effectively legacy. Pricing is tier-driven; the list shows the **default tier's** cost and only falls back to this column. The drawer never writes it (manual products leave it null). |
 | `unit_price` (product-level) | Same as above — superseded by tier pricing. |
 | `zomentum_id` | Internal/legacy grouping + re-import key. Deliberately never shown (see CSV import design — system-neutral externally). |
@@ -32,7 +31,8 @@ These DB columns exist but have **no edit field anywhere** in the UI:
 | `id`, `tenant_id`, `created_at` | System columns (not user fields). |
 
 **Takeaways worth remembering:**
-- `setup_price` is the one genuine gap — importable but not viewable/editable.
+- `setup_price` is now editable in the drawer (Details → Setup Price, added
+  2026-06-11) — previously imported-but-hidden.
 - The product-level `unit_cost`/`unit_price` columns are redundant with tier
   pricing; the app treats the **default tier** as the source of truth.
 

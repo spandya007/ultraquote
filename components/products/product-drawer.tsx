@@ -296,6 +296,13 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
                 <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. /user/month"
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Setup Price</label>
+                <input type="number" step="0.01" min="0" value={setupPrice}
+                  onChange={(e) => setSetupPrice(e.target.value)} placeholder="0.00"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                <p className="text-xs text-muted-foreground">One-time setup/onboarding fee (product-level).</p>
+              </div>
             </div>
 
             {/* Checkboxes */}
