@@ -58,8 +58,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {/* Portal-style fixed container */}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+      {/* Portal-style fixed container — top-center for visibility */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4">
         {toasts.map(toast => (
           <ToastItem key={toast.id} toast={toast} onDismiss={dismiss} />
         ))}
@@ -82,10 +82,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   return (
     <div
       className={cn(
-        "pointer-events-auto flex items-start gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg transition-all duration-300",
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-        toast.type === "success" ? "border-green-200" :
-        toast.type === "warning" ? "border-amber-200" : "border-red-200"
+        "pointer-events-auto w-full flex items-start gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg transition-all duration-300",
+        visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2",
+        toast.type === "success" ? "border-green-200 dark:border-green-500/30" :
+        toast.type === "warning" ? "border-amber-200 dark:border-amber-500/30" : "border-red-200 dark:border-red-500/30"
       )}
     >
       {toast.type === "success"
