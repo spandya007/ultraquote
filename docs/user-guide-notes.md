@@ -457,5 +457,5 @@ edit, or delete it.
   new password" page; set it and you're signed in. Links are single-use and
   expire, so use the most recent email.
 - **Change your password while signed in:** Settings → **Change Password** →
-  enter a new password (8+ chars) twice → Update. No email needed. Available to
+  enter a new password (12+ chars, mixed types) twice → Update. No email needed. Available to
   every user for their own account.
