@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Upload, Plus, ChevronDown, Check, X } from "lucide-react";
+import { Search, Upload, Plus, ChevronDown, Check, X, HelpCircle, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
 import type { ProductCategory } from "@/types";
@@ -66,6 +66,7 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [formatOpen, setFormatOpen] = useState(false);
 
   // Derived filter values
   const itemTypes = useMemo(() => {
@@ -133,6 +134,56 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
         </div>
         {isOwner && (
           <div className="flex items-center gap-2">
+            {/* CSV format help + sample template */}
+            <div className="relative">
+              <button
+                onClick={() => setFormatOpen(o => !o)}
+                title="What columns does the import expect?"
+                className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                CSV format
+              </button>
+              {formatOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setFormatOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 w-96 rounded-lg border bg-background shadow-xl p-4 text-left text-sm space-y-3">
+                    <div>
+                      <p className="font-semibold mb-1">Required column</p>
+                      <p className="text-muted-foreground"><code className="text-foreground">Item Name</code> — everything else is optional.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-1">Recommended</p>
+                      <p className="text-muted-foreground">
+                        <code>Sell Price</code>, <code>Cost Price</code>, <code>Billing Period</code> (Monthly / One Time),{" "}
+                        <code>Item Type</code> (Service / Hardware / Software)
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-1">Optional</p>
+                      <p className="text-muted-foreground">
+                        <code>Item Description</code>, <code>Product Category</code>, <code>Setup Price</code>,{" "}
+                        <code>Pricing Name</code> + <code>Pricing Description</code> (rows sharing an Item Name become
+                        one product with one pricing tier per row), <code>Manufacturer</code>,{" "}
+                        <code>Manufacturer Part No.</code>, <code>Supplier Name</code>, <code>Supplier SKU</code>
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Common header spellings from other systems (Price, Vendor, SKU, Category…) are recognized automatically.</p>
+                      <p>Re-importing matches products by <span className="font-medium text-foreground">Item Name</span> and updates them — a renamed row imports as a new product.</p>
+                    </div>
+                    <a
+                      href="/product-import-template.csv"
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download sample CSV
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
             <input
               ref={fileRef}
               type="file"

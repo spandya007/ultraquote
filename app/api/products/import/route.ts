@@ -17,11 +17,14 @@ export async function POST(request: NextRequest) {
   // Get the tenant_id for this user
   const { data: userData } = await db
     .from("users")
-    .select("tenant_id")
+    .select("tenant_id, role")
     .eq("id", user.id)
-    .single() as { data: { tenant_id: string } | null };
+    .single() as { data: { tenant_id: string; role: string } | null };
 
   if (!userData) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (userData.role !== "owner") {
+    return NextResponse.json({ error: "Only the tenant owner can import products" }, { status: 403 });
+  }
   const tenant_id = userData.tenant_id;
 
   // Parse CSV from body
@@ -30,10 +33,10 @@ export async function POST(request: NextRequest) {
   if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
 
   const text = await file.text();
-  const products = parseCsvText(text);
+  const { products, error: parseError } = parseCsvText(text);
 
-  if (products.length === 0) {
-    return NextResponse.json({ error: "No products parsed from CSV" }, { status: 400 });
+  if (parseError) {
+    return NextResponse.json({ error: parseError }, { status: 400 });
   }
 
   // Fetch existing product categories for this tenant
@@ -75,13 +78,18 @@ export async function POST(request: NextRequest) {
         category_id = categoryMap.get(fallback[p.item_type] ?? "") ?? null;
       }
 
-      // Check if product already exists for this tenant
-      const { data: existing } = await db
+      // Re-import idempotency: match the legacy Zomentum Id when the file has
+      // one, otherwise the product name (case-insensitive). A renamed product
+      // therefore imports as a new product — name is the matching key.
+      let existingQuery = db
         .from("products")
         .select("id")
         .eq("tenant_id", tenant_id)
-        .eq("zomentum_id", p.zomentum_id)
-        .maybeSingle() as { data: { id: string } | null };
+        .limit(1);
+      existingQuery = p.zomentum_id
+        ? existingQuery.eq("zomentum_id", p.zomentum_id)
+        : existingQuery.ilike("name", p.name.replace(/([%_\\])/g, "\\$1"));
+      const { data: existing } = await existingQuery.maybeSingle() as { data: { id: string } | null };
 
       let product_id: string;
 
@@ -108,7 +116,7 @@ export async function POST(request: NextRequest) {
       } else {
         const { data: inserted, error: insertErr } = await db
           .from("products")
-          .insert({ tenant_id, zomentum_id: p.zomentum_id, ...productPayload })
+          .insert({ tenant_id, zomentum_id: p.zomentum_id, source: "csv", ...productPayload })
           .select("id")
           .single() as { data: { id: string } | null; error: Error | null };
 

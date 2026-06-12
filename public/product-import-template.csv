@@ -1,0 +1,6 @@
+Item Name,Item Type,Item Description,Billing Period,Sell Price,Cost Price,Setup Price,Product Category,Pricing Name,Pricing Description,Manufacturer,Manufacturer Part No.,Supplier Name,Supplier SKU
+Managed Workstation Support,Service,"Proactive monitoring, patching, and helpdesk support per workstation",Monthly,45.00,18.00,0,Managed Services,Standard,Business-hours helpdesk,,,,
+Managed Workstation Support,Service,"Proactive monitoring, patching, and helpdesk support per workstation",Monthly,65.00,24.00,0,Managed Services,Premium,24/7 helpdesk + priority response,,,,
+Business Laptop 14in,Hardware,"14-inch business laptop, 16GB RAM, 512GB SSD",One Time,1249.00,1050.00,0,Hardware,,,Lenovo,21KF0011US,Ingram Micro,LEN-21KF0011US
+Microsoft 365 Business Premium,Software,Per-user license billed monthly,Monthly,26.40,22.00,0,Software,,,Microsoft,,Pax8,M365-BP
+Network Assessment,Service,One-time network audit and documentation,One Time,1500.00,600.00,0,Professional Services,,,,,,

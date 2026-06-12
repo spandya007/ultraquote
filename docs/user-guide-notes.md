@@ -429,3 +429,23 @@ edit, or delete it.
   the badge flips to **signed** live.
 - The document (narrative) tab does NOT live-sync while typing — avoid
   co-writing the same document simultaneously.
+
+## Product Import — CSV format
+
+**Only one column is required: `Item Name`.** Everything else is optional.
+
+- **Recommended:** `Sell Price`, `Cost Price`, `Billing Period` (Monthly /
+  One Time), `Item Type` (Service / Hardware / Software — anything else
+  imports as Other).
+- **Optional:** `Item Description`, `Product Category` (matched to your
+  categories), `Setup Price`, `Pricing Name` + `Pricing Description`,
+  `Manufacturer`, `Manufacturer Part No.`, `Supplier Name`, `Supplier SKU`.
+- **Pricing tiers:** put one row per tier with the same `Item Name` — they
+  merge into one product with multiple pricing options.
+- **Other systems' exports:** common header spellings (Price, Unit Price,
+  Vendor, SKU, Category, Description…) are recognized automatically, so many
+  Autotask / ConnectWise / QuickBooks exports import without editing.
+- **Re-importing:** products are matched by Item Name and updated in place —
+  renaming a row creates a new product instead.
+- The **CSV format** button next to Import (owner-only, Products page)
+  shows this reference and offers a **sample CSV** download to fill in Excel.
