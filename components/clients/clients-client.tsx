@@ -170,7 +170,7 @@ export function ClientsClient({ initialClients, isOwner }: Props) {
                 <span className={cn(
                   "text-xs rounded-full px-2 py-0.5 font-medium",
                   client.is_active
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300"
                     : "bg-muted text-muted-foreground"
                 )}>
                   {client.is_active ? "Active" : "Inactive"}

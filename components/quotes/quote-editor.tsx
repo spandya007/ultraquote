@@ -128,49 +128,49 @@ interface Props {
 
 const SCENARIO_COLORS = [
   {
-    tab:    "bg-blue-100 text-blue-800 border-blue-200",
+    tab:    "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-200 dark:border-blue-500/30",
     tabActive: "bg-blue-500 text-white border-blue-500",
-    tile:   "bg-blue-50 border-blue-200",
-    tileActive: "bg-blue-100 border-blue-500",
-    label:  "text-blue-700",
-    badge:  "bg-blue-200 text-blue-800",
-    divider: "border-blue-200",
+    tile:   "bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/25",
+    tileActive: "bg-blue-100 border-blue-500 dark:bg-blue-500/20 dark:border-blue-500",
+    label:  "text-blue-700 dark:text-blue-300",
+    badge:  "bg-blue-200 text-blue-800 dark:bg-blue-500/25 dark:text-blue-200",
+    divider: "border-blue-200 dark:border-blue-500/30",
   },
   {
-    tab:    "bg-violet-100 text-violet-800 border-violet-200",
+    tab:    "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-500/15 dark:text-violet-200 dark:border-violet-500/30",
     tabActive: "bg-violet-500 text-white border-violet-500",
-    tile:   "bg-violet-50 border-violet-200",
-    tileActive: "bg-violet-100 border-violet-500",
-    label:  "text-violet-700",
-    badge:  "bg-violet-200 text-violet-800",
-    divider: "border-violet-200",
+    tile:   "bg-violet-50 border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/25",
+    tileActive: "bg-violet-100 border-violet-500 dark:bg-violet-500/20 dark:border-violet-500",
+    label:  "text-violet-700 dark:text-violet-300",
+    badge:  "bg-violet-200 text-violet-800 dark:bg-violet-500/25 dark:text-violet-200",
+    divider: "border-violet-200 dark:border-violet-500/30",
   },
   {
-    tab:    "bg-emerald-100 text-emerald-800 border-emerald-200",
+    tab:    "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:border-emerald-500/30",
     tabActive: "bg-emerald-500 text-white border-emerald-500",
-    tile:   "bg-emerald-50 border-emerald-200",
-    tileActive: "bg-emerald-100 border-emerald-500",
-    label:  "text-emerald-700",
-    badge:  "bg-emerald-200 text-emerald-800",
-    divider: "border-emerald-200",
+    tile:   "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/25",
+    tileActive: "bg-emerald-100 border-emerald-500 dark:bg-emerald-500/20 dark:border-emerald-500",
+    label:  "text-emerald-700 dark:text-emerald-300",
+    badge:  "bg-emerald-200 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-200",
+    divider: "border-emerald-200 dark:border-emerald-500/30",
   },
   {
-    tab:    "bg-amber-100 text-amber-800 border-amber-200",
+    tab:    "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-500/30",
     tabActive: "bg-amber-500 text-white border-amber-500",
-    tile:   "bg-amber-50 border-amber-200",
-    tileActive: "bg-amber-100 border-amber-500",
-    label:  "text-amber-700",
-    badge:  "bg-amber-200 text-amber-800",
-    divider: "border-amber-200",
+    tile:   "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/25",
+    tileActive: "bg-amber-100 border-amber-500 dark:bg-amber-500/20 dark:border-amber-500",
+    label:  "text-amber-700 dark:text-amber-300",
+    badge:  "bg-amber-200 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200",
+    divider: "border-amber-200 dark:border-amber-500/30",
   },
   {
-    tab:    "bg-rose-100 text-rose-800 border-rose-200",
+    tab:    "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:border-rose-500/30",
     tabActive: "bg-rose-500 text-white border-rose-500",
-    tile:   "bg-rose-50 border-rose-200",
-    tileActive: "bg-rose-100 border-rose-500",
-    label:  "text-rose-700",
-    badge:  "bg-rose-200 text-rose-800",
-    divider: "border-rose-200",
+    tile:   "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/25",
+    tileActive: "bg-rose-100 border-rose-500 dark:bg-rose-500/20 dark:border-rose-500",
+    label:  "text-rose-700 dark:text-rose-300",
+    badge:  "bg-rose-200 text-rose-800 dark:bg-rose-500/25 dark:text-rose-200",
+    divider: "border-rose-200 dark:border-rose-500/30",
   },
 ] as const;
 
@@ -890,7 +890,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
 
       {/* Read-only banner: viewer is neither the creator nor the tenant owner */}
       {!canEdit && (
-        <div className="flex items-center gap-2 px-6 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 shrink-0">
+        <div className="flex items-center gap-2 px-6 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 shrink-0">
           <Eye className="w-4 h-4 shrink-0" />
           <span>
             Read-only — this quote was created by{" "}
@@ -900,7 +900,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
           <button
             onClick={duplicateQuote}
             disabled={duplicating}
-            className="ml-auto flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
+            className="ml-auto flex items-center gap-1.5 rounded-md border border-amber-300 bg-white dark:bg-transparent dark:border-amber-500/40 px-2.5 py-1 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors disabled:opacity-50"
           >
             {duplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
             Duplicate
@@ -1550,7 +1550,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
             </div>
             <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               {(quote.status === "sent" || quote.status === "viewed") && (
-                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2 text-sm">
                   <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
                     This quote was <strong>already sent</strong>. Re-sending voids the previously
@@ -1650,13 +1650,13 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
 
                   <div className="mt-3 space-y-2 text-sm">
                     {s.is_recommended && newDefault && (
-                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2">
+                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2">
                         “{s.name}” is the <strong>recommended</strong> scenario. After deletion,{" "}
                         <strong>“{newDefault.name}”</strong> will automatically become the recommended default.
                       </div>
                     )}
                     {referenced && (
-                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2">
+                      <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2">
                         “{s.name}” is currently <strong>used by a pricing table in the Document</strong>.
                         Deleting it will leave that table without a valid scenario — after deleting, open the{" "}
                         <strong>Document</strong> tab and review or repoint that pricing table.

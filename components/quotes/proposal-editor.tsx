@@ -9,6 +9,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
+import { useTheme } from "next-themes";
 import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
@@ -495,6 +496,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDirty    = useRef(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  // Follow the app's dark mode (the editing canvas; PDF/Preview output is
+  // always light, handled separately by the serializer).
+  const { resolvedTheme } = useTheme();
 
   // ── uploadFile ──────────────────────────────────────────────────────────
   const uploadFile = useCallback(async (file: File): Promise<string> => {
@@ -1395,7 +1399,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               <BlockNoteView
                 editor={editor}
                 editable={!readOnly}
-                theme="light"
+                theme={resolvedTheme === "dark" ? "dark" : "light"}
                 slashMenu={false}
               >
                 <SuggestionMenuController

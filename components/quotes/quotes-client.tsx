@@ -255,7 +255,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                       {!isOwner && q.created_by !== currentUserId && (
                         <span
                           title="Created by a teammate — opens read-only (use Duplicate to make your own editable copy)"
-                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-medium shrink-0"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 px-2 py-0.5 text-[11px] font-medium shrink-0"
                         >
                           <Eye className="w-3 h-3" /> read-only
                         </span>

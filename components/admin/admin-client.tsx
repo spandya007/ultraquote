@@ -24,13 +24,13 @@ const inputCls =
 
 function tenantStatus(row: AdminTenantRow): { label: string; cls: string } {
   if (row.invite?.status === "pending") {
-    return { label: "Invite pending", cls: "bg-amber-100 text-amber-800" };
+    return { label: "Invite pending", cls: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300" };
   }
   if (row.owner_email) {
-    return { label: "Active", cls: "bg-green-100 text-green-800" };
+    return { label: "Active", cls: "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" };
   }
   if (row.invite?.status === "revoked") {
-    return { label: "Invite revoked", cls: "bg-red-100 text-red-700" };
+    return { label: "Invite revoked", cls: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300" };
   }
   return { label: "No owner", cls: "bg-muted text-muted-foreground" };
 }

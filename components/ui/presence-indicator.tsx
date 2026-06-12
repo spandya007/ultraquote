@@ -18,7 +18,7 @@ export function PresenceIndicator({ others, noun }: { others: PresenceUser[]; no
   return (
     <span
       title={`Also viewing this ${noun} right now: ${others.map(o => o.name).join(", ")}. Edits save last-write-wins — coordinate to avoid overwriting each other.`}
-      className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-medium cursor-help"
+      className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 px-2.5 py-1 text-xs font-medium cursor-help"
     >
       <Users className="w-3.5 h-3.5" />
       {names} {others.length === 1 ? "is" : "are"} also in this {noun}

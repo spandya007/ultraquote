@@ -5,12 +5,12 @@ import type { QuoteStatus } from "@/types";
 // expired from the valid_until date. The client UI never writes status.
 
 export const STATUS_STYLES: Record<QuoteStatus, string> = {
-  draft:    "bg-gray-100 text-gray-600",
-  sent:     "bg-blue-100 text-blue-700",
-  viewed:   "bg-purple-100 text-purple-700",
-  signed:   "bg-green-100 text-green-700",
-  declined: "bg-red-100 text-red-700",
-  expired:  "bg-orange-100 text-orange-700",
+  draft:    "bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-300",
+  sent:     "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  viewed:   "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
+  signed:   "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  declined: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+  expired:  "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
 };
 
 /**

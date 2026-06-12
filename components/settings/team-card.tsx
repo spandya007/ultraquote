@@ -122,11 +122,11 @@ export function TeamCard() {
                   </div>
                   <span className="flex items-center gap-1.5">
                     {u.role === "owner" && (
-                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-800">
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300">
                         owner
                       </span>
                     )}
-                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
                       active
                     </span>
                   </span>
@@ -141,7 +141,7 @@ export function TeamCard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800">
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
                       pending
                     </span>
                     {isOwner && (

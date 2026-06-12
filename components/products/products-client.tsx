@@ -332,9 +332,9 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
                       {p.item_type && (
                         <span className={cn(
                           "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                          p.item_type === "Service"  && "bg-blue-100 text-blue-700",
-                          p.item_type === "Hardware" && "bg-orange-100 text-orange-700",
-                          p.item_type === "Software" && "bg-purple-100 text-purple-700",
+                          p.item_type === "Service"  && "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+                          p.item_type === "Hardware" && "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+                          p.item_type === "Software" && "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
                           p.item_type === "Other"    && "bg-muted text-muted-foreground",
                         )}>
                           {p.item_type}
