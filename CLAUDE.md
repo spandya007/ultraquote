@@ -135,7 +135,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 
 ## ▶️ TOMORROW'S PLAN (set 2026-06-11 EOD)
 1. **Test the password features built today** (not yet manually tested): (a) Forgot password — log out → "Forgot password?" → email a real address you control → open link in incognito → set a new password (now must pass the **12-char / 3-of-4-classes / no-email-name / not-common** policy with the live checklist) → confirm login. Good real use: properly reset `sales@cmithayward.com` this way (replaces the temp admin-API password). (b) Settings → **Change Password** while logged in.
-2. **Mirror the password policy server-side in Supabase** (client checks are UX only): Auth → Policies → min length 12; and (Pro plan) enable **Leaked Password Protection (HIBP)**.
+2. **Mirror the password floor server-side in Supabase** (client checks are UX only): set **Minimum password length = 12** (matches the client exactly); **leave "Password Requirements" at None** (our policy is "3 of 4 any" which Supabase can't express — leaving it None avoids server-stricter-than-client rejections; decided 2026-06-11); and on **Pro** enable **Leaked Password Protection (HIBP)**. No app code change — keep the client policy as-is.
 3. **Build #18 — TOTP MFA** (Google Authenticator; free on Free plan). First answer the 3 open decisions in backlog #18 (optional/mandatory, per-user/tenant, recovery codes), then build Settings → Security enroll + login challenge.
 4. (When ready) **Netlify deploy** to close the growing gap, then run the post-deploy checklist (hex webhook secret · live signing-status-flip test #15 · email rate-limit bump).
 
