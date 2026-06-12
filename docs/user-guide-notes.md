@@ -449,3 +449,13 @@ edit, or delete it.
   renaming a row creates a new product instead.
 - The **CSV format** button next to Import (owner-only, Products page)
   shows this reference and offers a **sample CSV** download to fill in Excel.
+
+## Passwords (reset & change)
+
+- **Forgot your password?** On the sign-in page, click **Forgot password?** →
+  enter your email → you get a reset link by email. The link opens a "Choose a
+  new password" page; set it and you're signed in. Links are single-use and
+  expire, so use the most recent email.
+- **Change your password while signed in:** Settings → **Change Password** →
+  enter a new password (8+ chars) twice → Update. No email needed. Available to
+  every user for their own account.
