@@ -1048,6 +1048,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground" title="One-time setup/onboarding fee per unit — added to the scenario's one-time total">Setup</th>
                     <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount — percent or fixed $ off the line; shown to the client on the quote">Disc</th>
                     {hasTaxable && (
                       <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the quote's tax rate)">Tax</th>
@@ -1060,7 +1061,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 <tbody className="divide-y">
                   {currentScenario.line_items.length === 0 ? (
                     <tr>
-                      <td colSpan={7 + (showMargins ? 2 : 0) + (hasTaxable ? 1 : 0)} className="text-center py-8 text-muted-foreground text-sm">
+                      <td colSpan={8 + (showMargins ? 2 : 0) + (hasTaxable ? 1 : 0)} className="text-center py-8 text-muted-foreground text-sm">
                         No line items yet — add products below.
                       </td>
                     </tr>
@@ -1081,11 +1082,6 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                               onChange={(e) => updateLineItem(currentScenario.id, item.id, { description: e.target.value })}
                               className="w-full bg-transparent border-none outline-none focus:ring-0 p-0"
                             />
-                            {(item.setup_price ?? 0) > 0 && (
-                              <span className="block text-xs text-muted-foreground mt-0.5">
-                                + {formatCurrency(lineSetup(item))} setup (one-time)
-                              </span>
-                            )}
                           </td>
                           <td className="px-4 py-2">
                             <select
@@ -1125,6 +1121,18 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                               value={item.unit_price ?? ""}
                               onChange={(e) => updateLineItem(currentScenario.id, item.id, { unit_price: parseFloat(e.target.value) || null })}
                               className="w-24 text-right bg-transparent border-none outline-none focus:ring-0 p-0 font-medium"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.setup_price || ""}
+                              placeholder="0"
+                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { setup_price: parseFloat(e.target.value) || 0 })}
+                              title="One-time setup fee per unit"
+                              className="w-20 text-right bg-transparent border-none outline-none focus:ring-0 p-0 text-muted-foreground"
                             />
                           </td>
                           <td className="px-2 py-2 text-right">
@@ -1195,8 +1203,8 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 {/* Totals footer */}
                 {currentScenario.line_items.length > 0 && (() => {
                   const t = calcScenarioTotals(currentScenario.line_items, taxRate);
-                  // Label spans Description…Disc% (+Cost, +Tax when shown).
-                  const cols = (showMargins ? 6 : 5) + (hasTaxable ? 1 : 0);
+                  // Label spans Description…Disc (+Cost, +Tax when shown; +Setup always).
+                  const cols = (showMargins ? 7 : 6) + (hasTaxable ? 1 : 0);
                   return (
                     <tfoot className={cn("border-t", activeColor.tile)}>
                       <tr>
