@@ -13,7 +13,11 @@
       "Bash(npx next *)",
       "Bash(git commit -q -m 'Roles & quote ownership: creator-owned quotes/templates, owner-only catalog/settings, RLS rewrite *)",
       "Bash(git commit -q -m 'Realtime: presence chips + live quote refresh *)",
-      "Bash(git commit -q -m 'Docs: migration 009 verified \\(presence + live edits\\); post-deploy test item for live signing status flip *)"
+      "Bash(git commit -q -m 'Docs: migration 009 verified \\(presence + live edits\\); post-deploy test item for live signing status flip *)",
+      "mcp__d6d6d015-1397-4051-b84d-1ac638f82cb2__firecrawl_scrape",
+      "mcp__d6d6d015-1397-4051-b84d-1ac638f82cb2__firecrawl_search_feedback",
+      "Bash(git -C /Users/sameer/ultraquote status --short)",
+      "Bash(git -C /Users/sameer/ultraquote log --oneline -1)"
     ]
   }
 }

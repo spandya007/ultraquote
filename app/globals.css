@@ -46,6 +46,24 @@
 }
 
 @layer base {
+  /* Accent themes — override --primary/--ring only (status colors stay
+     semantic). "default" uses the base blue tokens above. Light first, then
+     dark (equal specificity → dark wins by source order when html has both
+     .dark and [data-accent]). */
+  :root[data-accent="violet"]   { --primary: 262 83% 58%; --ring: 262 83% 58%; }
+  :root[data-accent="forest"]   { --primary: 142 71% 36%; --ring: 142 71% 36%; }
+  :root[data-accent="sunset"]   { --primary: 24 90% 45%;  --ring: 24 90% 45%; }
+  :root[data-accent="rose"]     { --primary: 347 77% 50%; --ring: 347 77% 50%; }
+  :root[data-accent="graphite"] { --primary: 215 25% 33%; --ring: 215 25% 33%; }
+
+  .dark[data-accent="violet"]   { --primary: 263 90% 68%; --ring: 263 90% 68%; }
+  .dark[data-accent="forest"]   { --primary: 142 65% 48%; --ring: 142 65% 48%; }
+  .dark[data-accent="sunset"]   { --primary: 35 92% 56%;  --ring: 35 92% 56%; }
+  .dark[data-accent="rose"]     { --primary: 350 85% 62%; --ring: 350 85% 62%; }
+  .dark[data-accent="graphite"] { --primary: 215 18% 62%; --ring: 215 18% 62%; }
+}
+
+@layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
 }

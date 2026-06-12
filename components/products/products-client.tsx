@@ -335,7 +335,7 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
                           p.item_type === "Service"  && "bg-blue-100 text-blue-700",
                           p.item_type === "Hardware" && "bg-orange-100 text-orange-700",
                           p.item_type === "Software" && "bg-purple-100 text-purple-700",
-                          p.item_type === "Other"    && "bg-gray-100 text-gray-600",
+                          p.item_type === "Other"    && "bg-muted text-muted-foreground",
                         )}>
                           {p.item_type}
                         </span>

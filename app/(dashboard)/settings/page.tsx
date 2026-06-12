@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsClient } from "@/components/settings/settings-client";
 import { TeamCard } from "@/components/settings/team-card";
 import { ChangePasswordCard } from "@/components/settings/change-password-card";
+import { AppearanceCard } from "@/components/settings/appearance-card";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -40,6 +41,7 @@ export default async function SettingsPage() {
         settings={settings}
         isOwner={isOwner}
       />
+      <AppearanceCard />
       <TeamCard />
       <ChangePasswordCard />
     </div>

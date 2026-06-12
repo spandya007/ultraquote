@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -16,6 +17,8 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
@@ -29,6 +32,9 @@ const navItems = [
 
 export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; userName?: string }) {
   const pathname = usePathname();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -118,7 +124,21 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
         {showAdmin && navLink("/admin", "Platform Admin", ShieldCheck)}
       </nav>
 
-      <div className="px-3 py-3 border-t">
+      <div className="px-3 py-3 border-t space-y-1">
+        {/* Dark-mode quick toggle (full picker is in Settings → Appearance) */}
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          title={collapsed ? "Toggle dark mode" : undefined}
+          className={cn(
+            "w-full flex items-center rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+            collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
+          )}
+        >
+          {mounted && resolvedTheme === "dark"
+            ? <Sun className="w-4 h-4 shrink-0" />
+            : <Moon className="w-4 h-4 shrink-0" />}
+          {!collapsed && (mounted && resolvedTheme === "dark" ? "Light mode" : "Dark mode")}
+        </button>
         <button
           onClick={() => setConfirmOpen(true)}
           title={collapsed ? "Sign out" : undefined}
