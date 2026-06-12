@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { QuoteEditor } from "@/components/quotes/quote-editor";
 
+// Always load a fresh quote + product catalog so newly-added line items pick up
+// current catalog prices/setup fees (avoids a stale cached product list).
+export const dynamic = "force-dynamic";
+
 export default async function QuotePage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
