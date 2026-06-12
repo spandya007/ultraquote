@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Trash2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -81,6 +81,10 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
   const [isPriceOverrideable, setIsPriceOverrideable] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [tiers, setTiers] = useState<PricingTier[]>([]);
+  // Scroll the most-recently-added tier into view (it appends at the bottom,
+  // often below the fold) and focus its name field.
+  const tiersEndRef = useRef<HTMLDivElement | null>(null);
+  const scrollToNewTier = useRef(false);
 
   // Populate form when product changes
   useEffect(() => {
@@ -186,11 +190,22 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
   }
 
   function addTier() {
+    scrollToNewTier.current = true;
     setTiers((prev) => [
       ...prev,
       { tier_name: "", description: null, unit_cost: null, unit_price: null, is_default: false, sort_order: prev.length },
     ]);
   }
+
+  // After a tier is appended, bring it into view + focus its name input.
+  useEffect(() => {
+    if (!scrollToNewTier.current) return;
+    scrollToNewTier.current = false;
+    const el = tiersEndRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.querySelector("input")?.focus();
+  }, [tiers.length]);
 
   async function deleteTier(index: number) {
     const tier = tiers[index];
@@ -293,13 +308,17 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pricing Tiers</h3>
-              <button onClick={addTier}
+              <button type="button" onClick={addTier}
                 className="flex items-center gap-1 text-xs text-primary hover:underline">
                 <Plus className="w-3 h-3" /> Add tier
               </button>
             </div>
             {tiers.map((tier, i) => (
-              <div key={i} className="rounded-lg border p-4 space-y-3 bg-muted/20">
+              <div
+                key={i}
+                ref={i === tiers.length - 1 ? tiersEndRef : undefined}
+                className="rounded-lg border p-4 space-y-3 bg-muted/20"
+              >
                 <div className="flex items-center gap-2">
                   <input
                     value={tier.tier_name}
@@ -318,7 +337,7 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
                     Default
                   </label>
                   {tiers.length > 1 && (
-                    <button onClick={() => deleteTier(i)} className="p-1 text-muted-foreground hover:text-destructive">
+                    <button type="button" onClick={() => deleteTier(i)} className="p-1 text-muted-foreground hover:text-destructive">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
