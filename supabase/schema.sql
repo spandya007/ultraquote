@@ -11,6 +11,7 @@ create extension if not exists pgcrypto;
 create table public.tenants (
   id                  uuid primary key default gen_random_uuid(),
   name                text not null,
+  contact_name        text,
   logo_url            text,
   address             text,
   phone               text,

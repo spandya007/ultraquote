@@ -149,8 +149,13 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
       .upsert({ tenant_id: tenantId, default_tax_rate: parsedTax }, { onConflict: "tenant_id" });
 
     setSavingProfile(false);
-    if (error || taxError) toast.error("Failed to save company settings");
-    else toast.success("Company settings saved");
+    if (error || taxError) {
+      // Surface the real cause (e.g. a missing column / RLS) instead of hiding it.
+      console.error("[Company Settings] save failed:", error ?? taxError);
+      toast.error(`Failed to save company settings: ${(error ?? taxError)?.message ?? "unknown error"}`);
+    } else {
+      toast.success("Company settings saved");
+    }
   }
 
   async function saveDefaults() {
