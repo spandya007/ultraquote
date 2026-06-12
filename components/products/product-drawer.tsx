@@ -10,12 +10,21 @@ import type { ProductCategory } from "@/types";
 
 interface PricingTier {
   id?: string;
+  /** Stable client-side React key (never persisted) — survives delete/reorder
+   *  so input state stays attached to the right tier. */
+  _uid?: string;
   tier_name: string;
   description: string | null;
   unit_cost: number | null;
   unit_price: number | null;
   is_default: boolean;
   sort_order: number;
+}
+
+function newUid(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `tier-${Math.random().toString(36).slice(2)}`;
 }
 
 interface ProductRow {
@@ -105,14 +114,14 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
       setIsTaxable(product.is_taxable);
       setIsPriceOverrideable(product.is_price_overrideable);
       setIsActive(product.is_active);
-      setTiers(product.pricing_tiers.map((t) => ({ ...t })));
+      setTiers(product.pricing_tiers.map((t) => ({ ...t, _uid: newUid() })));
     } else {
       setName(""); setDescription(""); setItemType(""); setBillingPeriod("");
       setCategoryId(""); setUnitCost(""); setUnitPrice(""); setSetupPrice("0");
       setUnit(""); setManufacturer(""); setManufacturerPartNo("");
       setSupplierName(""); setSupplierSku(""); setIsTaxable(false);
       setIsPriceOverrideable(false); setIsActive(true);
-      setTiers([{ tier_name: "Default Pricing", description: null, unit_cost: null, unit_price: null, is_default: true, sort_order: 0 }]);
+      setTiers([{ _uid: newUid(), tier_name: "Default Pricing", description: null, unit_cost: null, unit_price: null, is_default: true, sort_order: 0 }]);
     }
     setError(null);
   }, [product, open]);
@@ -193,7 +202,7 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
     scrollToNewTier.current = true;
     setTiers((prev) => [
       ...prev,
-      { tier_name: "", description: null, unit_cost: null, unit_price: null, is_default: false, sort_order: prev.length },
+      { _uid: newUid(), tier_name: "", description: null, unit_cost: null, unit_price: null, is_default: false, sort_order: prev.length },
     ]);
   }
 
@@ -315,7 +324,7 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
             </div>
             {tiers.map((tier, i) => (
               <div
-                key={i}
+                key={tier._uid ?? i}
                 ref={i === tiers.length - 1 ? tiersEndRef : undefined}
                 className="rounded-lg border p-4 space-y-3 bg-muted/20"
               >
