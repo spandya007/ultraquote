@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, Trash2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
+import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
 import type { ProductCategory } from "@/types";
 
@@ -58,6 +59,7 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
   const toast = useToast();
+  const tenantId = useTenantId();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -142,7 +144,13 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
         const { error: e } = await db.from("products").update(payload).eq("id", product_id);
         if (e) throw e;
       } else {
-        const { data, error: e } = await db.from("products").insert(payload).select("id").single();
+        // tenant_id is required on insert (RLS WITH CHECK + NOT NULL column).
+        if (!tenantId) { setError("Still loading — try again in a moment."); setSaving(false); return; }
+        const { data, error: e } = await db
+          .from("products")
+          .insert({ ...payload, tenant_id: tenantId, source: "manual" })
+          .select("id")
+          .single();
         if (e) throw e;
         product_id = (data as { id: string }).id;
       }
