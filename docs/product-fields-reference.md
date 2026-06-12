@@ -32,7 +32,9 @@ These DB columns exist but have **no edit field anywhere** in the UI:
 
 **Takeaways worth remembering:**
 - `setup_price` is now editable in the drawer (Details → Setup Price, added
-  2026-06-11) — previously imported-but-hidden.
+  2026-06-11) and **flows into quotes**: when a product is added to a scenario,
+  its setup fee (× qty) folds into the scenario's one-time total and shows
+  per-line + in the PDF/Preview. Previously imported-but-hidden and inert.
 - The product-level `unit_cost`/`unit_price` columns are redundant with tier
   pricing; the app treats the **default tier** as the source of truth.
 

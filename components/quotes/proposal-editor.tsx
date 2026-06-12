@@ -114,6 +114,7 @@ export interface EditorLineItem {
   quantity: number;
   unit_price: number | null;
   unit_cost: number | null;
+  setup_price?: number | null;
   is_taxable: boolean;
   discount_percent?: number | null;
   discount_amount?: number | null;
@@ -151,8 +152,14 @@ function marginColor(pct: number | null): string {
 function scenarioMonthly(s: EditorScenario) {
   return s.line_items.filter(i => i.billing_period === "Monthly").reduce((sum, i) => sum + editorLineRev(i), 0);
 }
+function scenarioSetup(s: EditorScenario) {
+  return s.line_items.reduce((sum, i) => sum + i.quantity * (i.setup_price ?? 0), 0);
+}
 function scenarioOnetime(s: EditorScenario) {
-  return s.line_items.filter(i => i.billing_period === "One Time").reduce((sum, i) => sum + editorLineRev(i), 0);
+  // Setup fees are one-time → folded into the one-time total (matches the
+  // editor totals + PDF serializer).
+  return s.line_items.filter(i => i.billing_period === "One Time").reduce((sum, i) => sum + editorLineRev(i), 0)
+    + scenarioSetup(s);
 }
 function scenarioSavings(s: EditorScenario) {
   return s.line_items.reduce(

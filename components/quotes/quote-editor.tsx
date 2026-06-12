@@ -192,12 +192,20 @@ function lineRevenue(i: { quantity: number; unit_price: number | null; discount_
   return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 
+// One-time setup fee for a line (per-unit, like unit_price), regardless of
+// billing period — always counts as a one-time charge.
+function lineSetup(i: { quantity: number; setup_price?: number | null }) {
+  return i.quantity * (i.setup_price ?? 0);
+}
+
 function calcScenarioTotals(items: LineItem[], taxRate: number) {
   const monthly  = items.filter(i => i.billing_period === "Monthly").reduce((s, i) => s + lineRevenue(i), 0);
-  const onetime  = items.filter(i => i.billing_period === "One Time").reduce((s, i) => s + lineRevenue(i), 0);
-  const taxable  = items.filter(i => i.is_taxable).reduce((s, i) => s + lineRevenue(i), 0);
+  const setup    = items.reduce((s, i) => s + lineSetup(i), 0);
+  // Setup fees are one-time, so they fold into the one-time total.
+  const onetime  = items.filter(i => i.billing_period === "One Time").reduce((s, i) => s + lineRevenue(i), 0) + setup;
+  const taxable  = items.filter(i => i.is_taxable).reduce((s, i) => s + lineRevenue(i) + lineSetup(i), 0);
   const tax      = taxable * taxRate;
-  return { monthly, onetime, tax, total: monthly + onetime + tax };
+  return { monthly, onetime, setup, tax, total: monthly + onetime + tax };
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -1073,6 +1081,11 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                               onChange={(e) => updateLineItem(currentScenario.id, item.id, { description: e.target.value })}
                               className="w-full bg-transparent border-none outline-none focus:ring-0 p-0"
                             />
+                            {(item.setup_price ?? 0) > 0 && (
+                              <span className="block text-xs text-muted-foreground mt-0.5">
+                                + {formatCurrency(lineSetup(item))} setup (one-time)
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-2">
                             <select
@@ -1198,7 +1211,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                       </tr>
                       <tr>
                         <td colSpan={cols} className={cn("px-4 py-2 text-sm text-right", activeColor.label)}>
-                          One-Time
+                          One-Time{t.setup > 0 && <span className="opacity-70"> (incl. {formatCurrency(t.setup)} setup)</span>}
                         </td>
                         <td className={cn("px-4 py-2 text-right font-semibold tabular-nums", activeColor.label)}>
                           {formatCurrency(t.onetime)}
@@ -1377,7 +1390,12 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                         )}
                       </div>
                       <p className={cn("text-xs", color.label)}>Monthly: {formatCurrency(totals.monthly)}/mo</p>
-                      <p className={cn("text-xs", color.label)}>One-time: {formatCurrency(totals.onetime)}</p>
+                      <p className={cn("text-xs", color.label)}>
+                        One-time: {formatCurrency(totals.onetime)}
+                        {totals.setup > 0 && (
+                          <span className="opacity-70"> (incl. {formatCurrency(totals.setup)} setup)</span>
+                        )}
+                      </p>
                       {totals.tax > 0 && (
                         <p className={cn("text-xs", color.label)}>
                           Tax ({(taxRate * 100).toFixed(2)}%): {formatCurrency(totals.tax)}

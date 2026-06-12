@@ -114,14 +114,21 @@ function lineRev(i: { quantity: number; unit_price: number | null; discount_perc
   return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 
+// One-time setup fee for a line (per-unit), regardless of billing period.
+function lineSetup(i: { quantity: number; setup_price?: number | null }) {
+  return i.quantity * (i.setup_price ?? 0);
+}
+
 function calcTotals(s: SerializeScenario, taxRate: number) {
   const monthly = s.line_items.filter(i => i.billing_period === "Monthly").reduce((sum, i) => sum + lineRev(i), 0);
-  const onetime = s.line_items.filter(i => i.billing_period === "One Time").reduce((sum, i) => sum + lineRev(i), 0);
-  const taxable = s.line_items.filter(i => i.is_taxable).reduce((sum, i) => sum + lineRev(i), 0);
+  const setup = s.line_items.reduce((sum, i) => sum + lineSetup(i), 0);
+  // Setup fees are one-time → fold into the one-time total.
+  const onetime = s.line_items.filter(i => i.billing_period === "One Time").reduce((sum, i) => sum + lineRev(i), 0) + setup;
+  const taxable = s.line_items.filter(i => i.is_taxable).reduce((sum, i) => sum + lineRev(i) + lineSetup(i), 0);
   const tax = taxable * taxRate;
   const savings = s.line_items.reduce(
     (sum, i) => sum + (i.quantity * (i.unit_price ?? 0) - lineRev(i)), 0);
-  return { monthly, onetime, tax, total: monthly + onetime + tax, savings };
+  return { monthly, onetime, setup, tax, total: monthly + onetime + tax, savings };
 }
 
 function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioColor): string {
@@ -132,7 +139,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
   const labelSpan = hasDisc ? 5 : 4;
   const rows = s.line_items.map((i) => `
     <tr>
-      <td class="desc">${escapeHtml(i.description)}</td>
+      <td class="desc">${escapeHtml(i.description)}${lineSetup(i) > 0 ? `<span class="setup-note">+ ${fmtCurrency(lineSetup(i))} setup (one-time)</span>` : ""}</td>
       <td class="bill">${i.billing_period ?? "—"}</td>
       <td class="num">${Math.round(i.quantity)}</td>
       <td class="num">${fmtCurrency(i.unit_price)}</td>
@@ -162,7 +169,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
     </tbody>
     <tfoot>
       <tr><td colspan="${labelSpan}" style="${footStyle}">Monthly Recurring</td><td class="num" style="${footStyle}">${fmtCurrency(t.monthly)}</td></tr>
-      <tr><td colspan="${labelSpan}" style="${footStyle}">One-Time</td><td class="num" style="${footStyle}">${fmtCurrency(t.onetime)}</td></tr>
+      <tr><td colspan="${labelSpan}" style="${footStyle}">One-Time${t.setup > 0 ? ` <span class="setup-incl">(incl. ${fmtCurrency(t.setup)} setup)</span>` : ""}</td><td class="num" style="${footStyle}">${fmtCurrency(t.onetime)}</td></tr>
       ${taxRate > 0 ? `<tr><td colspan="${labelSpan}" style="${footStyle}">Tax (${(taxRate * 100).toFixed(2)}%)</td><td class="num" style="${footStyle}">${fmtCurrency(t.tax)}</td></tr>` : ""}
       <tr class="grand"><td colspan="${labelSpan}" style="${footStyle};border-top:2px solid ${c.accent}">Total</td><td class="num" style="${footStyle};border-top:2px solid ${c.accent}">${fmtCurrency(t.total)}</td></tr>
       ${t.savings > 0 ? `<tr><td colspan="${labelSpan}" class="savings">You save</td><td class="num savings">${fmtCurrency(t.savings)}</td></tr>` : ""}
@@ -466,6 +473,8 @@ export function buildFullHtml(input: SerializeInput): string {
   .scenario-table tfoot .grand td { border-top: 2px solid #c4b5fd; font-weight: 700; }
   .scenario-table .empty { text-align: center; color: #94a3b8; }
   .scenario-table .savings { background: #f0fdf4 !important; color: #16a34a !important; font-weight: 700; }
+  .scenario-table .desc .setup-note { display: block; font-size: 11px; color: #64748b; margin-top: 2px; }
+  .scenario-table tfoot .setup-incl { font-weight: 400; opacity: 0.75; }
 </style>
 </head>
 <body>

@@ -25,6 +25,7 @@ export interface SerializeLineItem {
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_price: number | null;
+  setup_price: number | null;
   is_taxable: boolean;
   discount_percent: number | null;
   discount_amount: number | null;
