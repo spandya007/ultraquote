@@ -2,11 +2,21 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
 import { getPlatformAdminUser } from "@/lib/platform-admin";
+import { createClient } from "@/lib/supabase/server";
 
 // Platform-level console — deliberately outside the tenant dashboard shell.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const adminUser = await getPlatformAdminUser();
   if (!adminUser) redirect("/");
+
+  // Same 2FA gate as the dashboard (this layout is a separate route).
+  let needsMfa = false;
+  try {
+    const supabase = await createClient();
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
+  } catch { /* ignore */ }
+  if (needsMfa) redirect("/auth/mfa");
 
   return (
     <div className="min-h-screen bg-muted/20">

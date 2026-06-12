@@ -67,6 +67,20 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_auth_user();
 
+-- ─── MFA recovery codes ──────────────────────────────────────────────────────
+-- Supabase MFA (TOTP) is native; recovery codes are not, so we store our own
+-- (SHA-256 hashes). RLS enabled, NO policies → service-role only.
+
+create table public.mfa_recovery_codes (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  code_hash   text not null,
+  used_at     timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+create index mfa_recovery_codes_user_idx on public.mfa_recovery_codes (user_id);
+
 -- ─── Platform Admins ─────────────────────────────────────────────────────────
 -- Platform-level (cross-tenant) Super Admin role. Deliberately NOT a value in
 -- users.role (which is tenant-scoped). RLS enabled with NO policies — readable
@@ -427,6 +441,7 @@ alter table public.quote_signers        enable row level security;
 alter table public.quote_signature_sessions enable row level security;
 alter table public.platform_admins         enable row level security;  -- no policies: service-role only
 alter table public.tenant_invites          enable row level security;
+alter table public.mfa_recovery_codes      enable row level security;  -- no policies: service-role only
 
 -- Policy model (see docs/roles-permissions-design.md): reads are tenant-wide;
 -- writes are role/ownership-gated. Quotes/templates are creator-owned (tenant

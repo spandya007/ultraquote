@@ -9,6 +9,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect("/login");
 
+  // 2FA gate: if the user has an enrolled factor but this session is still AAL1,
+  // send them to the challenge before any app page. Compute the flag inside the
+  // try (so an AAL lookup hiccup never locks anyone out), but redirect OUTSIDE
+  // it — redirect() throws internally and must not be caught.
+  let needsMfa = false;
+  try {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
+  } catch { /* ignore */ }
+  if (needsMfa) redirect("/auth/mfa");
+
   // Tenant branding for the sidebar (name + logo).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;

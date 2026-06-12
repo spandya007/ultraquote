@@ -3,6 +3,7 @@ import { SettingsClient } from "@/components/settings/settings-client";
 import { TeamCard } from "@/components/settings/team-card";
 import { ChangePasswordCard } from "@/components/settings/change-password-card";
 import { AppearanceCard } from "@/components/settings/appearance-card";
+import { MfaCard } from "@/components/settings/mfa-card";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -44,6 +45,7 @@ export default async function SettingsPage() {
       <AppearanceCard />
       <TeamCard />
       <ChangePasswordCard />
+      <MfaCard />
     </div>
   );
 }
