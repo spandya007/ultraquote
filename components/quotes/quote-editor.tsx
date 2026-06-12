@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -486,6 +486,68 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   // The company-wide rate (Settings) governs tax; the quote's stored tax_rate is
   // a synced snapshot (kept for PDFs/older quotes created before a rate change).
   const taxRate = companyTaxRate ?? quote.tax_rate ?? 0;
+
+  // ── Refresh prices from catalog ─────────────────────────────────────────────
+  // Line items snapshot catalog prices at add-time (so sent quotes stay stable).
+  // This explicit action re-pulls CURRENT catalog unit cost/price + setup fee
+  // for every catalog-linked line item; quantities, discounts, descriptions and
+  // free-text items are left untouched.
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
+  async function refreshPricesFromCatalog() {
+    if (!canEdit) return;
+    if (!window.confirm(
+      "Update all catalog-linked line items in this quote to the current catalog prices (unit cost, unit price, and setup fee)? Your quantities, discounts, and free-text items are kept."
+    )) return;
+
+    setRefreshingPrices(true);
+    try {
+      // Fresh catalog (don't trust the page-load prop).
+      const { data: fresh } = await db
+        .from("products")
+        .select("id, unit_cost, unit_price, setup_price, pricing_tiers:product_pricing_tiers(id, unit_cost, unit_price)");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prodMap = new Map<string, any>((fresh ?? []).map((p: { id: string }) => [p.id, p]));
+
+      let updated = 0;
+      const nextScenarios: Scenario[] = [];
+      for (const s of scenarios) {
+        const newItems: LineItem[] = [];
+        for (const item of s.line_items) {
+          const prod = item.product_id ? prodMap.get(item.product_id) : null;
+          if (!prod) { newItems.push(item); continue; }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const tier = item.pricing_tier_id ? (prod.pricing_tiers ?? []).find((t: any) => t.id === item.pricing_tier_id) : null;
+          const newCost  = tier ? tier.unit_cost  : prod.unit_cost;
+          const newPrice = tier ? tier.unit_price : prod.unit_price;
+          const newSetup = prod.setup_price ?? 0;
+          if (newCost === item.unit_cost && newPrice === item.unit_price && newSetup === item.setup_price) {
+            newItems.push(item); continue;
+          }
+          await db.from("quote_line_items")
+            .update({ unit_cost: newCost, unit_price: newPrice, setup_price: newSetup })
+            .eq("id", item.id);
+          newItems.push({ ...item, unit_cost: newCost, unit_price: newPrice, setup_price: newSetup });
+          updated++;
+        }
+        const totals = calcScenarioTotals(newItems, taxRate);
+        await db.from("quote_scenarios").update({
+          monthly_recurring_total: totals.monthly,
+          onetime_total:           totals.onetime,
+          tax_amount:              totals.tax,
+          total:                   totals.total,
+        }).eq("id", s.id);
+        nextScenarios.push({ ...s, line_items: newItems, ...totals });
+      }
+      setScenarios(nextScenarios);
+      toast.success(updated > 0
+        ? `Updated ${updated} line item${updated === 1 ? "" : "s"} to current catalog prices`
+        : "All line items already match the catalog");
+    } catch {
+      toast.error("Failed to refresh prices from catalog");
+    } finally {
+      setRefreshingPrices(false);
+    }
+  }
 
   // ── Auto-save quote metadata ───────────────────────────────────────────────
   // Debounced save that fires whenever any quote field changes. Replaces the
@@ -999,6 +1061,17 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 Maximum of 5 scenarios reached
               </span>
             ))}
+            {canEdit && (
+              <button
+                onClick={refreshPricesFromCatalog}
+                disabled={refreshingPrices}
+                title="Re-pull current catalog prices (unit cost/price + setup fee) for every catalog-linked line item. Quantities, discounts and free-text items are kept."
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", refreshingPrices && "animate-spin")} />
+                {refreshingPrices ? "Refreshing…" : "Refresh prices from catalog"}
+              </button>
+            )}
           </div>
 
           {/* Active scenario. The fieldset natively disables every nested

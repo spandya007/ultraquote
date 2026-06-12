@@ -459,3 +459,18 @@ edit, or delete it.
 - **Change your password while signed in:** Settings → **Change Password** →
   enter a new password (12+ chars, mixed types) twice → Update. No email needed. Available to
   every user for their own account.
+
+## Refresh prices from catalog
+
+Line items remember the product's price + setup fee from the moment you added
+them (so a sent quote's numbers never change underneath you). If you update a
+product in the catalog afterward and want an existing quote to pick up the new
+prices:
+
+- Open the quote → **Pricing Scenarios** tab → **Refresh prices from catalog**
+  (top-right of the scenario tabs row).
+- It re-pulls the current **unit cost, unit price, and setup fee** for every
+  catalog-linked line item across all scenarios. Your **quantities, discounts,
+  descriptions, and free-text items are kept**.
+- A confirmation appears first; afterward a toast says how many lines changed.
+- Per-line you can always just edit the price/Setup column directly instead.
