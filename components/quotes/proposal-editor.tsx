@@ -215,6 +215,7 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
       ) : shown.map(s => {
         const monthly = scenarioMonthly(s);
         const onetime = scenarioOnetime(s);
+        const setup = scenarioSetup(s);
         const savings = scenarioSavings(s);
         const hasDisc = s.line_items.some(i => (i.discount_percent ?? 0) > 0 || (i.discount_amount ?? 0) > 0);
         const tcols = cols + (hasDisc ? 1 : 0);
@@ -253,7 +254,14 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 const m = lineMargin(i);
                 return (
                 <tr key={idx}>
-                  <td style={td}>{i.description}</td>
+                  <td style={td}>
+                    {i.description}
+                    {i.quantity * (i.setup_price ?? 0) > 0 && (
+                      <span style={{ display: "block", fontSize: 10, color: "#64748b", marginTop: 2 }}>
+                        + {formatCurrency(i.quantity * (i.setup_price ?? 0))} setup (one-time)
+                      </span>
+                    )}
+                  </td>
                   <td style={td}>{i.billing_period ?? "—"}</td>
                   <td style={tdR}>{Math.round(i.quantity)}</td>
                   <td style={tdR}>{formatCurrency(i.unit_price ?? 0)}</td>
@@ -279,7 +287,9 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 {showMargins && <td style={{ background: c.footBg }} />}
               </tr>
               <tr>
-                <td colSpan={hasDisc ? 5 : 4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>One-time</td>
+                <td colSpan={hasDisc ? 5 : 4} style={{ padding: "4px 8px", textAlign: "right", background: c.footBg, color: c.footText }}>
+                  One-time{setup > 0 ? <span style={{ fontWeight: 400, opacity: 0.75 }}> (incl. {formatCurrency(setup)} setup)</span> : ""}
+                </td>
                 <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, background: c.footBg, color: c.footText }}>{formatCurrency(onetime)}</td>
                 {showMargins && <td style={{ background: c.footBg }} />}
               </tr>
