@@ -68,6 +68,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 - **Add free-text item** — blank row for custom line items
 - **Right panel** — valid until, tax rate (READ-ONLY — company-wide rate from `tenant_settings.default_tax_rate`, set in Settings → Company Settings; `quotes.tax_rate` is a synced snapshot written on save for PDFs/back-compat), payment terms, internal notes, client info card, scenario totals (Monthly / One-time per scenario)
 - **No manual Save button** — everything auto-saves (see Auto-save model below)
+- **Responsive/space controls** — line-items table wraps in `overflow-x-auto` (scrolls right when margins+tax columns exceed width); right details panel is **collapsible** (chevron toggle, persisted `localStorage["quote.rightPanel"]`); the app nav **`Sidebar` collapses to an icon rail** (persisted `localStorage["sidebar.collapsed"]`, `PanelLeftClose/Open` toggle) — applies to all dashboard pages
 
 #### Document Editor (BlockNote) — `components/quotes/proposal-editor.tsx`
 - **Second tab** ("Document") inside the quote editor for the proposal narrative body

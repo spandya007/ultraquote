@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -220,6 +220,18 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   const [showMargins, setShowMargins] = useState(initialQuote.show_margins);
   const [includeHeaderFooter, setIncludeHeaderFooter] = useState(initialQuote.include_header_footer ?? true);
   const [activeTab, setActiveTab] = useState<"lineitems" | "document">("lineitems");
+  // Collapsible right details panel (persisted) — frees horizontal room on laptops.
+  const [rightOpen, setRightOpen] = useState(true);
+  useEffect(() => {
+    setRightOpen(localStorage.getItem("quote.rightPanel") !== "closed");
+  }, []);
+  function toggleRight() {
+    setRightOpen(o => {
+      const next = !o;
+      localStorage.setItem("quote.rightPanel", next ? "open" : "closed");
+      return next;
+    });
+  }
   // Track whether the Document tab has ever been opened so we don't mount
   // the BlockNote editor while it's hidden (display:none causes ProseMirror
   // to crash because node views can't resolve DOM positions with no layout).
@@ -1017,8 +1029,10 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                 </div>
               </div>
 
-              {/* Line items table */}
-              <table className="w-full text-sm">
+              {/* Line items table (horizontally scrollable when columns
+                  exceed the available width — e.g. margins + tax shown) */}
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-muted/20">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Description</th>
@@ -1218,6 +1232,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
                   );
                 })()}
               </table>
+              </div>
 
               {/* Add item buttons */}
               {canEdit && (
@@ -1246,8 +1261,16 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
           )}
         </div>
 
-        {/* Right: Quote details panel */}
-        <aside className="w-72 shrink-0 border-l overflow-y-auto p-5 space-y-6 bg-muted/5">
+        {/* Right: Quote details panel (collapsible to free horizontal room) */}
+        {rightOpen ? (
+        <aside className="w-72 shrink-0 border-l overflow-y-auto bg-muted/5">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b sticky top-0 bg-muted/5 z-10">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Details</span>
+            <button onClick={toggleRight} title="Collapse panel" className="p-1 rounded hover:bg-muted text-muted-foreground">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-5 space-y-6">
           <fieldset disabled={!canEdit} className="contents">
           <section className="space-y-3">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quote Details</h3>
@@ -1382,7 +1405,15 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               </div>
             </section>
           )}
+          </div>
         </aside>
+        ) : (
+          <div className="shrink-0 border-l bg-muted/5 flex flex-col items-center py-2">
+            <button onClick={toggleRight} title="Show quote details" className="p-1.5 rounded hover:bg-muted text-muted-foreground">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Product search overlay */}
