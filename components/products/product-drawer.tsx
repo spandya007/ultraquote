@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Trash2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { formatCurrency } from "@/lib/utils/format";
 import { createClient } from "@/lib/supabase/client";
 import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
@@ -322,7 +323,13 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
                 <Plus className="w-3 h-3" /> Add tier
               </button>
             </div>
-            {tiers.map((tier, i) => (
+            {tiers.map((tier, i) => {
+              const c = tier.unit_cost;
+              const p = tier.unit_price;
+              const hasMargin = c != null && p != null && p > 0;
+              const marginPct = hasMargin ? ((p - c) / p) * 100 : null;
+              const profit = hasMargin ? p - c : null;
+              return (
               <div
                 key={tier._uid ?? i}
                 ref={i === tiers.length - 1 ? tiersEndRef : undefined}
@@ -371,6 +378,21 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
                     />
                   </div>
                 </div>
+                {/* Live margin — helps fine-tune the sell price */}
+                <div className="flex items-center justify-between text-xs px-0.5">
+                  <span className="text-muted-foreground">Margin</span>
+                  {hasMargin ? (
+                    <span className={cn(
+                      "font-semibold tabular-nums",
+                      marginPct! >= 30 ? "text-green-600" :
+                      marginPct! >= 15 ? "text-yellow-600" : "text-red-600"
+                    )}>
+                      {marginPct!.toFixed(1)}% · {formatCurrency(profit!)} profit
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/60">Enter cost &amp; sell price</span>
+                  )}
+                </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Tier Description</label>
                   <input
@@ -381,7 +403,8 @@ export function ProductDrawer({ open, product, categories, onClose, onSaved, rea
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </section>
 
           {/* Supplier / manufacturer */}
