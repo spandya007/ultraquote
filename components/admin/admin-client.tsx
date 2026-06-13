@@ -215,6 +215,9 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
             {tenants.map((row) => {
               const status = tenantStatus(row);
               const pending = row.invite?.status === "pending" ? row.invite : null;
+              // A revoked owner invite with no owner yet → offer Re-invite
+              // (resend re-sends the email and flips the invite back to pending).
+              const revoked = !row.owner_email && row.invite?.status === "revoked" ? row.invite : null;
               return (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="px-6 py-3">
@@ -282,6 +285,16 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                           <XCircle className="w-3 h-3" /> Revoke
                         </button>
                       </span>
+                    )}
+                    {revoked && (
+                      <button
+                        onClick={() => inviteAction(revoked, "resend")}
+                        disabled={actionId === revoked.id}
+                        className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                        title="Send the owner invite again (reactivates this revoked invite)"
+                      >
+                        <RotateCw className="w-3 h-3" /> Re-invite
+                      </button>
                     )}
                   </td>
                 </tr>
