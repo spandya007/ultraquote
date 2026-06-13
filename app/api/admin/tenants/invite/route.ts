@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPlatformAdminUser } from "@/lib/platform-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendInviteEmail } from "@/lib/invites";
+import { computeEndDate, todayIso } from "@/lib/access/subscription";
+import type { SubscriptionTerm } from "@/types";
+
+const TERMS: SubscriptionTerm[] = ["monthly", "quarterly", "yearly", "custom"];
 
 // Platform admin invites a new MSP tenant: provision an ownerless tenant shell
 // (tenant + settings + seed categories), then email a Supabase invite carrying
@@ -10,7 +14,10 @@ export async function POST(request: NextRequest) {
   const adminUser = await getPlatformAdminUser();
   if (!adminUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: { company_name?: string; contact_email?: string; owner_email?: string; owner_name?: string };
+  let body: {
+    company_name?: string; contact_email?: string; owner_email?: string; owner_name?: string;
+    subscription_term?: string; subscription_end?: string;
+  };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const companyName = body.company_name?.trim();
@@ -20,6 +27,28 @@ export async function POST(request: NextRequest) {
 
   if (!companyName || !ownerEmail) {
     return NextResponse.json({ error: "Company name and owner email are required" }, { status: 400 });
+  }
+
+  // Subscription set at invite time (D3b): the clock starts on the invite-send
+  // date (today). Term is optional — blank/none leaves the tenant Unlimited.
+  const subStart = todayIso();
+  const subTerm = (body.subscription_term?.trim() || "") as SubscriptionTerm | "";
+  let subEnd: string | null = null;
+  if (subTerm) {
+    if (!TERMS.includes(subTerm)) {
+      return NextResponse.json({ error: "Invalid subscription term" }, { status: 400 });
+    }
+    if (subTerm === "custom") {
+      subEnd = body.subscription_end?.trim() || null;
+      if (!subEnd || !/^\d{4}-\d{2}-\d{2}$/.test(subEnd)) {
+        return NextResponse.json({ error: "A custom term requires an end date" }, { status: 400 });
+      }
+      if (subEnd < subStart) {
+        return NextResponse.json({ error: "End date cannot be before today" }, { status: 400 });
+      }
+    } else {
+      subEnd = computeEndDate(subStart, subTerm);
+    }
   }
 
   const admin = createAdminClient();
@@ -42,6 +71,16 @@ export async function POST(request: NextRequest) {
     console.error("provision_tenant_shell failed:", provisionErr);
     return NextResponse.json({ error: "Failed to provision tenant" }, { status: 500 });
   }
+
+  // Stamp the subscription window on the shell (clock starts now, D3b).
+  await admin
+    .from("tenants")
+    .update({
+      subscription_start: subStart,
+      subscription_term: subTerm || null,
+      subscription_end: subEnd,
+    })
+    .eq("id", tenantId);
 
   const sent = await sendInviteEmail({
     email: ownerEmail,

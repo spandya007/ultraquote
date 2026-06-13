@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Loader2, Mail, RotateCw, UserPlus, XCircle } from "lucide-react";
+import { Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
-import type { TenantInvite } from "@/types";
+import type { SubscriptionTerm, TenantInvite } from "@/types";
+import {
+  computeEndDate, subscriptionStatus, todayIso, SUB_STATUS_CLS,
+} from "@/lib/access/subscription";
 
 export interface AdminTenantRow {
   id: string;
@@ -17,6 +20,23 @@ export interface AdminTenantRow {
   owner_email: string | null;
   owner_name: string | null;
   invite: TenantInvite | null;
+  subscription_start: string | null;
+  subscription_end: string | null;
+  subscription_term: SubscriptionTerm | null;
+  platform_enabled: boolean;
+  suspended_reason: string | null;
+}
+
+const TERM_OPTS: { value: SubscriptionTerm | ""; label: string }[] = [
+  { value: "", label: "Unlimited (no end date)" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "custom", label: "Custom end date" },
+];
+
+function fmtDate(d: string | null): string {
+  return d ? new Date(`${d}T00:00:00.000Z`).toLocaleDateString(undefined, { timeZone: "UTC" }) : "—";
 }
 
 const inputCls =
@@ -43,8 +63,17 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
   const [contactEmail, setContactEmail] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [inviteTerm, setInviteTerm] = useState<SubscriptionTerm | "">("yearly");
+  const [inviteCustomEnd, setInviteCustomEnd] = useState("");
   const [inviting, setInviting] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [manageRow, setManageRow] = useState<AdminTenantRow | null>(null);
+
+  // Preview the computed end date for the invite form.
+  const invitePreviewEnd =
+    inviteTerm === "" ? null
+    : inviteTerm === "custom" ? (inviteCustomEnd || null)
+    : computeEndDate(todayIso(), inviteTerm);
 
   async function inviteTenant(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +87,8 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
           contact_email: contactEmail,
           owner_email: ownerEmail,
           owner_name: ownerName,
+          subscription_term: inviteTerm || undefined,
+          subscription_end: inviteTerm === "custom" ? inviteCustomEnd : undefined,
         }),
       });
       const json = await res.json();
@@ -67,6 +98,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
       }
       toast.success(`Invite sent to ${ownerEmail}`);
       setCompanyName(""); setContactEmail(""); setOwnerEmail(""); setOwnerName("");
+      setInviteTerm("yearly"); setInviteCustomEnd("");
       router.refresh();
     } finally {
       setInviting(false);
@@ -125,9 +157,30 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
             <input value={ownerName} onChange={(e) => setOwnerName(e.target.value)}
               className={inputCls} placeholder="Jane Owner" />
           </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Subscription term</label>
+            <select value={inviteTerm} onChange={(e) => setInviteTerm(e.target.value as SubscriptionTerm | "")}
+              className={inputCls}>
+              {TERM_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">
+              {inviteTerm === "custom" ? "End date *" : "Ends"}
+            </label>
+            {inviteTerm === "custom" ? (
+              <input type="date" min={todayIso()} value={inviteCustomEnd}
+                onChange={(e) => setInviteCustomEnd(e.target.value)} className={inputCls} />
+            ) : (
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {invitePreviewEnd ? fmtDate(invitePreviewEnd) : "No end date"}
+              </div>
+            )}
+          </div>
           <div className="sm:col-span-2 flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              Provisions the tenant and emails the owner an invite link to set their password.
+              Provisions the tenant and emails the owner an invite link. The subscription clock starts
+              today ({fmtDate(todayIso())}).
             </p>
             <button type="submit" disabled={inviting}
               className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
@@ -154,6 +207,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               <th className="px-3 py-2.5 font-medium text-right">Quotes</th>
               <th className="px-3 py-2.5 font-medium">Created</th>
               <th className="px-3 py-2.5 font-medium">Status</th>
+              <th className="px-3 py-2.5 font-medium">Subscription</th>
               <th className="px-6 py-2.5" />
             </tr>
           </thead>
@@ -187,7 +241,29 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                       {status.label}
                     </span>
                   </td>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    {(() => {
+                      const sub = subscriptionStatus(row.subscription_end, row.platform_enabled);
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className={cn("inline-block w-fit rounded-full px-2 py-0.5 text-xs font-medium", SUB_STATUS_CLS[sub.status])}>
+                            {sub.label}
+                          </span>
+                          {row.subscription_end && (
+                            <span className="text-xs text-muted-foreground">ends {fmtDate(row.subscription_end)}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td className="px-6 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setManageRow(row)}
+                      className="mr-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+                      title="Manage subscription & access"
+                    >
+                      <Settings2 className="w-3 h-3" /> Manage
+                    </button>
                     {pending && (
                       <span className="inline-flex gap-1.5">
                         <button
@@ -212,10 +288,147 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               );
             })}
             {tenants.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">No tenants yet.</td></tr>
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">No tenants yet.</td></tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {manageRow && (
+        <ManageSubscriptionModal
+          row={manageRow}
+          onClose={() => setManageRow(null)}
+          onSaved={() => { setManageRow(null); router.refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ManageSubscriptionModal({
+  row, onClose, onSaved,
+}: { row: AdminTenantRow; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const [start, setStart] = useState(row.subscription_start ?? todayIso());
+  const [term, setTerm] = useState<SubscriptionTerm | "">(row.subscription_term ?? "");
+  const [customEnd, setCustomEnd] = useState(row.subscription_term === "custom" ? (row.subscription_end ?? "") : "");
+  const [savingSub, setSavingSub] = useState(false);
+  const [togglingSwitch, setTogglingSwitch] = useState(false);
+  const [reason, setReason] = useState(row.suspended_reason ?? "");
+
+  const previewEnd =
+    term === "" ? null
+    : term === "custom" ? (customEnd || null)
+    : computeEndDate(start, term);
+
+  async function saveSubscription() {
+    if (term === "custom" && !customEnd) { toast.error("A custom term requires an end date"); return; }
+    setSavingSub(true);
+    try {
+      // term "" → Unlimited (API clears the end date).
+      const payload = { start, term: term || undefined, end: term === "custom" ? customEnd : undefined };
+      const res = await fetch(`/api/admin/tenants/${row.id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed to save"); return; }
+      toast.success("Subscription updated");
+      onSaved();
+    } finally {
+      setSavingSub(false);
+    }
+  }
+
+  async function togglePlatform(enabled: boolean) {
+    if (!enabled && !window.confirm(`Suspend ${row.name}? This blocks ALL users including the owner until you re-enable.`)) return;
+    setTogglingSwitch(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${row.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, reason: enabled ? undefined : reason }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed"); return; }
+      toast.success(enabled ? "Tenant enabled" : "Tenant suspended");
+      onSaved();
+    } finally {
+      setTogglingSwitch(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b">
+          <CalendarClock className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-semibold">Manage — {row.name}</h2>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Subscription */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Start date</label>
+                <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={inputCls} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Term</label>
+                <select value={term} onChange={(e) => setTerm(e.target.value as SubscriptionTerm | "")} className={inputCls}>
+                  {TERM_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+            {term === "custom" ? (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">End date *</label>
+                <input type="date" min={start} value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className={inputCls} />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {term === "" ? "No end date (Unlimited)." : <>Ends <span className="font-medium text-foreground">{fmtDate(previewEnd)}</span>.</>}
+              </p>
+            )}
+            <button onClick={saveSubscription} disabled={savingSub}
+              className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              {savingSub && <Loader2 className="w-4 h-4 animate-spin" />} Save subscription
+            </button>
+          </div>
+
+          <hr className="border-border" />
+
+          {/* Platform kill switch */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Platform access</div>
+            <p className="text-xs text-muted-foreground">
+              {row.platform_enabled
+                ? "Tenant is enabled. Suspending blocks all its users immediately, regardless of subscription dates."
+                : "Tenant is SUSPENDED — all users are blocked."}
+            </p>
+            {row.platform_enabled ? (
+              <>
+                <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}
+                  placeholder="Reason (optional, shown only to you)" />
+                <button onClick={() => togglePlatform(false)} disabled={togglingSwitch}
+                  className="inline-flex items-center gap-2 rounded-md border border-destructive/40 text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/10 disabled:opacity-50">
+                  {togglingSwitch && <Loader2 className="w-4 h-4 animate-spin" />} Suspend tenant
+                </button>
+              </>
+            ) : (
+              <button onClick={() => togglePlatform(true)} disabled={togglingSwitch}
+                className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+                {togglingSwitch && <Loader2 className="w-4 h-4 animate-spin" />} Re-enable tenant
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Close</button>
+        </div>
       </div>
     </div>
   );
