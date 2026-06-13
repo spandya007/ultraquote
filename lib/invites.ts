@@ -117,3 +117,60 @@ export async function revokeInvite(invite: TenantInvite): Promise<{ error?: stri
   await admin.from("tenant_invites").update({ status: "revoked" }).eq("id", invite.id);
   return {};
 }
+
+// Re-invite to a DIFFERENT email (fix a wrong address without recreating the
+// tenant). Deletes any not-yet-accepted auth user for the old email, repoints
+// the invite to the new email (+ optional name), and sends a fresh invite.
+export async function changeInviteEmail(
+  invite: TenantInvite,
+  newEmailRaw: string,
+  origin: string,
+  fullName?: string | null,
+): Promise<{ error?: string }> {
+  const admin = createAdminClient();
+  if (invite.status === "accepted") {
+    return { error: "Invite was already accepted — its email can't be changed." };
+  }
+
+  const newEmail = newEmailRaw.trim().toLowerCase();
+  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    return { error: "A valid email address is required." };
+  }
+
+  // The new email must not already belong to a tenant.
+  const { data: existing } = await admin
+    .from("users").select("id").ilike("email", newEmail).maybeSingle();
+  if (existing) {
+    return { error: "That email is already registered to a tenant." };
+  }
+
+  // Remove the not-yet-accepted auth user for the OLD email (found by the
+  // invite's current email) before repointing.
+  const authUser = await findInviteAuthUser(invite);
+  if (authUser) {
+    const { error: delErr } = await admin.auth.admin.deleteUser(authUser.id);
+    if (delErr) return { error: delErr.message };
+    await admin.from("users").delete().eq("id", authUser.id);
+  }
+
+  const name = fullName === undefined ? invite.full_name : (fullName?.trim() || null);
+  await admin
+    .from("tenant_invites")
+    .update({ email: newEmail, full_name: name })
+    .eq("id", invite.id);
+
+  const sent = await sendInviteEmail({
+    email: newEmail,
+    fullName: name,
+    tenantId: invite.tenant_id,
+    role: invite.role,
+    origin,
+  });
+  if (sent.error) return sent;
+
+  await admin
+    .from("tenant_invites")
+    .update({ status: "pending", created_at: new Date().toISOString(), accepted_at: null })
+    .eq("id", invite.id);
+  return {};
+}

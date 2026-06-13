@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle } from "lucide-react";
+import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 import type { SubscriptionTerm, TenantInvite } from "@/types";
@@ -68,6 +68,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
   const [inviting, setInviting] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [manageRow, setManageRow] = useState<AdminTenantRow | null>(null);
+  const [emailInvite, setEmailInvite] = useState<TenantInvite | null>(null);
 
   // Preview the computed end date for the invite form.
   const invitePreviewEnd =
@@ -218,6 +219,10 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               // A revoked owner invite with no owner yet → offer Re-invite
               // (resend re-sends the email and flips the invite back to pending).
               const revoked = !row.owner_email && row.invite?.status === "revoked" ? row.invite : null;
+              // Any not-yet-accepted invite (pending or revoked) can have its
+              // email corrected before the owner accepts.
+              const editableInvite =
+                !row.owner_email && row.invite && row.invite.status !== "accepted" ? row.invite : null;
               return (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="px-6 py-3">
@@ -296,6 +301,16 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                         <RotateCw className="w-3 h-3" /> Re-invite
                       </button>
                     )}
+                    {editableInvite && (
+                      <button
+                        onClick={() => setEmailInvite(editableInvite)}
+                        disabled={actionId === editableInvite.id}
+                        className="ml-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                        title="Send this invite to a different email address"
+                      >
+                        <AtSign className="w-3 h-3" /> Change email
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -314,6 +329,75 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
           onSaved={() => { setManageRow(null); router.refresh(); }}
         />
       )}
+
+      {emailInvite && (
+        <ChangeInviteEmailModal
+          invite={emailInvite}
+          onClose={() => setEmailInvite(null)}
+          onSaved={() => { setEmailInvite(null); router.refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ChangeInviteEmailModal({
+  invite, onClose, onSaved,
+}: { invite: TenantInvite; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState(invite.full_name ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/invites/${invite.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change_email", email, full_name: name }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed to change email"); return; }
+      toast.success(`Invite sent to ${email.trim().toLowerCase()}`);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <form onSubmit={save} className="w-full max-w-md rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b">
+          <AtSign className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-semibold">Change invite email</h2>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Currently inviting <span className="font-medium text-foreground">{invite.email}</span>.
+            Enter the correct address — we’ll cancel the old invite and email the new one.
+          </p>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">New owner email *</label>
+            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              className={inputCls} placeholder="owner@newmsp.com" autoFocus />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Owner name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)}
+              className={inputCls} placeholder="Jane Owner" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          <button type="button" onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Cancel</button>
+          <button type="submit" disabled={saving}
+            className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />} Send invite
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
