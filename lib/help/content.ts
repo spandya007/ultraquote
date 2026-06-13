@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, FileText, PenLine, Send, Package, Users, ShieldCheck, Building2,
+  LayoutDashboard, FileText, PenLine, Send, Package, Users, ShieldCheck, Building2, BookTemplate,
 } from "lucide-react";
 
 // Curated, user-facing help content. Single source of truth for the in-app
@@ -121,15 +121,37 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        heading: "Templates",
+        heading: "Importing a document",
+        blocks: [p("Use Import in the Document toolbar to bring in a .docx, .md, or .txt file as a starting point.")],
+      },
+    ],
+  },
+  {
+    id: "templates",
+    title: "Templates",
+    icon: BookTemplate,
+    sections: [
+      {
+        heading: "What templates are",
+        blocks: [p("A template is a reusable proposal document — boilerplate like your cover letter, scope language, and standard terms — that you start new quotes from instead of writing from scratch. Templates store the document narrative only, not pricing.")],
+      },
+      {
+        heading: "Saving a document as a template",
+        blocks: [p("Open a quote’s Document tab → Save as template → give it a name. It’s then available to everyone in your workspace.")],
+      },
+      {
+        heading: "Starting a quote from a template",
         blocks: [
-          p("Save a document you like as a template (Document tab → Save as template). Then start new quotes from it: New Quote → “Start from”, or the “New quote” button on the Templates page."),
-          p("Anyone can use any template; only its creator (or the owner) can edit or delete it."),
+          p("Templates are applied when you create a quote — two ways:"),
+          ul([
+            "New Quote → “Start from” → pick a template",
+            "Templates page → the “New quote” button on a template card (the New Quote box opens with that template preselected)",
+          ]),
         ],
       },
       {
-        heading: "Importing a document",
-        blocks: [p("Use Import in the Document toolbar to bring in a .docx, .md, or .txt file as a starting point.")],
+        heading: "Editing templates",
+        blocks: [p("Anyone can use any template to start a quote. Only the template’s creator (or the tenant owner) can rename, edit, or delete it — others see it as view-only.")],
       },
     ],
   },
