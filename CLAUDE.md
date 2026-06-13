@@ -59,6 +59,7 @@ Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create
 | `/settings` | ✅ | Company Settings + Quote Defaults + Team (member invites) |
 | `/admin` | ✅ | Platform Admin console — tenant list + invite-first onboarding (platform admins only) |
 | `/auth/set-password` | ✅ | Invite-acceptance landing (invited user sets password) |
+| _idle auto-logout_ | ✅ | `components/auth/idle-timeout.tsx` — 30-min inactivity logout, 2-min warning modal, cross-tab synced; mounted in dashboard + admin layouts. App-side (Supabase server-side session timeouts are Pro-only — enable those too when on Pro). Constants at top of the file. |
 
 #### Quote Editor (`/quotes/[id]`)
 - Top bar: editable title, **read-only status badge** (status is SYSTEM-managed — see `lib/quote-status.ts`: send route sets `sent`, webhook sets viewed/signed/declined, `expired` is DERIVED from valid_until for sent/viewed, never stored; client NEVER writes `status` — prevents a stale-editor overwrite race vs the webhook), Profit margins toggle, Preview + Send/Re-send buttons, auto-save indicator. Send is blocked when valid_until has passed (extend first). **Stale drafts** (no activity > `default_valid_days`) are hidden from Quotes list + Dashboard (`isStaleDraft`, basis `updated_at`); raise Default Valid Days in Settings to reveal

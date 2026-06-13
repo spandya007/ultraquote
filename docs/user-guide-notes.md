@@ -474,3 +474,11 @@ prices:
   descriptions, and free-text items are kept**.
 - A confirmation appears first; afterward a toast says how many lines changed.
 - Per-line you can always just edit the price/Setup column directly instead.
+
+## Automatic sign-out (inactivity)
+
+For security, UltraQuote signs you out after **30 minutes of inactivity**. Two
+minutes before, a "Still there?" prompt appears with a countdown — click
+**Stay signed in** to continue, or **Sign out now**. Activity in any open tab
+keeps you signed in everywhere; an inactivity sign-out closes all tabs. After an
+automatic sign-out you'll see a note on the login page and just sign in again.

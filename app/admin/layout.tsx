@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
 import { getPlatformAdminUser } from "@/lib/platform-admin";
 import { createClient } from "@/lib/supabase/server";
+import { IdleTimeout } from "@/components/auth/idle-timeout";
 
 // Platform-level console — deliberately outside the tenant dashboard shell.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <IdleTimeout />
       <header className="border-b bg-card">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
