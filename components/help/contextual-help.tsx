@@ -10,7 +10,7 @@ function topicFor(path: string): string | null {
   if (path.startsWith("/help")) return null;
   if (/^\/quotes\/[^/]+/.test(path)) return null; // quote editor
   if (path.startsWith("/quotes")) return "quotes";
-  if (path.startsWith("/clients")) return "team";
+  if (path.startsWith("/clients")) return "clients";
   if (path.startsWith("/products")) return "products";
   if (path.startsWith("/templates")) return "document";
   if (path.startsWith("/settings")) return "security";

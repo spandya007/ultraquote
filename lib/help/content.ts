@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, FileText, PenLine, Send, Package, Users, ShieldCheck,
+  LayoutDashboard, FileText, PenLine, Send, Package, Users, ShieldCheck, Building2,
 } from "lucide-react";
 
 // Curated, user-facing help content. Single source of truth for the in-app
@@ -195,6 +195,30 @@ export const HELP_TOPICS: HelpTopic[] = [
           ]),
           p("The “CSV format” button on the Products page shows the full format and offers a sample template to fill in."),
         ],
+      },
+    ],
+  },
+  {
+    id: "clients",
+    title: "Clients",
+    icon: Building2,
+    sections: [
+      {
+        heading: "Adding a client",
+        blocks: [p("Clients → Add Client. Enter the company name and a primary contact (name, email, phone), plus an optional address and internal notes. Any team member can add a new client.")],
+      },
+      {
+        heading: "Editing or deactivating a client",
+        ownerOnly: true,
+        blocks: [p("The tenant owner can edit an existing client’s details or deactivate one that’s no longer active (deactivated clients drop off the default list, but their past quotes are kept). Members can add new clients but not change existing ones — editing a shared client would affect everyone’s quotes for them.")],
+      },
+      {
+        heading: "Client logo & co-branding",
+        blocks: [p("Upload a client’s logo in the client drawer, then place it in a proposal with the {{client.logo}} field so the document is co-branded with both your logo and theirs.")],
+      },
+      {
+        heading: "Using clients on quotes",
+        blocks: [p("Every quote is tied to one client, chosen when you create it. The client’s details automatically fill the {{client.*}} fields you place in the proposal document.")],
       },
     ],
   },
