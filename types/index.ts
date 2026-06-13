@@ -4,6 +4,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
+export type SubscriptionTerm = "monthly" | "quarterly" | "yearly" | "custom";
+
 export interface Tenant {
   id: string;
   name: string;
@@ -13,6 +15,14 @@ export interface Tenant {
   email: string | null;
   created_at: string;
   stripe_customer_id: string | null;
+  // Subscription window + platform kill switch (migration 012). A NULL
+  // subscription_end means "unlimited/active" (grandfathered tenants).
+  subscription_start: string | null;
+  subscription_end: string | null;
+  subscription_term: SubscriptionTerm | null;
+  platform_enabled: boolean;
+  suspended_at: string | null;
+  suspended_reason: string | null;
 }
 
 export interface TenantSettings {
@@ -37,6 +47,10 @@ export interface User {
   full_name: string | null;
   role: UserRole;
   created_at: string;
+  // Tenant→user kill switch (migration 012). Owner rows are always enabled.
+  enabled: boolean;
+  disabled_at: string | null;
+  disabled_by: string | null;
 }
 
 // ─── Platform admins / tenant invites ────────────────────────────────────────

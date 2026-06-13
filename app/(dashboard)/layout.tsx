@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/ui/sidebar";
 import { IdleTimeout } from "@/components/auth/idle-timeout";
 import { ContextualHelp } from "@/components/help/contextual-help";
+import { getAccessState } from "@/lib/access/access-state";
+import { SubscriptionBanner } from "@/components/account/subscription-banner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -21,6 +23,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
   } catch { /* ignore */ }
   if (needsMfa) redirect("/auth/mfa");
+
+  // Subscription / access gate (after MFA). Resolve the effective state and
+  // hard-block suspended/expired/disabled users; `grace` passes through but is
+  // surfaced as a read-only banner (writes are blocked at the API layer).
+  // See docs/subscription-and-access-lifecycle-design.md (§4).
+  const access = await getAccessState(user.id);
+  if (access.status === "suspended") redirect("/account/suspended?reason=suspended");
+  if (access.status === "expired") redirect(`/account/suspended?reason=expired&role=${access.role}`);
+  if (access.status === "user_disabled") redirect("/account/disabled");
 
   // Tenant branding for the sidebar (name + logo).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,11 +67,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("user_id", user.id)
     .maybeSingle();
 
+  // Expiry banner: read-only notice during grace, or an amber reminder in the
+  // last 7 days before the subscription ends. (Hard-block states already
+  // redirected above.)
+  let banner: React.ComponentProps<typeof SubscriptionBanner> | null = null;
+  const isOwner = access.status === "ok" || access.status === "grace" ? access.role === "owner" : false;
+  if (access.status === "grace") {
+    banner = { mode: "grace", endDate: access.subscriptionEnd, graceEndsOn: access.graceEndsOn, isOwner };
+  } else if (access.status === "ok" && access.subscriptionEnd) {
+    const end = new Date(`${access.subscriptionEnd}T00:00:00.000Z`).getTime();
+    const today = Date.now();
+    const days = Math.ceil((end - today) / 86_400_000);
+    if (days >= 0 && days <= 7) {
+      banner = { mode: "expiring", endDate: access.subscriptionEnd, daysToExpiry: days, isOwner };
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <IdleTimeout />
       <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} userName={firstName} />
       <main className="flex-1 overflow-y-auto bg-muted/20">
+        {banner && <SubscriptionBanner {...banner} />}
         {children}
       </main>
       <ContextualHelp />
