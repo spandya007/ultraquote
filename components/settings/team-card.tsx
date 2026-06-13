@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Mail, RotateCw, Users, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Loader2, Mail, RotateCw, Users, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import type { TenantInvite, User } from "@/types";
@@ -70,6 +70,24 @@ export function TeamCard() {
     }
   }
 
+  async function setMemberEnabled(target: User, enabled: boolean) {
+    if (!enabled && !window.confirm(`Disable ${target.full_name || target.email}? They'll be blocked from UltraQuote until you re-enable them. Their quotes are kept.`)) return;
+    setActionId(target.id);
+    try {
+      const res = await fetch(`/api/team/members/${target.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed"); return; }
+      toast.success(enabled ? "Member re-enabled" : "Member disabled");
+      load();
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function inviteAction(invite: TenantInvite, action: "resend" | "revoke") {
     if (action === "revoke" && !window.confirm(`Revoke the invite for ${invite.email}?`)) return;
     setActionId(invite.id);
@@ -126,9 +144,37 @@ export function TeamCard() {
                         owner
                       </span>
                     )}
-                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-                      active
-                    </span>
+                    {u.enabled === false ? (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">
+                        disabled
+                      </span>
+                    ) : (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                        active
+                      </span>
+                    )}
+                    {/* Owner can pause/restore members (not owners, not self) */}
+                    {isOwner && u.role !== "owner" && u.id !== myId && (
+                      u.enabled === false ? (
+                        <button
+                          onClick={() => setMemberEnabled(u, true)}
+                          disabled={actionId === u.id}
+                          className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                          title="Restore this member's access"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Enable
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setMemberEnabled(u, false)}
+                          disabled={actionId === u.id}
+                          className="inline-flex items-center gap-1 rounded-md border border-destructive/40 text-destructive px-2 py-1 text-xs hover:bg-destructive/10 disabled:opacity-50"
+                          title="Block this member's access (keeps their quotes)"
+                        >
+                          <Ban className="w-3 h-3" /> Disable
+                        </button>
+                      )
+                    )}
                   </span>
                 </li>
               ))}
