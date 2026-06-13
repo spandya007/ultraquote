@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
@@ -69,6 +69,17 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
   const [actionId, setActionId] = useState<string | null>(null);
   const [manageRow, setManageRow] = useState<AdminTenantRow | null>(null);
   const [emailInvite, setEmailInvite] = useState<TenantInvite | null>(null);
+
+  // The console doesn't live-update (acceptances happen in the invitee's own
+  // browser), so poll the server while the tab is open. Skip while the user is
+  // mid-action: a modal open, an in-flight invite/action, or the tab hidden.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.hidden || manageRow || emailInvite || inviting || actionId) return;
+      router.refresh();
+    }, 25_000);
+    return () => clearInterval(id);
+  }, [router, manageRow, emailInvite, inviting, actionId]);
 
   // Preview the computed end date for the invite form.
   const invitePreviewEnd =
