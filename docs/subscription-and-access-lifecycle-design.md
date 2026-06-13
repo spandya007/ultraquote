@@ -86,6 +86,37 @@ The tenant→user switch (req #6) can target **members only**. The owner seat is
 platform switch + subscription. This prevents a tenant from locking itself out of its own admin.
 (Platform admin can still disable the entire tenant, owner included, via the platform switch.)
 
+### D3b — A new tenant's dates are set at invite time; the clock starts on the invite-send date
+
+When the platform admin invites a new tenant (the `/admin` "Invite tenant" flow →
+`provision_tenant_shell()` → owner invite email), the **same form** captures the subscription:
+- **Start date** — **defaults to and is fixed at the date the invite is sent** (today). This is a
+  deliberate choice: billing/access start the moment the invite goes out, which *pressures the owner
+  to log in and activate ASAP* rather than sit on the invite. (Editable by the admin if ever needed,
+  but the default and intent is invite-send date.)
+- **Term** — Monthly / Quarterly / Yearly / Custom. The system computes `subscription_end` from
+  start + term (see §3). Custom = pick the end date directly.
+- Leaving the subscription **blank** on the invite → `NULL` end → **Unlimited** (D4) — useful for an
+  internal/demo tenant.
+
+> The start is the **invite-send date, NOT the owner's acceptance/first-login date.** If the owner
+> takes days to set their password, that time is *inside* the paid window — by design, to discourage
+> delay. (Acceptance date is still recorded separately via `tenant_invites`, so the billing layer
+> could revisit this later if ever wanted.)
+
+**Example — invite "Acme IT" on 2026-06-13, term = Yearly:**
+
+| Field | Value |
+|---|---|
+| `subscription_start` | `2026-06-13` (the invite-send date) |
+| `subscription_term` | `yearly` |
+| `subscription_end` | `2027-06-13` (start + 1 year) |
+| `platform_enabled` | `true` |
+
+Resulting timeline: active until 2027-06-13 → amber expiry banner from 2027-06-06 (≤7d) → read-only
+**grace** 2027-06-14…2027-06-21 → hard block after 2027-06-21 until renewed. (Monthly → end
+2026-07-13; Quarterly → 2026-09-13; Custom → admin-picked.)
+
 ### D4 — `subscription_end = NULL` means "no expiry" (grandfathering)
 
 Existing tenants (and any the platform admin hasn't dated yet) get `NULL` end → treated as **active /
@@ -244,7 +275,13 @@ Listed as phase 2 so the visible reminder ships without standing up a cron.
 
 ## 6. Platform admin UI (req #1, #5) — `/admin`
 
-Per tenant row / detail, add a **Subscription** panel (platform-admin only):
+**On the "Invite tenant" form (new-tenant dates, D3b):** add **Start date** (defaults to today =
+invite-send date) + **Term** (Monthly/Quarterly/Yearly/Custom) → computed **End date** (editable;
+blank = Unlimited). These are written onto the tenant shell at invite time so the subscription is
+live from the moment the invite is sent. (`/api/admin/tenants/invite` extended to accept + persist
+start/term/end alongside the existing provision-shell + email-invite steps.)
+
+Per existing tenant row / detail, add a **Subscription** panel (platform-admin only):
 - **Start date** (defaults to today), **Term** segmented control *Monthly / Quarterly / Yearly /
   Custom*. Picking a term auto-fills the computed **End date** (editable). "Custom" → free date pick.
 - A **status badge**: `Active` · `Expiring (≤7d)` · `In grace (read-only)` · `Expired` · `Suspended` ·
@@ -283,6 +320,7 @@ New API route (owner-guarded):
 
 | Scenario | Behavior |
 |---|---|
+| New tenant invited | Subscription set on the invite form; `subscription_start` = invite-send date; end = start + term (D3b). |
 | New user added mid-cycle | Inherits tenant `subscription_end` (co-terminous, D1). |
 | Subscription renewed/extended | Platform admin updates `subscription_end`; all active seats carry forward automatically. |
 | Subscription just passed end date (within 7d) | `grace` state: everyone read-only, red banner; writes 403 at API. Renewing clears it. |
@@ -302,7 +340,9 @@ New API route (owner-guarded):
    `user_can_read/write`).
 2. **`getAccessState` + `/account/suspended` + `/account/disabled` pages**; wire the gate into the
    dashboard layout (after MFA). *(Core enforcement.)*
-3. **Platform admin Subscription panel + switch** (`/admin` + 2 API routes) — set dates, suspend.
+3. **Platform admin: subscription on the invite form** (start = invite date, term picker; extend
+   `/api/admin/tenants/invite`) **+ Subscription panel + switch** on existing tenants (`/admin` +
+   2 API routes) — set dates, suspend.
 4. **Owner Team enable/disable toggle + subscription status card** (+ 1 API route).
 5. **In-app expiry banner.**
 6. **Help content** (§10) into `lib/help/content.ts` (Team topic) + this doc promoted.
@@ -347,6 +387,8 @@ New API route (owner-guarded):
 2. **Dates are platform-admin-only for v1.** Owner sees subscription state read-only + "contact
    UltraQuote"; no owner self-renewal yet (Stripe/self-serve is a later layer;
    `tenants.stripe_customer_id` hook already exists).
+2b. **New-tenant dates set at invite time; clock starts on the invite-send date** (D3b) — not on
+    acceptance/first login, deliberately, to pressure the owner to activate promptly. Blank = Unlimited.
 3. **Reminders = in-app banner only** for this build (amber at ≤7 days before end). Email reminder
    cron is deferred to phase 2.
 4. **Enforcement = request-layer now** (dashboard layout gate + API write guard), **RLS hardening as
