@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 // AI writing assistant for the proposal Document. Calls Google Gemini Flash
 // server-side (key never reaches the browser) and returns generated/edited text.
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {

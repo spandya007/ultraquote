@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 // Creates scenarios + line items in a quote from reviewed pricing-extraction
 // results. Per line item, `action` decides the catalog behavior:
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
