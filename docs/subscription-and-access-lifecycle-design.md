@@ -4,6 +4,10 @@
 > enable/disable "kill switches" (platform→tenant, tenant→user) requested for UltraQuote. **No code
 > written yet** — this is the blueprint for the build, plus a draft of the Help content for tenant
 > owners. Billing/charging math is explicitly **out of scope** (a later layer that consumes this data).
+>
+> **Your inputs are locked in §11 and woven throughout:** expiry → a **7-day read-only grace** then
+> hard block; **subscription dates are platform-admin-only** for v1; reminders are an **in-app banner
+> only** (email deferred); enforcement is **request-layer now, RLS as a fast-follow**.
 
 ---
 
@@ -92,9 +96,12 @@ subscription explicitly.
 
 - **v1 enforcement:** a shared server helper checked in the dashboard layout (exactly where the MFA
   AAL gate already sits) + in sensitive API routes. Fast to ship, mirrors an existing pattern.
-- **Hardening (phase 2):** fold `tenant_active()` / `user_active()` SQL helpers into the RLS `using`
-  clauses so a blocked user with a still-valid JWT can't reach data by calling PostgREST directly.
-  Deferred because it touches many policies; the request-layer gate covers the normal UI path.
+- **Hardening (phase 2):** fold the access helpers into the RLS clauses so a blocked user with a
+  still-valid JWT can't reach data by calling PostgREST directly. **Because grace is read-only, this
+  needs two helpers, not one:** `user_can_read()` (true through the grace window) goes on `using`
+  clauses of SELECT policies; `user_can_write()` (false during grace) goes on `with check` /
+  INSERT-UPDATE-DELETE policies. Deferred because it touches many policies; the request-layer gate
+  covers the normal UI path. (See §3 for the helper definitions.)
 
 The `/admin` console runs in its **own layout guarded by `platform_admins`** and is **exempt** from
 the tenant access gate — so the platform admin can always manage tenants even while their *own*
@@ -139,21 +146,44 @@ gates are a simple date comparison:
 also expose a `tenant_set_subscription(tenant, start, term, custom_end)` SQL function if we prefer
 the math server-side — optional.)
 
-**SQL helpers for the phase-2 RLS hardening (define now, wire into policies later):**
+**SQL helpers for the phase-2 RLS hardening (define now, wire into policies later).** Grace is
+read-only, so we need a **read** helper (true through the grace window) and a **write** helper (false
+during grace). `GRACE_DAYS` is hardcoded here as `7` to match the app constant — keep them in sync
+(or read from a single config row later).
+
 ```sql
-create or replace function public.tenant_active(t uuid)
+-- READ allowed: platform on AND not past (end + grace).  NULL end = unlimited.
+create or replace function public.tenant_can_read(t uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(platform_enabled, true)
+     and (subscription_end is null
+          or subscription_end + interval '7 days' >= current_date)
+  from public.tenants where id = t
+$$;
+
+-- WRITE allowed: platform on AND not yet expired (no grace for writes).
+create or replace function public.tenant_can_write(t uuid)
 returns boolean language sql stable security definer as $$
   select coalesce(platform_enabled, true)
      and (subscription_end is null or subscription_end >= current_date)
   from public.tenants where id = t
 $$;
 
-create or replace function public.user_active(u uuid)
+create or replace function public.user_can_read(u uuid)
 returns boolean language sql stable security definer as $$
-  select coalesce(usr.enabled, true) and public.tenant_active(usr.tenant_id)
+  select coalesce(usr.enabled, true) and public.tenant_can_read(usr.tenant_id)
+  from public.users usr where usr.id = u
+$$;
+
+create or replace function public.user_can_write(u uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(usr.enabled, true) and public.tenant_can_write(usr.tenant_id)
   from public.users usr where usr.id = u
 $$;
 ```
+
+The `getAccessState` resolver (§4) is the single source of truth in v1; these helpers mirror the same
+logic in SQL for the phase-2 hardening so the two layers can't drift.
 
 ---
 
@@ -217,7 +247,9 @@ Listed as phase 2 so the visible reminder ships without standing up a cron.
 Per tenant row / detail, add a **Subscription** panel (platform-admin only):
 - **Start date** (defaults to today), **Term** segmented control *Monthly / Quarterly / Yearly /
   Custom*. Picking a term auto-fills the computed **End date** (editable). "Custom" → free date pick.
-- A **status badge**: `Active` · `Expiring (≤7d)` · `Expired` · `Suspended` · `Unlimited` (NULL end).
+- A **status badge**: `Active` · `Expiring (≤7d)` · `In grace (read-only)` · `Expired` · `Suspended` ·
+  `Unlimited` (NULL end). ("Expiring" = before the end date; "In grace" = after the end date, within
+  the 7-day read-only window.)
 - **Platform switch** — a clear on/off toggle (`platform_enabled`) with an optional reason note;
   confirms on disable ("This blocks ALL users in <tenant>, including the owner"). Records
   `suspended_at`/`suspended_reason`.
@@ -266,7 +298,8 @@ New API route (owner-guarded):
 
 ## 9. Build order
 
-1. **Migration 012** — columns + backfill + `tenant_active`/`user_active` helpers.
+1. **Migration 012** — columns + backfill + read/write access helpers (`tenant_can_read/write`,
+   `user_can_read/write`).
 2. **`getAccessState` + `/account/suspended` + `/account/disabled` pages**; wire the gate into the
    dashboard layout (after MFA). *(Core enforcement.)*
 3. **Platform admin Subscription panel + switch** (`/admin` + 2 API routes) — set dates, suspend.
@@ -287,6 +320,11 @@ New API route (owner-guarded):
 > their access runs to the same end date as everyone else's. You'll see a reminder banner when your
 > subscription is within 7 days of ending. To renew or change your dates, contact UltraQuote (the
 > dates are managed by us).
+>
+> **After the end date (read-only grace).** If your subscription lapses, your team isn't locked out
+> immediately — for a short grace period everyone can still **view** quotes and data but can't create,
+> edit, or send. A red banner shows how long you have. Renewing restores full access; if the grace
+> period passes without renewal, access is paused until you renew.
 >
 > **Pausing a user (Enable / Disable).** On the **Team** page you can **Disable** any team member to
 > immediately block their access — useful when someone leaves or is away — without deleting them or
@@ -312,7 +350,8 @@ New API route (owner-guarded):
 3. **Reminders = in-app banner only** for this build (amber at ≤7 days before end). Email reminder
    cron is deferred to phase 2.
 4. **Enforcement = request-layer now** (dashboard layout gate + API write guard), **RLS hardening as
-   a fast-follow** using the `tenant_active`/`user_active` helpers (defined in the migration now).
+   a fast-follow** using the read/write helpers (`tenant_can_read/write`, `user_can_read/write` —
+   defined in the migration now; grace allows reads, blocks writes).
 
 Still worth deciding during build (not blockers): exact grace-state UI depth (banner + hidden create
 buttons vs. exhaustive field disabling — proposed: banner + hidden primary actions, rely on API
