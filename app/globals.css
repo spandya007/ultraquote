@@ -67,3 +67,11 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
 }
+
+/* Hide BlockNote's faint nesting-indicator line (the left guide drawn on nested
+   blocks — shows up in nested lists and briefly during Ask-AI replace). Unlayered
+   + !important so it beats the Mantine theme's border-left; transparent (not
+   removed) so block layout/indent is unchanged. */
+.bn-block-outer:not([data-prev-depth-changed])::before {
+  border-left-color: transparent !important;
+}
