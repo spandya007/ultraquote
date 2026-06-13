@@ -56,7 +56,8 @@ export function SubscriptionCard({
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Subscription dates are managed by UltraQuote. To renew or change your plan, contact UltraQuote.
+          Subscription dates are managed by UltraQuote. To renew or change your plan, contact UltraQuote.{" "}
+          <a href="/help#subscription" className="underline hover:text-foreground">Learn more</a>.
         </p>
       </div>
     </div>

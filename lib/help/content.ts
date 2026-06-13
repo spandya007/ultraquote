@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, FileText, PenLine, Send, Package, Users, BookTemplate, Settings, UserCog,
+  LayoutDashboard, FileText, PenLine, Send, Package, Users, BookTemplate, Settings, UserCog, CalendarClock,
 } from "lucide-react";
 
 // Curated, user-facing help content. Single source of truth for the in-app
@@ -272,6 +272,21 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        heading: "Pausing a user (Enable / Disable)",
+        ownerOnly: true,
+        blocks: [
+          p("On Settings → Team you can Disable any team member to immediately block their access — useful when someone leaves or is away — without deleting them or their quotes. Toggle them back to Enable to restore access instantly. You can’t disable yourself (the owner)."),
+          p("Disabling is different from revoking an invite: revoke is for people who haven’t accepted yet; disable is for active users. (For subscription expiry and account access, see Subscription & access.)"),
+        ],
+      },
+    ],
+  },
+  {
+    id: "subscription",
+    title: "Subscription & access",
+    icon: CalendarClock,
+    sections: [
+      {
         heading: "Your subscription",
         ownerOnly: true,
         blocks: [
@@ -287,17 +302,9 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        heading: "Pausing a user (Enable / Disable)",
-        ownerOnly: true,
-        blocks: [
-          p("On Settings → Team you can Disable any team member to immediately block their access — useful when someone leaves or is away — without deleting them or their quotes. Toggle them back to Enable to restore access instantly. You can’t disable yourself (the owner)."),
-          p("Disabling is different from revoking an invite: revoke is for people who haven’t accepted yet; disable is for active users."),
-        ],
-      },
-      {
         heading: "If your team can’t sign in",
         blocks: [
-          p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, the user was disabled on the Team page, or UltraQuote has suspended the account. Contact UltraQuote if your whole team is locked out."),
+          p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, a user was disabled on the Team page (see Your team & permissions), or UltraQuote has suspended the account. Contact UltraQuote if your whole team is locked out."),
         ],
       },
     ],
