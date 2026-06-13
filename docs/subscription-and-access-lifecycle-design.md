@@ -50,25 +50,31 @@ add a seat → it bills prorated to the common renewal date.
 > **Renewal carries seats forward automatically.** When the platform admin extends/renews the
 > tenant's `subscription_end`, all active seats move with it — nothing per-user to touch.
 
-### D2 — Three independent access conditions, AND-ed into one effective decision
+### D2 — Three independent access conditions, resolved to one effective state
 
-A user can sign in and use the app **only if all three hold**:
+Access is the AND of three reversible conditions — platform switch, subscription window, user switch.
+But expiry is **not** a binary cliff: per the locked decision there is a **read-only grace period**
+(`GRACE_DAYS = 7`, a single constant) after `subscription_end` before a hard block. So the resolver
+returns one of five states:
 
-```
-effective_access(user) =
-      tenant.platform_enabled            -- platform kill switch  (req #5)  [I control]
-  AND (subscription_end is null
-       OR subscription_end >= today)     -- subscription not expired (req #1) [date]
-  AND user.enabled                        -- tenant→user kill switch (req #6) [owner controls]
-```
+| State | Condition | Effect |
+|---|---|---|
+| `suspended` | `platform_enabled = false` | Hard block, all users incl. owner. |
+| `user_disabled` | `users.enabled = false` (member) | Hard block, that user only. |
+| `expired` | `today > subscription_end + GRACE_DAYS` | Hard block; owner sees "contact UltraQuote to renew". |
+| `grace` | `subscription_end < today ≤ subscription_end + GRACE_DAYS` | **Read-only**: can view, cannot create/edit/send. Red banner. |
+| `ok` | none of the above (incl. `subscription_end` NULL) | Full access. |
 
-Each is a separate, reversible boolean/date — no destructive action, no data deletion. Disabling
-just blocks access; re-enabling restores it instantly.
+**Precedence (most-authoritative first):** `suspended` → `user_disabled` → `expired` → `grace` → `ok`.
+So a disabled member of an expired tenant sees the disabled message, not the expiry one.
 
-**Precedence when blocked** (which message the user sees, most-authoritative first):
-1. `platform_enabled = false` → **"Account suspended"** (contact UltraQuote).
-2. `subscription_end < today` → **"Subscription expired"** (owner: contact UltraQuote to renew).
-3. `user.enabled = false` → **"Access disabled"** (contact your administrator/owner).
+Each underlying condition is a reversible boolean/date — no destructive action, no data deletion.
+
+**Read-only `grace` mechanics:** the API **write guard** (`requireActiveAccess`) is the authoritative
+enforcement — it allows reads but **403s all mutations** when state is `grace` (or worse). The UI is
+cosmetic on top: a global red banner + hiding primary "create/new/send" actions. Exhaustively
+disabling every input is best-effort/phase-2; the server write-block is what actually enforces
+read-only.
 
 ### D3 — The owner can never be disabled by the tenant kill switch, nor disable themselves
 
@@ -157,23 +163,30 @@ A single resolver, used everywhere:
 
 ```ts
 // lib/access/access-state.ts
+const GRACE_DAYS = 7;
+
 type AccessState =
-  | { status: "ok"; tenantId: string; role: "owner" | "member"; subscriptionEnd: string | null }
+  | { status: "ok";            tenantId: string; role: "owner" | "member"; subscriptionEnd: string | null }
+  | { status: "grace";         tenantId: string; role: "owner" | "member"; graceEndsOn: string }  // read-only
   | { status: "suspended" }       // platform switch off
-  | { status: "expired"; role }   // subscription_end < today
+  | { status: "expired"; role }   // past subscription_end + GRACE_DAYS
   | { status: "user_disabled" };  // users.enabled = false
 
 export async function getAccessState(userId: string): Promise<AccessState>;
 ```
 
 - **Dashboard layout** (`app/(dashboard)/layout.tsx`): after the existing MFA gate, call
-  `getAccessState`; on anything but `ok`, `redirect()` to a dedicated page:
-  - `suspended` / `expired` → `/account/suspended` (copy varies by reason + role; owner on `expired`
-    gets "contact UltraQuote to renew").
-  - `user_disabled` → `/account/disabled`.
-  These pages live **outside** the gated area (like `/auth/*`) and offer Sign out.
-- **Sensitive API routes** (quote create, send, apply-pricing, team invite, etc.): call a
-  `requireActiveAccess()` guard that 403s if not `ok`. Cheap insurance until RLS hardening lands.
+  `getAccessState`:
+  - `suspended` / `expired` → `redirect()` to `/account/suspended` (copy varies by reason + role;
+    owner on `expired` gets "contact UltraQuote to renew").
+  - `user_disabled` → `redirect()` to `/account/disabled`.
+  - `grace` → **allow through** but pass a `readOnly` flag into the page tree (banner + hidden
+    create actions); writes are blocked at the API layer.
+  - `ok` → normal.
+  The block pages live **outside** the gated area (like `/auth/*`) and offer Sign out.
+- **Sensitive API routes** (quote create/edit, send, apply-pricing, team invite, etc.): call a
+  `requireActiveAccess()` guard that **allows reads but 403s mutations** when state is `grace`, and
+  403s everything when `suspended`/`expired`/`user_disabled`. Cheap insurance until RLS hardening.
 - **`/admin`** is exempt (platform-admin layout guard only).
 
 > Note: a user disabled *mid-session* keeps a valid JWT until their next server round-trip; the
@@ -240,7 +253,8 @@ New API route (owner-guarded):
 |---|---|
 | New user added mid-cycle | Inherits tenant `subscription_end` (co-terminous, D1). |
 | Subscription renewed/extended | Platform admin updates `subscription_end`; all active seats carry forward automatically. |
-| Tenant expired, owner logs in | Blocked by gate → `/account/suspended` with "contact UltraQuote to renew" (owner can't self-renew in v1). |
+| Subscription just passed end date (within 7d) | `grace` state: everyone read-only, red banner; writes 403 at API. Renewing clears it. |
+| Tenant expired (past grace), owner logs in | Hard block → `/account/suspended` "contact UltraQuote to renew" (owner can't self-renew in v1). |
 | Platform switch OFF while users are active | Everyone (incl. owner) blocked on next request; data untouched; flip back to restore. |
 | Owner disables a member who owns quotes | Member loses access; their quotes remain (creator-owned). Other members still see them per existing read-tenant-wide RLS. |
 | Disabled member re-enabled | Immediate restore on next request. |
@@ -288,11 +302,18 @@ New API route (owner-guarded):
 
 ---
 
-## 11. Open questions for confirmation
+## 11. Locked decisions (confirmed 2026-06-13)
 
-1. **Reminder window** — just 7 days, or 7/3/1-day steps? (Banner uses ≤7d; email could step.)
-2. **Grace period after expiry** — hard block at `end < today`, or allow N read-only days? (Proposed:
-   hard block, owner-facing renew message.)
-3. **Owner self-service renewal** — out of scope for v1 (platform admin sets dates), correct?
-4. **Email reminders** — ship the in-app banner now and treat email as phase 2? (Proposed: yes.)
-5. **RLS hardening timing** — acceptable to ship request-layer gate first, RLS as fast-follow?
+1. **Expiry → read-only grace**, then hard block. `GRACE_DAYS = 7` (single constant). During grace,
+   users can view but not create/edit/send; after grace, hard block. (See D2.)
+2. **Dates are platform-admin-only for v1.** Owner sees subscription state read-only + "contact
+   UltraQuote"; no owner self-renewal yet (Stripe/self-serve is a later layer;
+   `tenants.stripe_customer_id` hook already exists).
+3. **Reminders = in-app banner only** for this build (amber at ≤7 days before end). Email reminder
+   cron is deferred to phase 2.
+4. **Enforcement = request-layer now** (dashboard layout gate + API write guard), **RLS hardening as
+   a fast-follow** using the `tenant_active`/`user_active` helpers (defined in the migration now).
+
+Still worth deciding during build (not blockers): exact grace-state UI depth (banner + hidden create
+buttons vs. exhaustive field disabling — proposed: banner + hidden primary actions, rely on API
+write-block); whether `/account/suspended` should auto-sign-out or just offer the button.
