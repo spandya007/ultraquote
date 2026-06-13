@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, FileText, PenLine, Send, Package, Users, ShieldCheck, Building2, BookTemplate,
+  LayoutDashboard, FileText, PenLine, Send, Package, Users, BookTemplate, Settings,
 } from "lucide-react";
 
 // Curated, user-facing help content. Single source of truth for the in-app
@@ -223,7 +223,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: "clients",
     title: "Clients",
-    icon: Building2,
+    icon: Users,
     sections: [
       {
         heading: "Adding a client",
@@ -274,9 +274,9 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
-    id: "security",
-    title: "Account & security",
-    icon: ShieldCheck,
+    id: "settings",
+    title: "Settings & account",
+    icon: Settings,
     sections: [
       {
         heading: "Appearance (dark mode & themes)",

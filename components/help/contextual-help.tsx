@@ -13,7 +13,7 @@ function topicFor(path: string): string | null {
   if (path.startsWith("/clients")) return "clients";
   if (path.startsWith("/products")) return "products";
   if (path.startsWith("/templates")) return "templates";
-  if (path.startsWith("/settings")) return "security";
+  if (path.startsWith("/settings")) return "settings";
   return "getting-started";
 }
 
