@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadSerializeInput } from "@/lib/pdf/load";
 import { buildSigningHtml } from "@/lib/pdf/serialize";
 import { docusealConfigured, createHtmlSubmission, archiveSubmission, type DocusealSubmitter } from "@/lib/docuseal";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   if (!docusealConfigured()) {
     return NextResponse.json({ error: "E-signature not configured. Set DOCUSEAL_API_TOKEN." }, { status: 501 });

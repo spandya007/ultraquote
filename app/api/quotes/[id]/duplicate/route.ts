@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 // Clones a quote (metadata + document) plus all its scenarios and line items
 // into a brand-new draft quote with a fresh quote number.
@@ -13,6 +14,9 @@ export async function POST(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   const { data: userData } = await db
     .from("users").select("tenant_id").eq("id", user.id).single() as { data: { tenant_id: string } | null };

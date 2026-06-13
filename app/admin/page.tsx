@@ -4,13 +4,19 @@ import type { TenantInvite, User } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-interface TenantRowDb { id: string; name: string; email: string | null; created_at: string }
+interface TenantRowDb {
+  id: string; name: string; email: string | null; created_at: string;
+  subscription_start: string | null; subscription_end: string | null;
+  subscription_term: string | null; platform_enabled: boolean; suspended_reason: string | null;
+}
 
 export default async function AdminPage() {
   const admin = createAdminClient();
 
   const [tenantsRes, usersRes, quotesRes, invitesRes] = await Promise.all([
-    admin.from("tenants").select("id, name, email, created_at").order("created_at"),
+    admin.from("tenants").select(
+      "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason"
+    ).order("created_at"),
     admin.from("users").select("id, tenant_id, email, full_name, role"),
     admin.from("quotes").select("id, tenant_id"),
     admin.from("tenant_invites").select("*").order("created_at", { ascending: false }),
@@ -36,6 +42,11 @@ export default async function AdminPage() {
       owner_email: owner?.email ?? null,
       owner_name: owner?.full_name ?? null,
       invite: ownerInvite,
+      subscription_start: t.subscription_start,
+      subscription_end: t.subscription_end,
+      subscription_term: (t.subscription_term as AdminTenantRow["subscription_term"]) ?? null,
+      platform_enabled: t.platform_enabled ?? true,
+      suspended_reason: t.suspended_reason,
     };
   });
 

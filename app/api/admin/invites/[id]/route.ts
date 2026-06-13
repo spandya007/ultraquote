@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatformAdminUser } from "@/lib/platform-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resendInvite, revokeInvite } from "@/lib/invites";
+import { resendInvite, revokeInvite, changeInviteEmail } from "@/lib/invites";
 import type { TenantInvite } from "@/types";
 
-// Platform-admin actions on any invite: { action: "resend" | "revoke" }
+// Platform-admin actions on any invite:
+//   { action: "resend" | "revoke" }
+//   { action: "change_email", email, full_name? }
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -12,7 +14,7 @@ export async function POST(
   const adminUser = await getPlatformAdminUser();
   if (!adminUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: { action?: string };
+  let body: { action?: string; email?: string; full_name?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const admin = createAdminClient();
@@ -31,6 +33,15 @@ export async function POST(
 
   if (body.action === "revoke") {
     const result = await revokeInvite(invite as TenantInvite);
+    if (result.error) return NextResponse.json({ error: result.error }, { status: 409 });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "change_email") {
+    if (!body.email) return NextResponse.json({ error: "email is required" }, { status: 400 });
+    const result = await changeInviteEmail(
+      invite as TenantInvite, body.email, request.nextUrl.origin, body.full_name
+    );
     if (result.error) return NextResponse.json({ error: result.error }, { status: 409 });
     return NextResponse.json({ ok: true });
   }

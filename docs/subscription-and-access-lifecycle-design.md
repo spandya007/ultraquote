@@ -334,7 +334,18 @@ New API route (owner-guarded):
 
 ---
 
-## 9. Build order
+## 9. Build order — ✅ IMPLEMENTED (branch `feature/subscription-access`, pending test)
+
+Steps 1–6 built (migration 012 run on dev). Files: `lib/access/access-state.ts` (resolver),
+`lib/access/guard.ts` (`requireWriteAccess`), `lib/access/subscription.ts` (date math + status),
+`/account/suspended` + `/account/disabled` pages, gate in `app/(dashboard)/layout.tsx`,
+`components/account/subscription-banner.tsx`, admin Subscription panel + Manage modal + invite-time
+dates (`components/admin/admin-client.tsx`, `/api/admin/tenants/[id]/{subscription,status}`,
+extended invite route), owner Team toggle + `components/settings/subscription-card.tsx`
+(`/api/team/members/[id]/status`), write-guard wired into quote create/duplicate/send/apply-pricing
++ AI write + product import, Help content (Team topic). Phase 2 (email cron, RLS hardening) not yet
+built. Original plan below for reference.
+
 
 1. **Migration 012** — columns + backfill + read/write access helpers (`tenant_can_read/write`,
    `user_can_read/write`).

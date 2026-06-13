@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parseCsvText } from "@/lib/import/csv-products";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 // Use a loosely typed Supabase client alias for bulk upsert operations
 // to avoid TypeScript fighting over strict union literal types in our Database type.
@@ -13,6 +14,9 @@ export async function POST(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   // Get the tenant_id for this user
   const { data: userData } = await db

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireWriteAccess } from "@/lib/access/guard";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -8,6 +9,9 @@ export async function POST(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const gate = await requireWriteAccess();
+  if ("response" in gate) return gate.response;
 
   // Get tenant
   const { data: userData } = await db
