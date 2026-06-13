@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/ui/sidebar";
 import { IdleTimeout } from "@/components/auth/idle-timeout";
+import { ContextualHelp } from "@/components/help/contextual-help";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -62,6 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <main className="flex-1 overflow-y-auto bg-muted/20">
         {children}
       </main>
+      <ContextualHelp />
     </div>
   );
 }

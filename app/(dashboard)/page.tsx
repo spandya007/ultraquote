@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { DollarSign, Repeat, CheckCircle2, Users, FileText, Clock, ArrowRight } from "lucide-react";
 import type { QuoteStatus } from "@/types";
 import { STATUS_STYLES, effectiveStatus, isStaleDraft } from "@/lib/quote-status";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,8 @@ export default async function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
-  const [{ data: quotesRaw }, { count: clientCount }, { data: settings }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: quotesRaw }, { count: clientCount }, { data: settings }, { count: productCount }, { data: tenant }, { data: me }] = await Promise.all([
     db.from("quotes").select(`
       id, quote_number, title, status, valid_until, created_at, updated_at,
       client:clients(company_name),
@@ -43,6 +45,9 @@ export default async function DashboardPage() {
     `).order("created_at", { ascending: false }),
     db.from("clients").select("*", { count: "exact", head: true }).eq("is_active", true),
     db.from("tenant_settings").select("default_valid_days").maybeSingle(),
+    db.from("products").select("*", { count: "exact", head: true }),
+    db.from("tenants").select("logo_url").maybeSingle(),
+    db.from("users").select("role").eq("id", user?.id ?? "").maybeSingle(),
   ]);
 
   const validDays: number = settings?.default_valid_days ?? 30;
@@ -84,6 +89,16 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Your pipeline at a glance</p>
       </div>
+
+      <OnboardingChecklist
+        isOwner={me?.role === "owner"}
+        steps={{
+          logo: !!tenant?.logo_url,
+          products: (productCount ?? 0) > 0,
+          clients: (clientCount ?? 0) > 0,
+          quotes: quotes.length > 0,
+        }}
+      />
 
       {/* Top stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
