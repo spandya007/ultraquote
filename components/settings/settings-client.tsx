@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, SlidersHorizontal, Upload, Trash2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
@@ -60,6 +61,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
   const toast = useToast();
+  const router = useRouter();
 
   // ── Logo state ──────────────────────────────────────────────────────────────
   const [logoUrl,      setLogoUrl]      = useState<string | null>(tenant?.logo_url ?? null);
@@ -113,9 +115,10 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   }
 
   // ── Tenant profile state ──────────────────────────────────────────────────
-  // name + email are platform-managed → read-only, no setter needed.
-  const [name]  = useState(tenant?.name  ?? "");
-  const [email] = useState(tenant?.email ?? "");
+  // name + email are platform-managed → read directly from the latest server
+  // props (not local state) so an admin-side change shows after a refresh.
+  const name = tenant?.name ?? "";
+  const email = tenant?.email ?? "";
   const [contactName, setContactName] = useState(tenant?.contact_name ?? "");
   const [phone,       setPhone]       = useState(tenant?.phone        ?? "");
   const [address,     setAddress]     = useState(tenant?.address      ?? "");
@@ -176,6 +179,18 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
     // Sync display state (capitalised prefix)
     setPrefix(prefixClean);
   }
+
+  // Platform-managed fields (Company Name / Contact Email) can change from the
+  // /admin console in a different session, so poll the server to pick those up.
+  // Skipped while the tab is hidden or a save/upload is in flight (avoid
+  // refreshing mid-action). router.refresh() preserves typed-in field state.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.hidden || savingProfile || savingDefaults || uploadingLogo) return;
+      router.refresh();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [router, savingProfile, savingDefaults, uploadingLogo]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
