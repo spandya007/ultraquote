@@ -155,14 +155,16 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               className={inputCls} placeholder="New MSP, Inc." />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Contact email</label>
+            <label className="text-sm font-medium">Company contact email</label>
             <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
-              className={inputCls} placeholder="billing@newmsp.com (defaults to owner email)" />
+              className={inputCls} placeholder="billing@newmsp.com" />
+            <p className="text-xs text-muted-foreground">Shown on the tenant record. Defaults to the owner login email if left blank.</p>
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Owner email *</label>
+            <label className="text-sm font-medium">Owner login email *</label>
             <input required type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)}
               className={inputCls} placeholder="owner@newmsp.com" />
+            <p className="text-xs text-muted-foreground">The address the owner signs in with. The invite is sent here.</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Owner name</label>
@@ -391,7 +393,7 @@ function ChangeInviteEmailModal({
             Enter the correct address — we’ll cancel the old invite and email the new one.
           </p>
           <div className="space-y-1">
-            <label className="text-sm font-medium">New owner email *</label>
+            <label className="text-sm font-medium">New owner login email *</label>
             <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)}
               className={inputCls} placeholder="owner@newmsp.com" autoFocus />
           </div>
@@ -506,7 +508,7 @@ function ManageSubscriptionModal({
                 <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Acme MSP" />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Contact email</label>
+                <label className="text-sm font-medium">Company contact email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="hello@acmemsp.com" />
               </div>
             </div>
