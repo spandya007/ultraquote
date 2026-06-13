@@ -1407,7 +1407,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   getItems={async (query) =>
                     filterSuggestionItems(
                       [
-                        ...getDefaultReactSlashMenuItems(editor),
+                        // Drop Video/Audio/File — they never render in the PDF.
+                        ...getDefaultReactSlashMenuItems(editor).filter(
+                          (item) => !["Video", "Audio", "File"].includes((item as { title?: string }).title ?? "")
+                        ),
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
                         getSignatureSlashItem(editor),
