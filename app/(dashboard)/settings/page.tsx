@@ -1,3 +1,4 @@
+import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsClient } from "@/components/settings/settings-client";
 import { TeamCard } from "@/components/settings/team-card";
@@ -5,7 +6,12 @@ import { ChangePasswordCard } from "@/components/settings/change-password-card";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 import { MfaCard } from "@/components/settings/mfa-card";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mfa?: string }>;
+}) {
+  const recovered = (await searchParams)?.mfa === "recovered";
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -36,6 +42,16 @@ export default async function SettingsPage() {
           Manage your company profile and quote defaults.
         </p>
       </div>
+
+      {recovered && (
+        <div className="flex items-start gap-2.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-4 py-3 text-sm">
+          <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            You signed in with a recovery code, so <strong>two-factor authentication was turned off</strong>.
+            Re-enable it below (you’ll set up your authenticator again and get a fresh set of recovery codes) to stay protected.
+          </span>
+        </div>
+      )}
       <SettingsClient
         tenantId={tenantId}
         tenant={tenant}
