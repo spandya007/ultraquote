@@ -113,9 +113,10 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   }
 
   // ── Tenant profile state ──────────────────────────────────────────────────
-  const [name,        setName]        = useState(tenant?.name         ?? "");
+  // name + email are platform-managed → read-only, no setter needed.
+  const [name]  = useState(tenant?.name  ?? "");
+  const [email] = useState(tenant?.email ?? "");
   const [contactName, setContactName] = useState(tenant?.contact_name ?? "");
-  const [email,       setEmail]       = useState(tenant?.email        ?? "");
   const [phone,       setPhone]       = useState(tenant?.phone        ?? "");
   const [address,     setAddress]     = useState(tenant?.address      ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -132,12 +133,11 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   // ── Save handlers ─────────────────────────────────────────────────────────
 
   async function saveProfile() {
-    if (!name.trim()) { toast.error("Company name is required"); return; }
     setSavingProfile(true);
+    // name + email are platform-managed (read-only here, enforced by the
+    // protect_tenant_admin_fields trigger) — deliberately not sent.
     const { error } = await db.from("tenants").update({
-      name:         name.trim(),
       contact_name: contactName.trim() || null,
-      email:        email.trim()       || null,
       phone:        phone.trim()       || null,
       address:      address.trim()     || null,
     }).eq("id", tenantId);
@@ -233,13 +233,14 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Company Name *</label>
+          <label className="text-sm font-medium">Company Name</label>
           <input
             value={name}
-            onChange={e => setName(e.target.value)}
-            className={inputCls(!name.trim())}
-            placeholder="Acme MSP"
+            readOnly
+            className={`${inputCls()} bg-muted/50 cursor-not-allowed text-muted-foreground`}
+            title="Managed by UltraQuote"
           />
+          <p className="text-xs text-muted-foreground">Managed by UltraQuote — contact us to change.</p>
         </div>
 
         <div className="space-y-1">
@@ -254,14 +255,15 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Email</label>
+            <label className="text-sm font-medium">Contact Email</label>
             <input
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              className={inputCls()}
-              placeholder="hello@acmemsp.com"
+              readOnly
+              className={`${inputCls()} bg-muted/50 cursor-not-allowed text-muted-foreground`}
+              title="Managed by UltraQuote"
             />
+            <p className="text-xs text-muted-foreground">Managed by UltraQuote.</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Phone</label>

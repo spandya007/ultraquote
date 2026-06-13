@@ -417,6 +417,9 @@ function ManageSubscriptionModal({
   row, onClose, onSaved,
 }: { row: AdminTenantRow; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
+  const [name, setName] = useState(row.name);
+  const [email, setEmail] = useState(row.contact_email ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
   const [start, setStart] = useState(row.subscription_start ?? todayIso());
   const [term, setTerm] = useState<SubscriptionTerm | "">(row.subscription_term ?? "");
   const [customEnd, setCustomEnd] = useState(row.subscription_term === "custom" ? (row.subscription_end ?? "") : "");
@@ -428,6 +431,24 @@ function ManageSubscriptionModal({
     term === "" ? null
     : term === "custom" ? (customEnd || null)
     : computeEndDate(start, term);
+
+  async function saveProfile() {
+    if (!name.trim()) { toast.error("Company name is required"); return; }
+    setSavingProfile(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${row.id}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed to save"); return; }
+      toast.success("Company details updated");
+      onSaved();
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function saveSubscription() {
     if (term === "custom" && !customEnd) { toast.error("A custom term requires an end date"); return; }
@@ -476,6 +497,27 @@ function ManageSubscriptionModal({
         </div>
 
         <div className="px-6 py-5 space-y-5">
+          {/* Company details (platform-managed; tenants can't edit these) */}
+          <div className="space-y-3">
+            <div className="text-sm font-medium">Company details</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Company name *</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Acme MSP" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Contact email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="hello@acmemsp.com" />
+              </div>
+            </div>
+            <button onClick={saveProfile} disabled={savingProfile}
+              className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              {savingProfile && <Loader2 className="w-4 h-4 animate-spin" />} Save company details
+            </button>
+          </div>
+
+          <hr className="border-border" />
+
           {/* Subscription */}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
