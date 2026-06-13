@@ -18,7 +18,9 @@
       "mcp__d6d6d015-1397-4051-b84d-1ac638f82cb2__firecrawl_search_feedback",
       "Bash(git -C /Users/sameer/ultraquote status --short)",
       "Bash(git -C /Users/sameer/ultraquote log --oneline -1)",
-      "Bash(git commit -q -m 'Quote editor: '\\\\''Refresh prices from catalog'\\\\'' action *)"
+      "Bash(git commit -q -m 'Quote editor: '\\\\''Refresh prices from catalog'\\\\'' action *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git commit -q -m 'Step 6: Help content for subscription, read-only grace, and member enable/disable \\(Team topic\\) *)"
     ]
   }
 }

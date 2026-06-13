@@ -271,6 +271,35 @@ export const HELP_TOPICS: HelpTopic[] = [
           p("Saves are last-write-wins, so coordinate (or duplicate) rather than co-typing the same document at once."),
         ],
       },
+      {
+        heading: "Your subscription",
+        ownerOnly: true,
+        blocks: [
+          p("Settings → Subscription shows your plan’s start and end dates. Everyone on your team shares the same subscription period — when you add a new user, their access runs to the same end date as everyone else’s."),
+          p("You’ll see a reminder banner when your subscription is within 7 days of ending. Subscription dates are managed by UltraQuote — to renew or change your plan, contact UltraQuote."),
+        ],
+      },
+      {
+        heading: "After the end date (read-only grace)",
+        ownerOnly: true,
+        blocks: [
+          p("If your subscription lapses, your team isn’t locked out immediately. For a short grace period everyone can still view quotes and data but can’t create, edit, or send — a red banner shows how long you have. Renewing restores full access; if the grace period passes without renewal, access is paused until you renew."),
+        ],
+      },
+      {
+        heading: "Pausing a user (Enable / Disable)",
+        ownerOnly: true,
+        blocks: [
+          p("On Settings → Team you can Disable any team member to immediately block their access — useful when someone leaves or is away — without deleting them or their quotes. Toggle them back to Enable to restore access instantly. You can’t disable yourself (the owner)."),
+          p("Disabling is different from revoking an invite: revoke is for people who haven’t accepted yet; disable is for active users."),
+        ],
+      },
+      {
+        heading: "If your team can’t sign in",
+        blocks: [
+          p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, the user was disabled on the Team page, or UltraQuote has suspended the account. Contact UltraQuote if your whole team is locked out."),
+        ],
+      },
     ],
   },
   {
