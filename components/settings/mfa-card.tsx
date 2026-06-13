@@ -45,9 +45,13 @@ export function MfaCard() {
   async function startEnroll() {
     setBusy(true); setError(null);
     try {
+      // On localhost (the dev project) suffix the issuer so the dev and prod
+      // authenticator entries are distinguishable; prod stays "UltraQuote Builder".
+      const isDev = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+      const issuer = isDev ? "UltraQuote Builder (Dev)" : "UltraQuote Builder";
       const { data, error: e } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        issuer: "UltraQuote Builder",
+        issuer,
         friendlyName: `UltraQuote (${new Date().toISOString()})`,
       });
       if (e) throw e;
