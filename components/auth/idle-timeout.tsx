@@ -7,8 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 // Cross-tab via a shared localStorage timestamp: activity in any tab keeps all
 // alive; an idle logout in one tab signs out the others. (Supabase's own
 // server-side session timeouts are Pro-only — pair with these when on Pro.)
+
+//const IDLE_LIMIT_MS = 1 * 60 * 1000;   // 1 min total
+//const WARN_MS = 0.5 * 60 * 1000;          // warn for the final 30 s
+
+
 const IDLE_LIMIT_MS = 30 * 60 * 1000;   // 30 min total
 const WARN_MS = 2 * 60 * 1000;          // warn for the final 2 min
+
 const WRITE_THROTTLE_MS = 5000;
 const KEY = "ultraquote.lastActivity";
 const LOGOUT_KEY = "ultraquote.idleLogout";

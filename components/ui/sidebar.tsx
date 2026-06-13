@@ -13,6 +13,7 @@ import {
   Package,
   BookTemplate,
   Settings,
+  HelpCircle,
   ShieldCheck,
   LogOut,
   PanelLeftClose,
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/products",  label: "Products",   icon: Package },
   { href: "/templates", label: "Templates",  icon: BookTemplate },
   { href: "/settings",  label: "Settings",   icon: Settings },
+  { href: "/help",      label: "Help",       icon: HelpCircle },
 ];
 
 export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; userName?: string }) {
