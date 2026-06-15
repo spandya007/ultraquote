@@ -25,7 +25,7 @@ Tip: date-dependent logic uses `vi.useFakeTimers()` + `vi.setSystemTime(...)` so
 - `lib/pdf/serialize.ts` — `calcTotals` and the discount (% vs $) + setup-fee + tax math (highest-value: silent money bugs). Consider snapshot tests for the HTML serializer.
 - `lib/access/access-state.ts` — extract the input→state precedence into a pure function and test the five-state resolution without the DB.
 
-## Phase 2 (in progress): RLS / multi-tenant security
+## Phase 2 (done): RLS / multi-tenant security
 Runs against a **local Supabase** stack (Docker via Colima) — never cloud dev/prod.
 
 **One-time setup**
@@ -44,13 +44,18 @@ Runs against a **local Supabase** stack (Docker via Colima) — never cloud dev/
 transaction, and switches role via `set local role` + `request.jwt.claims` so `auth.uid()` behaves
 exactly like PostgREST. `tests/rls/fixtures.ts` holds the seeded tenant/user UUIDs.
 
-**Covered so far** (`tests/rls/`): tenant isolation on `clients` (read + WITH CHECK on insert), the
-`protect_tenant_admin_fields` trigger (013), and the `tenant_can_read/write` + `user_can_read/write`
-helpers (012: unlimited / grace / expired / suspended / disabled-user).
+**Covered** (`tests/rls/`, 22 tests):
+- **Tenant isolation** — clients, quotes, products, templates (a tenant only sees its own rows).
+- **WITH CHECK** — a member can't insert clients/quotes into another tenant.
+- **Creator-or-owner write** — quotes & templates: a member edits their own, not a teammate's; the
+  tenant owner edits any; read is tenant-wide.
+- **Owner-only write** — products (insert/update) and tenant settings: members are blocked.
+- **`protect_tenant_admin_fields` trigger** (013) — tenant user can't change Company Name; service role can.
+- **`tenant_can_read/write` + `user_can_read/write`** (012) — unlimited / grace / expired / suspended /
+  disabled-user.
 
-**Still to add**: quotes + products isolation, creator-or-owner edit on quotes/templates, owner-only
-products/settings writes. (And optionally a CI job that boots Supabase to run these — deferred to keep
-the main CI fast/DB-free.)
+**Optional later**: a CI job that boots Supabase to run these in GitHub Actions — deferred to keep the
+main CI fast and DB-free (run `npm run test:rls` locally instead).
 
 ## Phase 3 — not built
 - **E2E smoke** (Playwright): login → create quote → add line item → Preview; plus an access-gate flow
