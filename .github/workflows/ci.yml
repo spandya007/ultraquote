@@ -1,0 +1,21 @@
+name: CI
+
+# Runs on GitHub-hosted runners — independent of Netlify (does NOT trigger a
+# deploy or consume Netlify build minutes).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm test
