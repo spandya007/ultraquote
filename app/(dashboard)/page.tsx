@@ -83,7 +83,7 @@ export default async function DashboardPage() {
   const recent = quotes.slice(0, 6);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <RefreshOnMount />
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>

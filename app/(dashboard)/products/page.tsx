@@ -19,7 +19,7 @@ export default async function ProductsPage() {
   ]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ProductsClient
         initialProducts={products ?? []}
         categories={categories ?? []}

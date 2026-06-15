@@ -305,8 +305,8 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-lg border overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-muted/50">
             <tr>
               <SortHeader label="Name" col="name" sort={sort} onSort={toggle} />

@@ -236,8 +236,8 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           )}
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-muted/50">
               <tr>
                 <SortHeader label="Quote #" col="number" sort={sort} onSort={toggle} />
