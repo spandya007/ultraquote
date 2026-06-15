@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, FileText, Copy, Loader2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
 import type { QuoteStatus } from "@/types";
 import { STATUS_STYLES, effectiveStatus, isStaleDraft } from "@/lib/quote-status";
+import { useSort, SortHeader } from "@/components/ui/sortable";
 import { NewQuoteModal } from "./new-quote-modal";
 
 interface QuoteRow {
@@ -127,6 +128,20 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
     });
   }, [visibleQuotes, search, filterStatus, filterClient, filterOwner, currentUserId]);
 
+  const quoteValue = useCallback((q: QuoteRow, key: string) => {
+    switch (key) {
+      case "number":     return q.quote_number;
+      case "client":     return q.client?.company_name ?? "";
+      case "title":      return q.title ?? "";
+      case "status":     return effectiveStatus(q);
+      case "valid_until":return q.valid_until ? new Date(q.valid_until).getTime() : null;
+      case "created_by": return q.creator?.full_name || q.creator?.email || "";
+      case "created":    return q.created_at ? new Date(q.created_at).getTime() : null;
+      default:           return null;
+    }
+  }, []);
+  const { sorted, sort, toggle } = useSort(filtered, quoteValue, { key: "created", dir: "desc" });
+
   return (
     <>
       {/* Header */}
@@ -225,18 +240,18 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Quote #</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valid Until</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground" title="Only the creator (and the tenant owner) can edit a quote — everyone else sees it read-only">Created by</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>
+                <SortHeader label="Quote #" col="number" sort={sort} onSort={toggle} />
+                <SortHeader label="Client" col="client" sort={sort} onSort={toggle} />
+                <SortHeader label="Title" col="title" sort={sort} onSort={toggle} />
+                <SortHeader label="Status" col="status" sort={sort} onSort={toggle} />
+                <SortHeader label="Valid Until" col="valid_until" sort={sort} onSort={toggle} />
+                <SortHeader label="Created by" col="created_by" sort={sort} onSort={toggle} title="Only the creator (and the tenant owner) can edit a quote — everyone else sees it read-only" />
+                <SortHeader label="Created" col="created" sort={sort} onSort={toggle} />
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((q) => (
+              {sorted.map((q) => (
                 <tr
                   key={q.id}
                   onClick={() => router.push(`/quotes/${q.id}`)}
