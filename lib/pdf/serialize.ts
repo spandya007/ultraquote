@@ -109,17 +109,18 @@ function alignStyle(props: Record<string, unknown> | undefined): string {
 // ─── Scenario pricing table ─────────────────────────────────────────────────────
 
 // Revenue after the line's discount (percent and/or fixed amount, floored at 0).
-function lineRev(i: { quantity: number; unit_price: number | null; discount_percent?: number | null; discount_amount?: number | null }) {
+// Exported for unit testing (lib/pdf/serialize.test.ts).
+export function lineRev(i: { quantity: number; unit_price: number | null; discount_percent?: number | null; discount_amount?: number | null }) {
   const gross = i.quantity * (i.unit_price ?? 0);
   return Math.max(gross * (1 - (i.discount_percent ?? 0) / 100) - (i.discount_amount ?? 0), 0);
 }
 
 // One-time setup fee for a line (per-unit), regardless of billing period.
-function lineSetup(i: { quantity: number; setup_price?: number | null }) {
+export function lineSetup(i: { quantity: number; setup_price?: number | null }) {
   return i.quantity * (i.setup_price ?? 0);
 }
 
-function calcTotals(s: SerializeScenario, taxRate: number) {
+export function calcTotals(s: SerializeScenario, taxRate: number) {
   const monthly = s.line_items.filter(i => i.billing_period === "Monthly").reduce((sum, i) => sum + lineRev(i), 0);
   const setup = s.line_items.reduce((sum, i) => sum + lineSetup(i), 0);
   // Setup fees are one-time → fold into the one-time total.
