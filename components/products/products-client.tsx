@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Upload, Plus, ChevronDown, Check, X, HelpCircle, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
 import type { ProductCategory } from "@/types";
+import { useSort, SortHeader } from "@/components/ui/sortable";
 import { ProductDrawer } from "./product-drawer";
 
 // Supabase join returns nested objects — match that shape here
@@ -91,6 +92,25 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
       return true;
     });
   }, [products, search, filterCategory, filterType, filterActive]);
+
+  const productValue = useCallback((p: ProductRow, key: string) => {
+    const dt = p.pricing_tiers.find((t) => t.is_default) ?? p.pricing_tiers[0];
+    const cost = dt?.unit_cost ?? p.unit_cost;
+    const price = dt?.unit_price ?? p.unit_price;
+    switch (key) {
+      case "name":     return p.name;
+      case "category": return p.category?.name ?? "";
+      case "type":     return p.item_type ?? "";
+      case "billing":  return p.billing_period ?? "";
+      case "cost":     return cost ?? null;
+      case "price":    return price ?? null;
+      case "margin":   return price && cost && price > 0 ? (price - cost) / price : null;
+      case "tiers":    return p.pricing_tiers.length;
+      case "active":   return p.is_active;
+      default:         return null;
+    }
+  }, []);
+  const { sorted, sort, toggle } = useSort(filtered, productValue, { key: "name", dir: "asc" });
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -283,15 +303,15 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Billing</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">Cost</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">Price</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">Margin</th>
-              <th className="text-center px-4 py-3 font-medium text-muted-foreground">Tiers</th>
-              <th className="text-center px-4 py-3 font-medium text-muted-foreground">Active</th>
+              <SortHeader label="Name" col="name" sort={sort} onSort={toggle} />
+              <SortHeader label="Category" col="category" sort={sort} onSort={toggle} />
+              <SortHeader label="Type" col="type" sort={sort} onSort={toggle} />
+              <SortHeader label="Billing" col="billing" sort={sort} onSort={toggle} />
+              <SortHeader label="Cost" col="cost" sort={sort} onSort={toggle} align="right" />
+              <SortHeader label="Price" col="price" sort={sort} onSort={toggle} align="right" />
+              <SortHeader label="Margin" col="margin" sort={sort} onSort={toggle} align="right" />
+              <SortHeader label="Tiers" col="tiers" sort={sort} onSort={toggle} align="center" />
+              <SortHeader label="Active" col="active" sort={sort} onSort={toggle} align="center" />
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -304,7 +324,7 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
                 </td>
               </tr>
             ) : (
-              filtered.map((p) => {
+              sorted.map((p) => {
                 const defaultTier = p.pricing_tiers.find((t) => t.is_default) ?? p.pricing_tiers[0];
                 const cost = defaultTier?.unit_cost ?? p.unit_cost;
                 const price = defaultTier?.unit_price ?? p.unit_price;
