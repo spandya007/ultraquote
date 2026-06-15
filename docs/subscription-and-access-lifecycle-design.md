@@ -334,9 +334,9 @@ New API route (owner-guarded):
 
 ---
 
-## 9. Build order — ✅ IMPLEMENTED (branch `feature/subscription-access`, pending test)
+## 9. Build order — ✅ SHIPPED (merged to main e5ccfff; deployed + tested on prod 2026-06-14)
 
-Steps 1–6 built (migration 012 run on dev). Files: `lib/access/access-state.ts` (resolver),
+Steps 1–6 built; migrations 012–013 run on dev + prod. Files: `lib/access/access-state.ts` (resolver),
 `lib/access/guard.ts` (`requireWriteAccess`), `lib/access/subscription.ts` (date math + status),
 `/account/suspended` + `/account/disabled` pages, gate in `app/(dashboard)/layout.tsx`,
 `components/account/subscription-banner.tsx`, admin Subscription panel + Manage modal + invite-time
