@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Upload, Plus, ChevronDown, Check, X, HelpCircle, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -57,7 +57,13 @@ export function ProductsClient({ initialProducts, categories, isOwner }: Props) 
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [products, setProducts] = useState<ProductRow[]>(initialProducts);
+  // Use the server prop directly (don't freeze it in state) so the list always
+  // reflects the latest fetch after a save/import/refresh. (useState(initialProducts)
+  // would ignore prop updates from router.refresh() and show stale rows.)
+  const products = initialProducts;
+  // Re-fetch on every visit — the App Router client cache can serve a stale
+  // payload on soft navigation back to /products.
+  useEffect(() => { router.refresh(); }, [router]);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
