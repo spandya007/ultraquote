@@ -81,8 +81,9 @@ No rights are granted except as expressly stated.
 ## 7. Third-party services (sub-processors)
 The Service relies on third-party providers to function, and Customer Content may be processed by
 them, including: **Supabase** (database, authentication, file storage), **Google (Gemini)** (AI text
-generation), **DocuSeal** (electronic signatures), **Railway** (PDF rendering), and [EMAIL PROVIDER]
-(transactional email). Your use of the Service is also subject to those providers' terms where
+generation), **DocuSeal** (electronic signatures), **Railway** (PDF rendering), **Netlify**
+(application hosting), and **Zoho Mail** (transactional email). Your use of the Service is also
+subject to those providers' terms where
 applicable. We are not responsible for third-party services outside our control. [Maintain a current
 sub-processor list and reference it in the Privacy Policy.]
 
@@ -153,5 +154,5 @@ Questions about these Terms: **[CONTACT EMAIL]**, [LEGAL ENTITY NAME], [ADDRESS]
 
 ### Placeholders to fill before publishing
 `[LEGAL ENTITY NAME]` · `[EFFECTIVE DATE]` · `[STATE / COUNTRY]` · `[CONTACT EMAIL]` · `[ADDRESS]` ·
-`[EMAIL PROVIDER]` · refund policy (4.5) · fee/payment terms (4.4) · retention period (9.3) ·
+refund policy (4.5) · fee/payment terms (4.4) · retention period (9.3) ·
 liability cap period (13) · SLA (12, if any) · arbitration/venue (16).

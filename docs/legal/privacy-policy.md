@@ -47,8 +47,8 @@ We share information with vendors who process it on our behalf to run the Servic
 - **Google (Gemini API)** — AI text generation for content you choose to generate/extract.
 - **DocuSeal** — electronic signature processing for proposals you send to sign.
 - **Railway** — server-side PDF rendering.
-- **[EMAIL PROVIDER]** — transactional email delivery.
-- **[HOSTING/CDN, e.g. Netlify]** — application hosting.
+- **Zoho Mail** — transactional email delivery (invites, password resets, notifications).
+- **Netlify** — application hosting.
 
 [Keep this list current; consider publishing a dedicated sub-processor page. Confirm each provider's
 data-processing terms and regions.]
@@ -95,6 +95,6 @@ representative and/or DPO.]
 ---
 
 ### Placeholders to fill before publishing
-`[LEGAL ENTITY NAME]` · `[EFFECTIVE DATE]` · `[CONTACT EMAIL]` · `[ADDRESS]` · `[EMAIL PROVIDER]` ·
-`[HOSTING/CDN]` · retention period (6) · GDPR legal bases (2) · CCPA/CPRA disclosures (3, 8) ·
+`[LEGAL ENTITY NAME]` · `[EFFECTIVE DATE]` · `[CONTACT EMAIL]` · `[ADDRESS]` ·
+retention period (6) · GDPR legal bases (2) · CCPA/CPRA disclosures (3, 8) ·
 AI provider data-use terms (4) · DPA / sub-processor page (3).
