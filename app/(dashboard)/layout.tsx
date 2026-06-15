@@ -87,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex h-screen overflow-hidden">
       <IdleTimeout />
       <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} userName={firstName} />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
+      <main className="flex-1 overflow-y-auto bg-muted/20 pt-14 md:pt-0">
         {banner && <SubscriptionBanner {...banner} />}
         {children}
       </main>

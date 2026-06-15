@@ -20,6 +20,8 @@ import {
   PanelLeftOpen,
   Sun,
   Moon,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -53,6 +55,22 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
     });
   }
 
+  // Mobile: the sidebar becomes an off-canvas drawer with a hamburger top bar.
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  // Close the drawer on navigation.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // The icon-rail collapse is a desktop affordance only; the mobile drawer
+  // always shows the full (expanded) layout.
+  const rail = collapsed && !isMobile;
+
   async function signOut() {
     setSigningOut(true);
     await createClient().auth.signOut();
@@ -66,24 +84,47 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
       <Link
         key={href}
         href={href}
-        title={collapsed ? label : undefined}
+        title={rail ? label : undefined}
         className={cn(
           "flex items-center rounded-md text-sm font-medium transition-colors",
-          collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
+          rail ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
           active
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
       >
         <Icon className="w-4 h-4 shrink-0" />
-        {!collapsed && label}
+        {!rail && label}
       </Link>
     );
   };
 
   return (
-    <aside className={cn("shrink-0 border-r bg-card flex flex-col h-screen transition-[width] duration-200", collapsed ? "w-16" : "w-60")}>
-      {collapsed ? (
+    <>
+      {/* Mobile top bar with hamburger (hidden on md+) */}
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 z-30 flex items-center gap-3 px-4 border-b bg-card">
+        <button onClick={() => setMobileOpen(true)} aria-label="Open menu" className="p-1.5 rounded hover:bg-muted text-muted-foreground">
+          <Menu className="w-5 h-5" />
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md" />
+        <span className="font-semibold truncate">{brandName || "UltraQuote"}</span>
+      </div>
+
+      {/* Backdrop when the mobile drawer is open */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside
+        className={cn(
+          "border-r bg-card flex flex-col h-screen z-50 shrink-0 transition-[width,transform] duration-200",
+          "fixed inset-y-0 left-0 md:static md:z-auto md:translate-x-0",
+          rail ? "w-16" : "w-60",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+      {rail ? (
         <div className="px-2 py-3 border-b flex flex-col items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon-192.png" alt="UltraQuote" className="w-8 h-8 rounded-md" />
@@ -99,9 +140,15 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
                 Hello, {userName} <span aria-hidden>👋</span>
               </div>
             ) : <span />}
-            <button onClick={toggleCollapsed} title="Collapse sidebar" className="p-1 rounded hover:bg-muted text-muted-foreground shrink-0">
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
+            {isMobile ? (
+              <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="p-1 rounded hover:bg-muted text-muted-foreground shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <button onClick={toggleCollapsed} title="Collapse sidebar" className="p-1 rounded hover:bg-muted text-muted-foreground shrink-0">
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -130,29 +177,31 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
         {/* Dark-mode quick toggle (full picker is in Settings → Appearance) */}
         <button
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          title={collapsed ? "Toggle dark mode" : undefined}
+          title={rail ? "Toggle dark mode" : undefined}
           className={cn(
             "w-full flex items-center rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-            collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
+            rail ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
           )}
         >
           {mounted && resolvedTheme === "dark"
             ? <Sun className="w-4 h-4 shrink-0" />
             : <Moon className="w-4 h-4 shrink-0" />}
-          {!collapsed && (mounted && resolvedTheme === "dark" ? "Light mode" : "Dark mode")}
+          {!rail && (mounted && resolvedTheme === "dark" ? "Light mode" : "Dark mode")}
         </button>
         <button
           onClick={() => setConfirmOpen(true)}
-          title={collapsed ? "Sign out" : undefined}
+          title={rail ? "Sign out" : undefined}
           className={cn(
             "w-full flex items-center rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-            collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
+            rail ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
           )}
         >
           <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && "Sign out"}
+          {!rail && "Sign out"}
         </button>
       </div>
+
+    </aside>
 
       {confirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -181,6 +230,6 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
           </div>
         </div>
       )}
-    </aside>
+    </>
   );
 }

@@ -11,7 +11,7 @@ export default async function ClientsPage() {
   ]);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <ClientsClient initialClients={clients ?? []} isOwner={me?.role === "owner"} />
     </div>
   );

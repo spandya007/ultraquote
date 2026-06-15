@@ -42,7 +42,7 @@ export default async function QuotesPage() {
     .map((u) => ({ id: u.id, name: u.full_name || u.email }));
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <QuotesClient
         initialQuotes={quotes ?? []}
         clients={clients ?? []}
