@@ -31,9 +31,13 @@ export function SetPasswordForm() {
 
     async function init() {
       const hash = new URLSearchParams(window.location.hash.slice(1));
+      const search = new URLSearchParams(window.location.search);
       const access_token = hash.get("access_token");
       const refresh_token = hash.get("refresh_token");
-      const recovery = hash.get("type") === "recovery";
+      // Recovery is signalled either by the old implicit-flow hash (`type`) or
+      // by the new click-to-confirm flow's `?flow=recovery` query param (set by
+      // /auth/confirm after verifyOtp). See docs/invite-link-scanner-design.md.
+      const recovery = hash.get("type") === "recovery" || search.get("flow") === "recovery";
       setIsRecovery(recovery);
       if (access_token && refresh_token) {
         await supabase.auth.setSession({ access_token, refresh_token });
