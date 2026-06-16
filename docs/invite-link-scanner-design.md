@@ -6,6 +6,22 @@
 > **consumes the single-use invite/reset token before the human ever clicks** → the user sees
 > "This link is invalid or has expired." Reproduced sending to `spandya@cmitsolutions.com`.
 
+## ✅ IMPLEMENTED (branch `feature/invite-link-scanner`, 2026-06-17)
+- New page **`app/auth/confirm/page.tsx`** + **`components/auth/confirm-form.tsx`**: reads
+  `token_hash` + `type` from the query, shows a **Continue** button, and calls
+  `supabase.auth.verifyOtp({ token_hash, type })` **only on click** → then redirects (invite/recovery →
+  `/auth/set-password?flow=…`, signup → `/`). Verify errors show the "invalid/expired" UI.
+- **`components/auth/set-password-form.tsx`**: now treats `?flow=recovery` as recovery (in addition to
+  the old hash `type`); the `verifyOtp` session is picked up by the existing `getUser()` path, so no
+  hash is required. The old implicit-hash path is kept for any in-flight links (backward compatible).
+- **Email templates** (`docs/email-templates/*.html`) link to
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=<invite|recovery|signup>`.
+- **⚠️ Manual step remaining:** paste the updated templates into **Supabase → Auth → Emails → Templates**
+  on **both dev and prod**, then deploy so `/auth/confirm` is live. No allowlist change needed
+  (`verifyOtp` doesn't use `redirect_to`); `{{ .SiteURL }}` must be the Site URL (`app.ultraquote.io`).
+- **Test:** send an invite to a scanned corporate inbox → prefetch should NOT consume it; human clicks
+  Continue → set-password. Verify invite, reset, and (if used) signup.
+
 ## Root cause
 Supabase invite/recovery emails link to the GoTrue verify endpoint
 (`/auth/v1/verify?token=…&type=invite&redirect_to=…`). That endpoint is a **GET** that **consumes the

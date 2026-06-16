@@ -17,9 +17,13 @@ message (HTML) → **Save**. (Delivery still goes through the configured Zoho SM
 
 ## Rules / gotchas
 
-- **Always keep `{{ .ConfirmationURL }}`** as the button link — never hardcode a URL. It carries the
-  token and resolves to our `/auth/set-password` landing (the no-query-string redirect the flow
-  depends on; see `lib/invites.ts`).
+- **Link uses the click-to-confirm flow (token_hash), NOT `{{ .ConfirmationURL }}`.** The button links
+  to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=<invite|recovery|signup>`. This is
+  deliberate: email security scanners prefetch links and would consume a normal single-use
+  `{{ .ConfirmationURL }}` before the user clicks. Our `/auth/confirm` page only calls `verifyOtp` on an
+  explicit button click, so scanners' prefetch GETs don't burn the token. See
+  `docs/invite-link-scanner-design.md`. (`{{ .SiteURL }}` = the Supabase Auth **Site URL**, e.g.
+  `https://app.ultraquote.io`.) Requires the `/auth/confirm` page to be deployed.
 - **Invite metadata** is attached by our code (`lib/invites.ts`): `{{ .Data.tenant_name }}`,
   `{{ .Data.full_name }}`, `{{ .Data.role }}`. `full_name` may be empty if the inviter didn't supply
   a name — the greeting then renders "Hi ,". Fill in a name on invite, or simplify the greeting.
