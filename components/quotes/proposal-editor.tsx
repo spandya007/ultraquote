@@ -1124,11 +1124,11 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         {/* Insert Field dropdown */}
         <div className="relative border-r pr-2 mr-1">
           <button
-            title="Insert a client or company field (e.g. company name, contact, email) that fills in automatically"
+            title="Insert a pricing table, signature, page break, or a client/company detail that fills in automatically"
             onMouseDown={(e) => { e.preventDefault(); setFieldMenuOpen(o => !o); }}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            Insert Field <ChevronDown className="w-3 h-3" />
+            Insert <ChevronDown className="w-3 h-3" />
           </button>
 
           {fieldMenuOpen && (
@@ -1138,7 +1138,35 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                 className="fixed inset-0 z-10"
                 onMouseDown={() => setFieldMenuOpen(false)}
               />
-              <div className="absolute left-0 top-full mt-1 z-20 w-72 rounded-lg border border-violet-200 bg-violet-50 shadow-xl overflow-hidden">
+              <div className="absolute left-0 top-full mt-1 z-20 w-72 rounded-lg border border-violet-200 bg-violet-50 shadow-xl overflow-hidden max-h-[70vh] overflow-y-auto">
+
+                {/* ── Building blocks (no slash command needed) ── */}
+                <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
+                  <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Building blocks</p>
+                </div>
+                {[
+                  { label: "Pricing table", desc: "Show a scenario's pricing", icon: <Table2 className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "scenarioTable", props: { scenarioRef: "recommended" } } as any },
+                  { label: "Signature", desc: "Where a party signs", icon: <PenLine className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "signatureField", props: { signer: "client" } } as any },
+                  { label: "Page break", desc: "Start a new page in the PDF", icon: <Scissors className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "pageBreak" } as any },
+                ].map((b) => (
+                  <button
+                    key={b.label}
+                    onMouseDown={(e) => { e.preventDefault(); insertBlocksIntoDoc([b.block]); setFieldMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-violet-100 transition-colors border-b border-violet-100 last:border-0 flex items-center gap-3"
+                  >
+                    <span className="text-violet-600 shrink-0">{b.icon}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-gray-800">{b.label}</span>
+                      <span className="block text-xs text-gray-500 truncate">{b.desc}</span>
+                    </span>
+                  </button>
+                ))}
 
                 {/* ── Client fields ── */}
                 <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
