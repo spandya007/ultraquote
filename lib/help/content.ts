@@ -101,17 +101,22 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Writing the document",
         blocks: [
-          p("The Document tab is a rich editor for the proposal narrative. Type “/” to insert headings, lists, images, page breaks, pricing tables, and signature fields."),
+          p("The Document tab is a rich editor for the proposal narrative. Use the Insert menu in the toolbar to add a pricing table, signature, or page break, or a client/company detail — just click, no commands to type."),
+          p("Prefer the keyboard? Typing “/” still opens a quick menu of headings, lists, images, and the same building blocks."),
           p("Everything auto-saves as you type."),
         ],
       },
       {
-        heading: "Inserting client / company fields",
-        blocks: [p("Use the Insert Field menu to drop in tokens like {{client.company_name}} or {{tenant.phone}}. They fill in with the real values when the proposal is previewed or downloaded.")],
+        heading: "Inserting building blocks (pricing, signature, page break)",
+        blocks: [p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature lets you pick who signs.")],
+      },
+      {
+        heading: "Inserting client / company details",
+        blocks: [p("Use the toolbar Insert menu → Client & company details to drop in fields like the client’s company name or your phone number. They fill in with the real values when the proposal is previewed or downloaded.")],
       },
       {
         heading: "Pricing tables in the document",
-        blocks: [p("Insert a pricing table (type “/pricing”) to show a scenario’s pricing inside the document. It stays live — if you change line items, the table updates. Pricing is optional; it only appears where you place a table.")],
+        blocks: [p("Add a pricing table from the Insert menu (Building blocks → Pricing table) to show a scenario’s pricing inside the document. It stays live — if you change line items, the table updates. Pricing is optional; it only appears where you place a table.")],
       },
       {
         heading: "Ask AI",
@@ -182,7 +187,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Send for signature",
         blocks: [
-          p("Place a signature field in the document, then “Send for signature.” The client and your company each receive an email to sign electronically."),
+          p("Add a signature where a party signs — toolbar Insert menu → Building blocks → Signature — then “Send for signature.” The client and your company each receive an email to sign electronically."),
           p("As they view and sign, the quote status updates automatically, and the signed PDF is captured when complete."),
         ],
       },
