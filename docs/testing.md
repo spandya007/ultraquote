@@ -54,8 +54,12 @@ exactly like PostgREST. `tests/rls/fixtures.ts` holds the seeded tenant/user UUI
 - **`tenant_can_read/write` + `user_can_read/write`** (012) — unlimited / grace / expired / suspended /
   disabled-user.
 
-**Optional later**: a CI job that boots Supabase to run these in GitHub Actions — deferred to keep the
-main CI fast and DB-free (run `npm run test:rls` locally instead).
+**CI**: [.github/workflows/rls.yml](../.github/workflows/rls.yml) boots a local Supabase stack on the
+GitHub runner (Docker — no Colima needed there) and runs `npm run test:rls` on PRs + pushes to `main`
+that touch DB/RLS-relevant paths (`supabase/**`, `tests/rls/**`, `lib/access/**`, etc.), plus manual
+dispatch. Kept separate from the fast unit CI (`ci.yml`), which stays DB-free. It's slower (pulls
+Supabase images); if Actions minutes get tight, narrow the path filter or trim services with
+`supabase start -x …`.
 
 ## Phase 3 — not built
 - **E2E smoke** (Playwright): login → create quote → add line item → Preview; plus an access-gate flow

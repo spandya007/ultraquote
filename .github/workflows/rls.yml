@@ -1,0 +1,53 @@
+name: RLS tests
+
+# Boots a local Supabase stack (Docker on the GitHub runner) and runs the
+# multi-tenant RLS / security suite (npm run test:rls). Separate from ci.yml so
+# the fast unit CI stays DB-free; this one is slower (it pulls Supabase images).
+#
+# Path-filtered to DB/RLS-relevant changes to save Actions minutes. Runs on PRs
+# and on push to main, plus manual dispatch.
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "tests/rls/**"
+      - "scripts/test-db-reset.mjs"
+      - "lib/access/**"
+      - "vitest.rls.config.ts"
+      - ".github/workflows/rls.yml"
+      - "package.json"
+      - "package-lock.json"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "tests/rls/**"
+      - "scripts/test-db-reset.mjs"
+      - "lib/access/**"
+      - "vitest.rls.config.ts"
+      - ".github/workflows/rls.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Boots the local stack from supabase/config.toml. CLI migrations + analytics
+      # are disabled there; scripts/test-db-reset.mjs builds the schema. The runner
+      # has Docker, so no Colima needed (that was a local-only workaround).
+      - name: Start Supabase
+        run: supabase start
+      # Rebuilds the test DB (schema.sql + 012 + 013 + seed) then runs the RLS suite.
+      - name: Run RLS tests
+        run: npm run test:rls
