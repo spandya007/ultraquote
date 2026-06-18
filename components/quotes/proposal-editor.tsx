@@ -10,7 +10,7 @@ import {
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -101,6 +101,92 @@ const SignatureFieldBlock = createReactBlockSpec(
   },
   {
     render: (props) => <SignatureFieldView block={props.block} editor={props.editor} />,
+  }
+);
+
+// ─── Custom: Acceptance checkbox block ────────────────────────────────────────
+// A statement the CUSTOMER must check before signing. In normal Preview/PDF it
+// renders a checkbox + statement; in the DocuSeal signing copy the serializer
+// emits a required <checkbox-field role="Client">, so the customer can't
+// complete signing without checking it.
+const DEFAULT_ACCEPT_LABEL = "I have read and accept the terms of this proposal.";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function AcceptanceFieldView({ block, editor }: { block: any; editor: any }) {
+  const label: string = block.props?.label ?? "";
+  return (
+    <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
+      <div style={{
+        display: "flex", alignItems: "flex-start", gap: 8,
+        border: "1px dashed #fcd34d", background: "#fffbeb", color: "#92400e",
+        borderRadius: 6, padding: "10px 12px", fontSize: 13, maxWidth: 560,
+      }}>
+        <input type="checkbox" disabled checked={false} readOnly style={{ marginTop: 3 }} />
+        <span style={{ flex: 1 }}>
+          <input
+            type="text"
+            value={label}
+            placeholder="Statement the customer must accept…"
+            onChange={(e) => editor.updateBlock(block, { props: { label: e.target.value } })}
+            style={{ width: "100%", fontSize: 13, padding: "2px 6px", borderRadius: 4, border: "1px solid #fde68a", background: "#fff", color: "#92400e" }}
+          />
+          <span style={{ display: "block", fontSize: 11, marginTop: 4, opacity: 0.8 }}>
+            ☑ Required — the customer must check this before they can sign.
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const AcceptanceFieldBlock = createReactBlockSpec(
+  {
+    type: "acceptanceField" as const,
+    propSchema: { label: { default: DEFAULT_ACCEPT_LABEL } },
+    content: "none",
+  },
+  {
+    render: (props) => <AcceptanceFieldView block={props.block} editor={props.editor} />,
+  }
+);
+
+// ─── Custom: Initials field block ─────────────────────────────────────────────
+// Marks where a party initials. `signer` = "client" or "tenant". In normal
+// Preview/PDF it renders an initials box; in the DocuSeal signing copy the
+// serializer emits an <initials-field role=...>.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function InitialsFieldView({ block, editor }: { block: any; editor: any }) {
+  const signer: string = block.props?.signer ?? "client";
+  return (
+    <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        border: "1px dashed #93c5fd", background: "#eff6ff", color: "#1e40af",
+        borderRadius: 6, padding: "8px 12px", fontSize: 12,
+      }}>
+        <span>🅰 Initials —</span>
+        <select
+          value={signer}
+          onChange={(e) => editor.updateBlock(block, { props: { signer: e.target.value } })}
+          style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+        >
+          <option value="client">Client initials here</option>
+          <option value="tenant">My company initials here</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+const InitialsFieldBlock = createReactBlockSpec(
+  {
+    type: "initialsField" as const,
+    propSchema: { signer: { default: "client" } },
+    content: "none",
+  },
+  {
+    render: (props) => <InitialsFieldView block={props.block} editor={props.editor} />,
   }
 );
 
@@ -327,6 +413,8 @@ const schema = BlockNoteSchema.create({
     pageBreak: PageBreakBlock,
     scenarioTable: ScenarioTableBlock,
     signatureField: SignatureFieldBlock,
+    acceptanceField: AcceptanceFieldBlock,
+    initialsField: InitialsFieldBlock,
   },
 });
 
@@ -381,6 +469,44 @@ function getSignatureSlashItem(editor: typeof schema.BlockNoteEditor) {
       );
     },
     aliases: ["signature", "sign", "esign", "docuseal"],
+    group: "Layout",
+    icon: <PenLine className="w-4 h-4" />,
+  };
+}
+
+// Slash-menu item for inserting an acceptance checkbox (customer must check before signing)
+function getAcceptanceSlashItem(editor: typeof schema.BlockNoteEditor) {
+  return {
+    title: "Acceptance Checkbox",
+    subtext: "A statement the customer must check before signing",
+    onItemClick: () => {
+      editor.insertBlocks(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ type: "acceptanceField" } as any],
+        editor.getTextCursorPosition().block,
+        "after"
+      );
+    },
+    aliases: ["accept", "acceptance", "checkbox", "consent", "agree", "acknowledge"],
+    group: "Layout",
+    icon: <CheckSquare className="w-4 h-4" />,
+  };
+}
+
+// Slash-menu item for inserting an initials field
+function getInitialsSlashItem(editor: typeof schema.BlockNoteEditor) {
+  return {
+    title: "Initials Field",
+    subtext: "Place where a party initials (for Send for signature)",
+    onItemClick: () => {
+      editor.insertBlocks(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ type: "initialsField", props: { signer: "client" } } as any],
+        editor.getTextCursorPosition().block,
+        "after"
+      );
+    },
+    aliases: ["initials", "initial"],
     group: "Layout",
     icon: <PenLine className="w-4 h-4" />,
   };
@@ -1151,6 +1277,12 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   { label: "Signature", desc: "Where a party signs", icon: <PenLine className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "signatureField", props: { signer: "client" } } as any },
+                  { label: "Initials", desc: "Where a party initials", icon: <PenLine className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "initialsField", props: { signer: "client" } } as any },
+                  { label: "Acceptance checkbox", desc: "Customer must check before signing", icon: <CheckSquare className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "acceptanceField" } as any },
                   { label: "Page break", desc: "Start a new page in the PDF", icon: <Scissors className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "pageBreak" } as any },
@@ -1442,6 +1574,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
                         getSignatureSlashItem(editor),
+                        getInitialsSlashItem(editor),
+                        getAcceptanceSlashItem(editor),
                       ],
                       query
                     )
