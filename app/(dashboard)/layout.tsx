@@ -5,49 +5,51 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { IdleTimeout } from "@/components/auth/idle-timeout";
 import { ContextualHelp } from "@/components/help/contextual-help";
 import { getAccessState } from "@/lib/access/access-state";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { getUserContext } from "@/lib/auth/user-context";
 import { SubscriptionBanner } from "@/components/account/subscription-banner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 
-  // 2FA gate: if the user has an enrolled factor but this session is still AAL1,
-  // send them to the challenge before any app page. Compute the flag inside the
-  // try (so an AAL lookup hiccup never locks anyone out), but redirect OUTSIDE
-  // it — redirect() throws internally and must not be caught.
-  let needsMfa = false;
-  try {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
-  } catch { /* ignore */ }
+  // Resolve the independent gates/lookups in parallel rather than serially.
+  // getAccessState + getUserContext share a per-request cached fetch, so the
+  // user+tenant row loads ONCE even though both rely on it.
+  const [aalRes, access, ctx, platformAdminRes] = await Promise.all([
+    // An AAL lookup hiccup must never lock anyone out — swallow errors to null.
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().catch(() => null),
+    getAccessState(user.id),
+    getUserContext(user.id),
+    // Platform-admin check (service role: platform_admins has no client policies).
+    createAdminClient().from("platform_admins").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  // 2FA gate: enrolled factor but session still AAL1 → challenge before any app
+  // page. redirect() throws internally, so call it OUTSIDE any try/catch.
+  const aal = aalRes?.data;
+  const needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
   if (needsMfa) redirect("/auth/mfa");
 
-  // Subscription / access gate (after MFA). Resolve the effective state and
-  // hard-block suspended/expired/disabled users; `grace` passes through but is
-  // surfaced as a read-only banner (writes are blocked at the API layer).
-  // See docs/subscription-and-access-lifecycle-design.md (§4).
-  const access = await getAccessState(user.id);
+  // Subscription / access gate (after MFA). Hard-block suspended/expired/disabled;
+  // `grace` passes through but is surfaced as a read-only banner (writes blocked
+  // at the API layer). See docs/subscription-and-access-lifecycle-design.md (§4).
   if (access.status === "suspended") redirect("/account/suspended?reason=suspended");
   if (access.status === "expired") redirect(`/account/suspended?reason=expired&role=${access.role}`);
   if (access.status === "user_disabled") redirect("/account/disabled");
 
-  // Tenant branding for the sidebar (name + logo).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
-  const { data: userData } = await db.from("users").select("tenant_id, full_name").eq("id", user.id).single();
+  // Tenant branding for the sidebar (name + logo), from the shared context.
   const firstName: string =
-    (userData?.full_name as string | null)?.trim().split(/\s+/)[0] ||
+    (ctx?.full_name as string | null)?.trim().split(/\s+/)[0] ||
     user.email?.split("@")[0] ||
     "";
   let brandName = "";
   let logoUrl: string | null = null;
-  if (userData?.tenant_id) {
-    const { data: tenant } = await db
-      .from("tenants").select("name, logo_url").eq("id", userData.tenant_id).single();
-    brandName = tenant?.name ?? "";
-    const stored: string | null = tenant?.logo_url ?? null;
+  if (ctx?.tenant) {
+    brandName = ctx.tenant.name ?? "";
+    const stored: string | null = ctx.tenant.logo_url ?? null;
     if (stored?.startsWith("sb-storage://")) {
       const rest = stored.slice("sb-storage://".length);
       const slash = rest.indexOf("/");
@@ -60,12 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   }
 
-  // Platform-admin check (service role: platform_admins has no client policies).
-  const { data: platformAdmin } = await createAdminClient()
-    .from("platform_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const platformAdmin = platformAdminRes.data;
 
   // Expiry banner: read-only notice during grace, or an amber reminder in the
   // last 7 days before the subscription ends. (Hard-block states already
