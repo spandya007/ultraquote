@@ -34,15 +34,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const body = (await request.json().catch(() => ({}))) as Body;
 
-  // Which parties actually have a signature field placed in the document?
-  const kinds = new Set(
-    (input.blocks ?? [])
-      .filter(b => b.type === "signatureField")
-      .map(b => (b.props?.signer === "tenant" ? "tenant" : "client"))
-  );
+  // Which parties actually have a field placed in the document? Signature fields
+  // map to their signer; an acceptance checkbox is always the Client (customer),
+  // so it makes the Client a submitter even without a separate signature field.
+  const kinds = new Set<string>();
+  for (const b of input.blocks ?? []) {
+    if (b.type === "signatureField") kinds.add(b.props?.signer === "tenant" ? "tenant" : "client");
+    else if (b.type === "acceptanceField") kinds.add("client");
+  }
   if (kinds.size === 0) {
     return NextResponse.json(
-      { error: "Add at least one Signature Field to the document (type “/signature”) before sending." },
+      { error: "Add a Signature Field or an Acceptance Checkbox to the document before sending." },
       { status: 400 }
     );
   }

@@ -281,6 +281,27 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      case "acceptanceField": {
+        // A statement the CUSTOMER must accept. Role is always Client.
+        const label = escapeHtml(substituteTokens(String(props.label ?? ""), tokenMap));
+        if (input.forSigning) {
+          // Required DocuSeal checkbox — the client can't complete without it.
+          const fieldName = `Acceptance-${block.id ?? i}`;
+          out.push(
+            `<div class="accept-field">` +
+            `<checkbox-field name="${escapeHtml(fieldName)}" role="Client" required="true" style="width:16px;height:16px;display:inline-block;vertical-align:top"></checkbox-field>` +
+            `<span class="accept-text">${label}</span>` +
+            `</div>`
+          );
+        } else {
+          out.push(
+            `<div class="accept-field"><span class="accept-box">&#9744;</span><span class="accept-text">${label}</span></div>`
+          );
+        }
+        i++;
+        break;
+      }
+
       case "table": {
         // BlockNote table content: { type:"tableContent", rows:[{ cells: InlineContent[][] }] }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -429,6 +450,11 @@ export function buildFullHtml(input: SerializeInput): string {
   .sig-label { font-size: 9.5pt; color: #64748b; margin-top: 4px; }
   .sig-field { margin: 24px 0 8px; }
   .sig-meta { font-size: 9.5pt; color: #64748b; margin-top: 6px; }
+
+  /* Acceptance checkbox (customer must accept before signing) */
+  .accept-field { margin: 12px 0; display: flex; align-items: flex-start; gap: 8px; font-size: 10.5pt; }
+  .accept-field .accept-box { font-size: 13pt; line-height: 1; }
+  .accept-field .accept-text { flex: 1; }
 
   /* Imported (Word) tables */
   .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }
