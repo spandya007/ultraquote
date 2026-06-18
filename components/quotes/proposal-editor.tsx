@@ -150,6 +150,46 @@ const AcceptanceFieldBlock = createReactBlockSpec(
   }
 );
 
+// ─── Custom: Initials field block ─────────────────────────────────────────────
+// Marks where a party initials. `signer` = "client" or "tenant". In normal
+// Preview/PDF it renders an initials box; in the DocuSeal signing copy the
+// serializer emits an <initials-field role=...>.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function InitialsFieldView({ block, editor }: { block: any; editor: any }) {
+  const signer: string = block.props?.signer ?? "client";
+  return (
+    <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        border: "1px dashed #93c5fd", background: "#eff6ff", color: "#1e40af",
+        borderRadius: 6, padding: "8px 12px", fontSize: 12,
+      }}>
+        <span>🅰 Initials —</span>
+        <select
+          value={signer}
+          onChange={(e) => editor.updateBlock(block, { props: { signer: e.target.value } })}
+          style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+        >
+          <option value="client">Client initials here</option>
+          <option value="tenant">My company initials here</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+const InitialsFieldBlock = createReactBlockSpec(
+  {
+    type: "initialsField" as const,
+    propSchema: { signer: { default: "client" } },
+    content: "none",
+  },
+  {
+    render: (props) => <InitialsFieldView block={props.block} editor={props.editor} />,
+  }
+);
+
 // ─── Custom: Scenario / Pricing table block ───────────────────────────────────
 // Stores a *reference* (scenarioRef), not a snapshot — so the table stays live
 // as line items are edited. Live scenario data is supplied via React context
@@ -374,6 +414,7 @@ const schema = BlockNoteSchema.create({
     scenarioTable: ScenarioTableBlock,
     signatureField: SignatureFieldBlock,
     acceptanceField: AcceptanceFieldBlock,
+    initialsField: InitialsFieldBlock,
   },
 });
 
@@ -449,6 +490,25 @@ function getAcceptanceSlashItem(editor: typeof schema.BlockNoteEditor) {
     aliases: ["accept", "acceptance", "checkbox", "consent", "agree", "acknowledge"],
     group: "Layout",
     icon: <CheckSquare className="w-4 h-4" />,
+  };
+}
+
+// Slash-menu item for inserting an initials field
+function getInitialsSlashItem(editor: typeof schema.BlockNoteEditor) {
+  return {
+    title: "Initials Field",
+    subtext: "Place where a party initials (for Send for signature)",
+    onItemClick: () => {
+      editor.insertBlocks(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ type: "initialsField", props: { signer: "client" } } as any],
+        editor.getTextCursorPosition().block,
+        "after"
+      );
+    },
+    aliases: ["initials", "initial"],
+    group: "Layout",
+    icon: <PenLine className="w-4 h-4" />,
   };
 }
 
@@ -1217,6 +1277,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   { label: "Signature", desc: "Where a party signs", icon: <PenLine className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "signatureField", props: { signer: "client" } } as any },
+                  { label: "Initials", desc: "Where a party initials", icon: <PenLine className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "initialsField", props: { signer: "client" } } as any },
                   { label: "Acceptance checkbox", desc: "Customer must check before signing", icon: <CheckSquare className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "acceptanceField" } as any },
@@ -1511,6 +1574,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
                         getSignatureSlashItem(editor),
+                        getInitialsSlashItem(editor),
                         getAcceptanceSlashItem(editor),
                       ],
                       query

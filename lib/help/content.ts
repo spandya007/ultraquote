@@ -107,9 +107,9 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        heading: "Inserting building blocks (pricing, signature, acceptance, page break)",
+        heading: "Inserting building blocks (pricing, signature, initials, acceptance, page break)",
         blocks: [
-          p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, Acceptance checkbox, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature lets you pick who signs."),
+          p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, Initials, Acceptance checkbox, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature or initials block lets you pick who signs."),
           p("An Acceptance checkbox is a statement the customer must agree to (e.g. “I have read and accept the terms”). Type the statement, and at signing time the customer must check it before they can sign — add more than one if needed; all are required."),
         ],
       },
