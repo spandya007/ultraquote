@@ -336,7 +336,11 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
           out.push(
             `<div class="radio-field">` +
             (question ? `<div class="radio-q">${question}</div>` : "") +
-            `<radio-field name="${escapeHtml(fieldName)}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}"></radio-field>` +
+            // The style anchors each option box inline at the document location
+            // so DocuSeal's signing UI scrolls to it (every other field tag we
+            // emit has this; the radio field was missing it — hence no scroll).
+            // `title` is the documented signer-facing display name.
+            `<radio-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}" style="width:16px;height:16px;display:inline-block;vertical-align:top"></radio-field>` +
             `</div>`
           );
         } else {
