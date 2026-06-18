@@ -204,6 +204,23 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
   // Stable color index per scenario id, by sort position (matches the editor).
   const colorIndex: Record<string, number> = {};
   [...scenarios].sort((a, b) => a.sort_order - b.sort_order).forEach((s, i) => { colorIndex[s.id] = i; });
+
+  // Radio-field names become the title DocuSeal shows the signer, so derive a
+  // human-readable name from the question (e.g. "Data Backup Options") instead
+  // of a cryptic "Choice-<uuid>". Names must be unique across the document, so
+  // duplicates get a " (2)" suffix; an unlabelled question falls back to "Choice N".
+  const usedRadioNames = new Map<string, number>();
+  let radioSeq = 0;
+  function radioFieldName(label: string): string {
+    radioSeq++;
+    // Strip a trailing colon and collapse whitespace; cap length for tidy titles.
+    let base = label.replace(/\s+/g, " ").trim().replace(/:$/, "").trim();
+    if (base.length > 60) base = base.slice(0, 60).trim();
+    if (!base) base = `Choice ${radioSeq}`;
+    const seen = usedRadioNames.get(base) ?? 0;
+    usedRadioNames.set(base, seen + 1);
+    return seen === 0 ? base : `${base} (${seen + 1})`;
+  }
   // Renders a block array; recurses into each block's children so NESTED content
   // (e.g. a table nested under a paragraph) is not dropped.
   function renderChildren(b: DocBlock): string {
@@ -310,13 +327,16 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       case "radioField": {
         const signer = props.signer === "tenant" ? "tenant" : "client";
         const role = signer === "tenant" ? "Company" : "Client";
-        const question = escapeHtml(substituteTokens(String(props.label ?? ""), tokenMap));
+        const rawLabel = substituteTokens(String(props.label ?? ""), tokenMap);
+        const question = escapeHtml(rawLabel);
         const opts = String(props.options ?? "").split(",").map(o => o.trim()).filter(Boolean);
         if (input.forSigning) {
+          // Field name = the title DocuSeal shows the signer; make it meaningful.
+          const fieldName = radioFieldName(rawLabel);
           out.push(
             `<div class="radio-field">` +
             (question ? `<div class="radio-q">${question}</div>` : "") +
-            `<radio-field name="Choice-${block.id ?? i}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}"></radio-field>` +
+            `<radio-field name="${escapeHtml(fieldName)}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}"></radio-field>` +
             `</div>`
           );
         } else {
