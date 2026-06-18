@@ -158,6 +158,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Editing templates",
         blocks: [p("Anyone can use any template to start a quote. Only the template’s creator (or the tenant owner) can rename, edit, or delete it — others see it as view-only.")],
       },
+      {
+        heading: "Exporting & importing templates",
+        blocks: [
+          p("On the Templates page, each template has an Export button that downloads it as a .uqtemplate.json file — handy for backing up a template or sharing a polished one with another UltraQuote workspace."),
+          p("Use Import template (top of the page) to add a template from a .uqtemplate.json file. It’s created as a new template in your workspace."),
+          p("Note: exported templates carry the document layout and text, but any embedded images that were uploaded to your workspace won’t transfer to another workspace — re-add those after importing."),
+        ],
+      },
     ],
   },
   {
