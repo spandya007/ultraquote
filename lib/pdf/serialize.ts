@@ -8,6 +8,10 @@ import { scenarioColor, type ScenarioColor } from "../scenario-colors";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+function nl2br(s: string): string {
+  return s.replace(/\r\n|\r|\n/g, "<br>");
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -55,7 +59,7 @@ function substituteTokens(text: string, tokenMap: Record<string, string>): strin
 
 function renderInline(content: InlineContent[] | string | undefined, tokenMap: Record<string, string>): string {
   if (!content) return "";
-  if (typeof content === "string") return escapeHtml(substituteTokens(content, tokenMap));
+  if (typeof content === "string") return nl2br(escapeHtml(substituteTokens(content, tokenMap)));
 
   return content
     .map((node) => {
@@ -69,7 +73,10 @@ function renderInline(content: InlineContent[] | string | undefined, tokenMap: R
       }
 
       const raw = node.text ?? "";
-      let html = escapeHtml(substituteTokens(raw, tokenMap));
+      // Soft line breaks (Shift+Enter) come through as "\n" in the text; HTML
+      // collapses literal newlines to a space, so convert them to <br> or the
+      // lines merge onto one — most visible inside table cells.
+      let html = nl2br(escapeHtml(substituteTokens(raw, tokenMap)));
       // Variable tokens are inserted with a blue/white "chip" style in the
       // editor. In the rendered output, keep any real formatting the author
       // applied (bold, italic, underline, strike) but drop ONLY the chip's

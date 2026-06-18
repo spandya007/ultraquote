@@ -123,6 +123,12 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [p("Add a pricing table from the Insert menu (Building blocks → Pricing table) to show a scenario’s pricing inside the document. It stays live — if you change line items, the table updates. Pricing is optional; it only appears where you place a table.")],
       },
       {
+        heading: "Working inside tables",
+        blocks: [
+          p("Table cells hold text only — you can’t place a heading, a bulleted/numbered list, or another block inside a cell. To put several lines in one cell, press Shift+Enter for a soft line break, and use bold for emphasis. Keep real headings and lists above or below the table (or split into separate tables with text between them)."),
+        ],
+      },
+      {
         heading: "Ask AI",
         blocks: [
           p("The Ask AI button helps you write: improve, lengthen, shorten, fix grammar, change tone, generate from a prompt, or continue writing."),
