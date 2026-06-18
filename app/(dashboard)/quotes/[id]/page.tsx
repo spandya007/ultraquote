@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { QuoteEditor } from "@/components/quotes/quote-editor";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { getUserContext } from "@/lib/auth/user-context";
 
 // Always load a fresh quote + product catalog so newly-added line items pick up
 // current catalog prices/setup fees (avoids a stale cached product list).
@@ -11,15 +13,13 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
-  // Resolve current user's tenant_id
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: userData } = await db
-    .from("users")
-    .select("tenant_id, role")
-    .eq("id", user?.id)
-    .single() as { data: { tenant_id: string; role: "owner" | "member" } | null };
+  // User + tenant come from the shared per-request cache (already loaded by the
+  // dashboard layout), so this adds no extra round-trips. The tenant row carries
+  // the company fields we used to re-fetch here.
+  const user = await getCurrentUser();
+  const ctx = user ? await getUserContext(user.id) : null;
 
-  const [quoteResult, { data: products }, { data: categories }] =
+  const [quoteResult, { data: products }, { data: categories }, settingsRes] =
     await Promise.all([
       db
         .from("quotes")
@@ -42,30 +42,18 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
         .from("product_categories")
         .select("*")
         .order("sort_order"),
+      // Company-wide tax rate (Settings → Company Settings) — applied to all quotes.
+      ctx?.tenant_id
+        ? db.from("tenant_settings").select("default_tax_rate").eq("tenant_id", ctx.tenant_id).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
-  // Fetch tenant separately so we can log errors (e.g. missing column)
-  let tenant = null;
-  let companyTaxRate: number | null = null;
-  if (userData?.tenant_id) {
-    const { data, error } = await db
-      .from("tenants")
-      .select("id, name, contact_name, email, address, phone")
-      .eq("id", userData.tenant_id)
-      .single();
-    if (error) {
-      console.error("[QuotePage] tenant fetch error:", error.message, error.details);
-    } else {
-      tenant = data;
-    }
-    // Company-wide tax rate (Settings → Company Settings) — applied to all quotes.
-    const { data: settings } = await db
-      .from("tenant_settings")
-      .select("default_tax_rate")
-      .eq("tenant_id", userData.tenant_id)
-      .maybeSingle();
-    companyTaxRate = settings?.default_tax_rate ?? null;
-  }
+  const t = ctx?.tenant;
+  const tenant = t
+    ? { id: t.id, name: t.name, contact_name: t.contact_name, email: t.email, address: t.address, phone: t.phone }
+    : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyTaxRate: number | null = (settingsRes?.data as any)?.default_tax_rate ?? null;
 
   if (!quoteResult.data) {
     console.error("[QuotePage] query error:", quoteResult.error?.message);
@@ -87,7 +75,7 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
   // Ownership: only the creator or the tenant owner may edit (RLS enforces the
   // same server-side; this drives the read-only UI). Legacy quotes without
   // created_by are editable by the owner only.
-  const isOwner = userData?.role === "owner";
+  const isOwner = ctx?.role === "owner";
   const canEdit = isOwner || (raw.created_by != null && raw.created_by === user?.id);
   let creatorName: string | null = null;
   if (raw.created_by) {

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getUserContext } from "@/lib/auth/user-context";
 import type { UserRole } from "@/types";
 
 // Tenant + user access lifecycle resolver.
@@ -61,13 +61,9 @@ function toIsoDate(d: Date): string {
  * and must not depend on the caller's RLS visibility).
  */
 export async function getAccessState(userId: string): Promise<AccessState> {
-  const admin = createAdminClient();
-
-  const { data: user } = await admin
-    .from("users")
-    .select("tenant_id, role, enabled")
-    .eq("id", userId)
-    .maybeSingle();
+  // Shared, per-request cached fetch (user row + joined tenant) — see
+  // lib/auth/user-context.ts. Dedupes with the dashboard layout's branding fetch.
+  const user = await getUserContext(userId);
 
   // No tenant row yet (e.g. mid-provisioning) — fail closed but harmless: the
   // layout will treat this as "disabled" and route to the block page.
@@ -76,11 +72,7 @@ export async function getAccessState(userId: string): Promise<AccessState> {
   const role = (user.role ?? "member") as UserRole;
   const tenantId = user.tenant_id as string;
 
-  const { data: tenant } = await admin
-    .from("tenants")
-    .select("platform_enabled, subscription_end")
-    .eq("id", tenantId)
-    .maybeSingle();
+  const tenant = user.tenant as { platform_enabled?: boolean; subscription_end?: string | null } | null;
 
   // 1) Platform kill switch — blocks everyone incl. owner.
   if (tenant && tenant.platform_enabled === false) return { status: "suspended" };
