@@ -1,7 +1,7 @@
 # MSP QuoteBuilder — Project Context
 
 ## ⚠️ Workflow rule
-**Netlify "Stop builds" is ENABLED** — pushes to `main` no longer trigger builds or consume free-tier minutes. So: **commit AND push freely after each change** (GitHub = backup/visibility). **Deploys are manual:** Netlify dashboard → Build settings → un-stop builds → Deploys → Trigger deploy → (optionally re-enable Stop builds). When the user says "deploy", remind them of those dashboard steps — a push alone no longer updates the live site.
+**As of 2026-06-18 the project is on a PAID Netlify plan** ($9/mo Single User); the user **deploys, publishes, and tests directly in Prod** via the Netlify dashboard. The old free-tier "Stop builds" constraint no longer governs the workflow. **Commit AND push freely after each change** (GitHub = backup/visibility); the user handles deploys themselves. Don't assume pushes do/don't auto-deploy — just tell them what's on `main` and that it's deployable.
 
 ## What This App Does
 Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create, manage, and send professional proposals/quotes to clients.
