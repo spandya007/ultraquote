@@ -134,7 +134,9 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
         name,
         description: parsed.description ? String(parsed.description).slice(0, 1000) : null,
         document_content: blocks,
-        source_file_type: "import",
+        // 'native' = native BlockNote blocks (allowed values: 'docx' | 'md' |
+        // 'native'); an imported .uqtemplate.json IS native blocks.
+        source_file_type: "native",
         is_active: true,
       });
       if (error) { toast.error(`Import failed: ${error.message}`); return; }
