@@ -10,7 +10,7 @@ import {
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -187,6 +187,66 @@ const InitialsFieldBlock = createReactBlockSpec(
   },
   {
     render: (props) => <InitialsFieldView block={props.block} editor={props.editor} />,
+  }
+);
+
+// ─── Custom: Multiple-choice (radio) field block ──────────────────────────────
+// A question with options the signer must pick one of. `signer` = client|tenant,
+// `options` = comma-separated choices. Signing mode emits a DocuSeal <radio-field>.
+const DEFAULT_RADIO_LABEL = "Please choose one:";
+const DEFAULT_RADIO_OPTIONS = "Option A, Option B";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function RadioFieldView({ block, editor }: { block: any; editor: any }) {
+  const label: string = block.props?.label ?? "";
+  const options: string = block.props?.options ?? "";
+  const signer: string = block.props?.signer ?? "client";
+  return (
+    <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
+      <div style={{
+        display: "flex", flexDirection: "column", gap: 6,
+        border: "1px dashed #93c5fd", background: "#eff6ff", color: "#1e40af",
+        borderRadius: 6, padding: "10px 12px", fontSize: 13, maxWidth: 560,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>◉ Multiple choice —</span>
+          <select
+            value={signer}
+            onChange={(e) => editor.updateBlock(block, { props: { signer: e.target.value } })}
+            style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+          >
+            <option value="client">Client chooses</option>
+            <option value="tenant">My company chooses</option>
+          </select>
+        </div>
+        <input
+          type="text"
+          value={label}
+          placeholder="Question…"
+          onChange={(e) => editor.updateBlock(block, { props: { label: e.target.value } })}
+          style={{ width: "100%", fontSize: 13, padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+        />
+        <input
+          type="text"
+          value={options}
+          placeholder="Options, comma-separated (e.g. Monthly, Annual)"
+          onChange={(e) => editor.updateBlock(block, { props: { options: e.target.value } })}
+          style={{ width: "100%", fontSize: 13, padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
+        />
+        <span style={{ fontSize: 11, opacity: 0.8 }}>Required — the signer must pick one option.</span>
+      </div>
+    </div>
+  );
+}
+
+const RadioFieldBlock = createReactBlockSpec(
+  {
+    type: "radioField" as const,
+    propSchema: { label: { default: DEFAULT_RADIO_LABEL }, options: { default: DEFAULT_RADIO_OPTIONS }, signer: { default: "client" } },
+    content: "none",
+  },
+  {
+    render: (props) => <RadioFieldView block={props.block} editor={props.editor} />,
   }
 );
 
@@ -415,6 +475,7 @@ const schema = BlockNoteSchema.create({
     signatureField: SignatureFieldBlock,
     acceptanceField: AcceptanceFieldBlock,
     initialsField: InitialsFieldBlock,
+    radioField: RadioFieldBlock,
   },
 });
 
@@ -509,6 +570,25 @@ function getInitialsSlashItem(editor: typeof schema.BlockNoteEditor) {
     aliases: ["initials", "initial"],
     group: "Layout",
     icon: <PenLine className="w-4 h-4" />,
+  };
+}
+
+// Slash-menu item for inserting a multiple-choice (radio) field
+function getRadioSlashItem(editor: typeof schema.BlockNoteEditor) {
+  return {
+    title: "Multiple Choice (Radio)",
+    subtext: "A question the signer must pick one option for",
+    onItemClick: () => {
+      editor.insertBlocks(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ type: "radioField", props: { signer: "client" } } as any],
+        editor.getTextCursorPosition().block,
+        "after"
+      );
+    },
+    aliases: ["radio", "choice", "multiple choice", "option", "select"],
+    group: "Layout",
+    icon: <CircleDot className="w-4 h-4" />,
   };
 }
 
@@ -1280,6 +1360,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   { label: "Initials", desc: "Where a party initials", icon: <PenLine className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "initialsField", props: { signer: "client" } } as any },
+                  { label: "Multiple choice", desc: "Signer picks one option", icon: <CircleDot className="w-4 h-4" />,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    block: { type: "radioField", props: { signer: "client" } } as any },
                   { label: "Acceptance checkbox", desc: "Customer must check before signing", icon: <CheckSquare className="w-4 h-4" />,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     block: { type: "acceptanceField" } as any },
@@ -1575,6 +1658,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         getScenarioSlashItem(editor),
                         getSignatureSlashItem(editor),
                         getInitialsSlashItem(editor),
+                        getRadioSlashItem(editor),
                         getAcceptanceSlashItem(editor),
                       ],
                       query

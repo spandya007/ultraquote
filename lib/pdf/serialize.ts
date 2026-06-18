@@ -300,6 +300,31 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      case "radioField": {
+        const signer = props.signer === "tenant" ? "tenant" : "client";
+        const role = signer === "tenant" ? "Company" : "Client";
+        const question = escapeHtml(substituteTokens(String(props.label ?? ""), tokenMap));
+        const opts = String(props.options ?? "").split(",").map(o => o.trim()).filter(Boolean);
+        if (input.forSigning) {
+          out.push(
+            `<div class="radio-field">` +
+            (question ? `<div class="radio-q">${question}</div>` : "") +
+            `<radio-field name="Choice-${block.id ?? i}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}"></radio-field>` +
+            `</div>`
+          );
+        } else {
+          const optsHtml = opts.map(o => `<div class="radio-opt"><span class="radio-dot">&#9711;</span> ${escapeHtml(o)}</div>`).join("");
+          out.push(
+            `<div class="radio-field">` +
+            (question ? `<div class="radio-q">${question}</div>` : "") +
+            optsHtml +
+            `</div>`
+          );
+        }
+        i++;
+        break;
+      }
+
       case "acceptanceField": {
         // A statement the CUSTOMER must accept. Role is always Client.
         const label = escapeHtml(substituteTokens(String(props.label ?? ""), tokenMap));
@@ -473,6 +498,12 @@ export function buildFullHtml(input: SerializeInput): string {
   .initials-line, .initials-field { display: inline-block; margin: 16px 16px 8px 0; vertical-align: top; }
   .initials-box { border: 1px solid #475569; width: 90px; height: 44px; border-radius: 4px; }
   .initials-label { font-size: 9pt; color: #64748b; margin-top: 4px; }
+
+  /* Multiple choice (radio) */
+  .radio-field { margin: 14px 0; font-size: 10.5pt; }
+  .radio-field .radio-q { font-weight: 600; margin-bottom: 4px; }
+  .radio-field .radio-opt { margin: 2px 0; }
+  .radio-field .radio-dot { color: #475569; }
   .sig-meta { font-size: 9.5pt; color: #64748b; margin-top: 6px; }
 
   /* Acceptance checkbox (customer must accept before signing) */

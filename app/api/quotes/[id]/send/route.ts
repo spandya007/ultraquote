@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // so it makes the Client a submitter even without a separate signature field.
   const kinds = new Set<string>();
   for (const b of input.blocks ?? []) {
-    if (b.type === "signatureField" || b.type === "initialsField") kinds.add(b.props?.signer === "tenant" ? "tenant" : "client");
+    if (b.type === "signatureField" || b.type === "initialsField" || b.type === "radioField") kinds.add(b.props?.signer === "tenant" ? "tenant" : "client");
     else if (b.type === "acceptanceField") kinds.add("client");
   }
   if (kinds.size === 0) {
