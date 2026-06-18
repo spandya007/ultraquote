@@ -91,6 +91,14 @@ export const HELP_TOPICS: HelpTopic[] = [
           p("If you update a product in the catalog and want an existing quote to pick up the new prices, open the quote → Pricing Scenarios → “Refresh prices from catalog.” It re-pulls current unit cost, price, and setup for every catalog-linked line; your quantities, discounts, and free-text items are kept."),
         ],
       },
+      {
+        heading: "Deleting quotes",
+        ownerOnly: true,
+        blocks: [
+          p("Deleting is owner-only and off by default. On the Quotes list, click “Enable delete” to turn it on for 30 seconds (a countdown shows); it then turns itself back off. While it’s on, a Delete button appears on each row and you can remove several quotes within the window."),
+          p("Only Draft or Declined quotes can be deleted — quotes that are sent, viewed, signed, or expired are kept (a signed quote is a real record, and an expired one was a real offer). Deleting a quote permanently removes it along with all of its scenarios, line items, and signing records. This cannot be undone."),
+        ],
+      },
     ],
   },
   {
