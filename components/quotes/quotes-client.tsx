@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, FileText, Copy, Loader2, Eye } from "lucide-react";
+import { Plus, Search, FileText, Copy, Loader2, Eye, Trash2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
@@ -91,6 +91,37 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
   const [filterOwner, setFilterOwner] = useState<string>("mine");
   const [modalOpen, setModalOpen] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  // Owner-only delete "arm" gate: deletion is disabled until the owner arms it,
+  // then auto-disarms after ARM_SECONDS. Multiple deletes allowed in the window.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [armSecs, setArmSecs] = useState(0);
+  const armed = armSecs > 0;
+
+  useEffect(() => {
+    if (armSecs <= 0) return;
+    const t = setTimeout(() => setArmSecs((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [armSecs]);
+
+  async function deleteQuote(q: QuoteRow) {
+    if (q.status !== "draft" && q.status !== "declined") {
+      toast.warning(`${q.quote_number} is "${effectiveStatus(q)}" — only Draft or Declined quotes can be deleted.`);
+      return;
+    }
+    if (!window.confirm(`Delete ${q.quote_number} permanently? This removes the quote and all its scenarios, line items and signing records. This cannot be undone.`)) return;
+    setDeletingId(q.id);
+    try {
+      const res = await fetch(`/api/quotes/${q.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      toast.success(`Deleted ${q.quote_number}`);
+      router.refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function duplicateQuote(id: string) {
     setDuplicatingId(id);
@@ -157,13 +188,32 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
             )}
           </p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Quote
-        </button>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <button
+              onClick={() => setArmSecs(armed ? 0 : 30)}
+              title={armed
+                ? "Click to turn delete off now"
+                : "Enable deleting quotes for 30 seconds (Draft or Declined only)"}
+              className={cn(
+                "flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                armed
+                  ? "border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300"
+                  : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              {armed ? `Delete enabled · ${armSecs}s` : "Enable delete"}
+            </button>
+          )}
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Quote
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -297,17 +347,39 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(q.created_at)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); duplicateQuote(q.id); }}
-                      disabled={duplicatingId === q.id}
-                      title="Duplicate quote"
-                      className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-                    >
-                      {duplicatingId === q.id
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <Copy className="w-3.5 h-3.5" />}
-                      Duplicate
-                    </button>
+                    <div className="inline-flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); duplicateQuote(q.id); }}
+                        disabled={duplicatingId === q.id}
+                        title="Duplicate quote"
+                        className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                      >
+                        {duplicatingId === q.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Copy className="w-3.5 h-3.5" />}
+                        Duplicate
+                      </button>
+                      {isOwner && armed && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteQuote(q); }}
+                          disabled={deletingId === q.id}
+                          title={q.status === "draft" || q.status === "declined"
+                            ? "Delete quote (permanent)"
+                            : "Only Draft or Declined quotes can be deleted"}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors disabled:opacity-50",
+                            q.status === "draft" || q.status === "declined"
+                              ? "border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/15"
+                              : "text-muted-foreground/50 hover:bg-muted"
+                          )}
+                        >
+                          {deletingId === q.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

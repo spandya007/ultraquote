@@ -591,11 +591,13 @@ create policy "quotes: creator or owner update"
     tenant_id = public.current_tenant_id()
     and (created_by = auth.uid() or public.is_tenant_owner())
   );
-create policy "quotes: creator or owner delete"
+-- Deletion is owner-only (migration 014). The app further restricts it to
+-- draft/declined quotes behind an explicit "arm" gate; children cascade.
+create policy "quotes: owner delete"
   on public.quotes for delete
   using (
     tenant_id = public.current_tenant_id()
-    and (created_by = auth.uid() or public.is_tenant_owner())
+    and public.is_tenant_owner()
   );
 
 -- ── quote_scenarios ──────────────────────────────────────────────────────────
