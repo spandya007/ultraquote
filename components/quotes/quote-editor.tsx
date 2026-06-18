@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { usePresence } from "@/lib/realtime/use-presence";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
-import type { QuoteStatus, ProductCategory } from "@/types";
+import type { QuoteStatus } from "@/types";
 import { STATUS_STYLES, effectiveStatus } from "@/lib/quote-status";
 
 // ─── Local types ─────────────────────────────────────────────────────────────
@@ -110,8 +110,6 @@ interface Tenant {
 
 interface Props {
   quote: Quote;
-  products: Product[];
-  categories: ProductCategory[];
   tenant: Tenant | null;
   /** Company-wide tax rate from tenant_settings (Settings → Company Settings). */
   companyTaxRate: number | null;
@@ -210,7 +208,7 @@ function calcScenarioTotals(items: LineItem[], taxRate: number) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function QuoteEditor({ quote: initialQuote, products, categories, tenant, companyTaxRate, canEdit, isOwner, creatorName }: Props) {
+export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEdit, isOwner, creatorName }: Props) {
   const router = useRouter();
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,6 +223,31 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
   );
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  // Catalog is loaded lazily (client-side) the first time the "Add from catalog"
+  // overlay opens, so opening a quote isn't blocked on fetching every product +
+  // pricing tier. Quantities/prices on existing line items are snapshots and
+  // don't need the catalog to render.
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
+
+  // Open the catalog overlay, fetching the catalog on first use.
+  async function openProductSearch() {
+    setProductSearchOpen(true);
+    if (productsLoaded || productsLoading) return;
+    setProductsLoading(true);
+    try {
+      const { data } = await db
+        .from("products")
+        .select("*, pricing_tiers:product_pricing_tiers(*)")
+        .eq("is_active", true)
+        .order("name");
+      setProducts((data as Product[]) ?? []);
+      setProductsLoaded(true);
+    } finally {
+      setProductsLoading(false);
+    }
+  }
   const [showMargins, setShowMargins] = useState(initialQuote.show_margins);
   const [includeHeaderFooter, setIncludeHeaderFooter] = useState(initialQuote.include_header_footer ?? true);
   const [activeTab, setActiveTab] = useState<"lineitems" | "document">("lineitems");
@@ -1332,7 +1355,7 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               {canEdit && (
                 <div className="px-4 py-3 border-t bg-muted/10 flex items-center gap-2">
                   <button
-                    onClick={() => setProductSearchOpen(true)}
+                    onClick={openProductSearch}
                     className="flex items-center gap-1.5 text-sm text-primary hover:underline"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -1533,7 +1556,11 @@ export function QuoteEditor({ quote: initialQuote, products, categories, tenant,
               />
             </div>
             <div className="overflow-y-auto flex-1">
-              {filteredProducts.length === 0 ? (
+              {productsLoading && !productsLoaded ? (
+                <p className="flex items-center justify-center gap-2 text-muted-foreground text-sm py-8">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading catalog…
+                </p>
+              ) : filteredProducts.length === 0 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">No products found</p>
               ) : (
                 filteredProducts.map((p) => {

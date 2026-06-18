@@ -19,7 +19,10 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
   const user = await getCurrentUser();
   const ctx = user ? await getUserContext(user.id) : null;
 
-  const [quoteResult, { data: products }, { data: categories }, settingsRes] =
+  // NOTE: the product catalog is NOT fetched here — the quote editor loads it
+  // lazily client-side when the "Add from catalog" overlay opens, so opening a
+  // quote isn't blocked on fetching every product + pricing tier.
+  const [quoteResult, settingsRes] =
     await Promise.all([
       db
         .from("quotes")
@@ -33,15 +36,6 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
         `)
         .eq("id", params.id)
         .single(),
-      db
-        .from("products")
-        .select("*, pricing_tiers:product_pricing_tiers(*)")
-        .eq("is_active", true)
-        .order("name"),
-      db
-        .from("product_categories")
-        .select("*")
-        .order("sort_order"),
       // Company-wide tax rate (Settings → Company Settings) — applied to all quotes.
       ctx?.tenant_id
         ? db.from("tenant_settings").select("default_tax_rate").eq("tenant_id", ctx.tenant_id).maybeSingle()
@@ -90,8 +84,6 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
   return (
     <QuoteEditor
       quote={{ ...raw, scenarios: sortedScenarios }}
-      products={products ?? []}
-      categories={categories ?? []}
       tenant={tenant}
       companyTaxRate={companyTaxRate}
       canEdit={canEdit}
