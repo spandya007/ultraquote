@@ -118,7 +118,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Inserting building blocks (pricing, signature, initials, choice, acceptance, page break)",
         blocks: [
           p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, Initials, Multiple choice, Acceptance checkbox, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature or initials block lets you pick who signs."),
-          p("A Multiple choice block asks a question with options the signer must pick one of at signing time (e.g. “Preferred term: Monthly, Annual”). Type the question and the options separated by commas."),
+          p("A Multiple choice block asks a question with options the signer must pick one of at signing time (e.g. “Preferred term: Monthly, Annual”). Type the question and the options separated by commas. The question you type becomes the field title the signer sees."),
+          p("Keep each option short — a few words (ideally under ~30 characters). Options render as small labelled boxes in the signed PDF, so long options wrap awkwardly. Put any explanation in the question or a paragraph above the block, and keep the options to concise choices (e.g. question “Data backup plan” with options “Daily (30-day)”, “Weekly (90-day)”, “None”)."),
           p("An Acceptance checkbox is a statement the customer must agree to (e.g. “I have read and accept the terms”). Type the statement, and at signing time the customer must check it before they can sign — add more than one if needed; all are required."),
         ],
       },

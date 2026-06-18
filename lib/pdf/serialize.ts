@@ -339,8 +339,11 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
             // The style anchors each option box inline at the document location
             // so DocuSeal's signing UI scrolls to it (every other field tag we
             // emit has this; the radio field was missing it — hence no scroll).
-            // `title` is the documented signer-facing display name.
-            `<radio-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}" style="width:16px;height:16px;display:inline-block;vertical-align:top"></radio-field>` +
+            // Unlike a checkbox, each radio option renders its TEXT LABEL inside
+            // the box, so it needs real width (a 16px box wraps "Customer" to
+            // one char per line) and an explicit font-size (else it auto-shrinks
+            // from the box height). `title` is the signer-facing display name.
+            `<radio-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="${role}" required="true" options="${escapeHtml(opts.join(","))}" font-size="11" style="width:180px;height:22px;display:inline-block;vertical-align:top"></radio-field>` +
             `</div>`
           );
         } else {

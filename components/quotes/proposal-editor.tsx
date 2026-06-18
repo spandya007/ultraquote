@@ -201,6 +201,9 @@ function RadioFieldView({ block, editor }: { block: any; editor: any }) {
   const label: string = block.props?.label ?? "";
   const options: string = block.props?.options ?? "";
   const signer: string = block.props?.signer ?? "client";
+  // Radio options render as small labelled boxes in the signed PDF; long
+  // options wrap badly. Nudge the author to keep them short.
+  const longOpts = options.split(",").map(o => o.trim()).filter(o => o.length > 30);
   return (
     <div contentEditable={false} style={{ userSelect: "none", margin: "8px 0" }}>
       <div style={{
@@ -234,6 +237,11 @@ function RadioFieldView({ block, editor }: { block: any; editor: any }) {
           style={{ width: "100%", fontSize: 13, padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
         />
         <span style={{ fontSize: 11, opacity: 0.8 }}>Required — the signer must pick one option.</span>
+        {longOpts.length > 0 && (
+          <span style={{ fontSize: 11, color: "#b45309", fontWeight: 500 }}>
+            ⚠ Keep options short (a few words). Put any detail in the question above — long options wrap awkwardly in the signed PDF.
+          </span>
+        )}
       </div>
     </div>
   );
