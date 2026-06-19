@@ -98,3 +98,13 @@
   border-color: rgba(99, 102, 241, 0.55); /* indigo-ish accent on the active column */
   background-color: rgba(120, 120, 140, 0.04);
 }
+
+/* Brand-font WYSIWYG: match the editor canvas to the tenant's chosen proposal
+   font (Settings → Quote Defaults). Mirrors the PDF serializer's bodyFontStack;
+   'sans' keeps BlockNote's default font (no override). */
+[data-doc-font="serif"] .bn-editor {
+  font-family: "Times New Roman", Times, serif;
+}
+[data-doc-font="mono"] .bn-editor {
+  font-family: "Courier New", Courier, monospace;
+}

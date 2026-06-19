@@ -697,6 +697,9 @@ interface Props {
   taxRate: number;
   /** Show internal profit-margin column in the inline pricing-table previews. */
   showMargins: boolean;
+  /** Tenant brand font ('sans'|'serif'|'mono') — applied to the editor canvas so
+   *  editing is WYSIWYG with the proposal PDF. */
+  docFont?: string | null;
   /** Called once on mount with an API the parent can invoke (save flush + checks). */
   onReady?: (api: ProposalEditorApi) => void;
   /** Called after pricing tables are extracted into scenarios (so the parent can refresh). */
@@ -722,7 +725,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricing, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
+export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricing, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, docFont, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
   const supabaseRef = useRef(createClient());
   const isTemplateRef = useRef(isTemplate);
   isTemplateRef.current = isTemplate;
@@ -1715,7 +1718,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
 
       {/* Editor */}
       <div className="flex-1 overflow-y-auto overflow-x-visible">
-        <div className="overflow-x-visible px-2 py-4">
+        <div className="overflow-x-visible px-2 py-4" data-doc-font={docFont ?? "sans"}>
             <ScenarioContext.Provider value={{ scenarios, taxRate, showMargins }}>
               <BlockNoteView
                 editor={editor}
