@@ -17,7 +17,7 @@ import {
 } from "@blocknote/xl-multi-column";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -1278,6 +1278,37 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     return null;
   }
 
+  // Wrap the selected block(s) into a two-column layout, splitting them across
+  // the two columns (left gets the extra when odd; a single block goes left with
+  // an empty right column to fill). Avoids the cumbersome drag-to-side gesture.
+  function makeTwoColumns() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blocks: any[] = editor.getSelection()?.blocks ?? [editor.getTextCursorPosition().block];
+    if (blocks.length === 0) return;
+    if (blocks.some((b) => b.type === "columnList" || b.type === "column")) {
+      toastRef.current.error("That selection already includes columns — pick plain blocks to split into two columns.");
+      return;
+    }
+    // Drop ids so the re-inserted children don't collide with the removed originals.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toPartial = (b: any): any => ({ type: b.type, props: b.props, content: b.content, children: (b.children ?? []).map(toPartial) });
+    const mid = Math.ceil(blocks.length / 2);
+    const left = blocks.slice(0, mid).map(toPartial);
+    const right = blocks.slice(mid).map(toPartial);
+    if (right.length === 0) right.push({ type: "paragraph" });
+    const columnList = {
+      type: "columnList",
+      children: [
+        { type: "column", props: { width: 1 }, children: left },
+        { type: "column", props: { width: 1 }, children: right },
+      ],
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor.replaceBlocks(blocks, [columnList as any]);
+    editor.focus();
+    scheduleSave();
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   const alignButtons: { alignment: TextAlignment; icon: React.ReactNode; label: string }[] = [
@@ -1351,6 +1382,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               {icon}
             </button>
           ))}
+          <button
+            title="Make 2 columns from the selected block(s)"
+            onMouseDown={(e) => { e.preventDefault(); makeTwoColumns(); }}
+            className="p-1.5 rounded transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+          >
+            <Columns2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Insert Field dropdown */}

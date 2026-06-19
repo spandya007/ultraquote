@@ -134,7 +134,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Two-column layout",
         blocks: [
-          p("To place content side by side, type “/” and choose Two Columns (or Three Columns). You can also drag a block to the left or right edge of another block to split it into columns. Drag the divider between columns to resize them."),
+          p("The quickest way: select the block(s) you want side by side and click the two-column button (⫼) in the toolbar — they’re split into two columns. You can also type “/” and choose Two Columns (or Three Columns), or drag a block to the left/right edge of another block. Drag the divider between columns to resize them."),
           p("Two-column sections render in the Preview and PDF as well. Tip: keep columns for short, parallel content (e.g. two short lists); very wide tables or pricing tables read better full-width."),
         ],
       },
