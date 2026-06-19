@@ -313,6 +313,25 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      // Multi-column layout (xl-multi-column): a columnList holds column blocks
+      // side by side; each column's blocks live in its children. `width` is a
+      // relative weight (defaults to 1) → flex-grow.
+      case "columnList": {
+        const cols = (Array.isArray(block.children) ? block.children : [])
+          .filter((c) => c.type === "column")
+          .map((c) => `<div class="doc-column" style="flex:${Number(c.props?.width) || 1}">${renderArray(c.children ?? [])}</div>`)
+          .join("");
+        out.push(`<div class="doc-column-list">${cols}</div>`);
+        i++;
+        break;
+      }
+      case "column": {
+        // Normally rendered by its parent columnList; handle stray columns too.
+        out.push(`<div class="doc-column">${renderArray(block.children ?? [])}</div>`);
+        i++;
+        break;
+      }
+
       case "signatureField": {
         const signer = props.signer === "tenant" ? "tenant" : "client";
         if (input.forSigning) {
@@ -594,6 +613,9 @@ export function buildFullHtml(input: SerializeInput): string {
 
   /* Imported (Word) tables */
   .doc-divider { border: 0; border-top: 1px solid #cbd5e1; margin: 16px 0; }
+  .doc-column-list { display: flex; gap: 24px; margin: 8px 0; align-items: flex-start; }
+  .doc-column { flex: 1; min-width: 0; }
+  .doc-column > :first-child { margin-top: 0; }
   .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }
   .doc-table td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
 

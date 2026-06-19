@@ -8,6 +8,13 @@ import {
   SuggestionMenuController,
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
+import { en as enLocale } from "@blocknote/core/locales";
+import {
+  withMultiColumn,
+  multiColumnDropCursor,
+  getMultiColumnSlashMenuItems,
+  locales as multiColumnLocales,
+} from "@blocknote/xl-multi-column";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
 import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot } from "lucide-react";
@@ -475,18 +482,21 @@ const ScenarioTableBlock = createReactBlockSpec(
 );
 
 // Schema that includes the custom blocks
-const schema = BlockNoteSchema.create({
-  blockSpecs: {
-    ...defaultBlockSpecs,
-    // 0.51: createReactBlockSpec returns a factory — call it to register.
-    pageBreak: PageBreakBlock(),
-    scenarioTable: ScenarioTableBlock(),
-    signatureField: SignatureFieldBlock(),
-    acceptanceField: AcceptanceFieldBlock(),
-    initialsField: InitialsFieldBlock(),
-    radioField: RadioFieldBlock(),
-  },
-});
+// withMultiColumn adds the `column` / `columnList` blocks (two-column layout).
+const schema = withMultiColumn(
+  BlockNoteSchema.create({
+    blockSpecs: {
+      ...defaultBlockSpecs,
+      // 0.51: createReactBlockSpec returns a factory — call it to register.
+      pageBreak: PageBreakBlock(),
+      scenarioTable: ScenarioTableBlock(),
+      signatureField: SignatureFieldBlock(),
+      acceptanceField: AcceptanceFieldBlock(),
+      initialsField: InitialsFieldBlock(),
+      radioField: RadioFieldBlock(),
+    },
+  })
+);
 
 // Slash-menu item for inserting a page break
 function getPageBreakSlashItem(editor: typeof schema.BlockNoteEditor) {
@@ -757,6 +767,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     schema,
     uploadFile,
     resolveFileUrl,
+    // Multi-column: horizontal drop cursor + column-block translations.
+    dropCursor: multiColumnDropCursor,
+    dictionary: { ...enLocale, multi_column: multiColumnLocales.en },
   });
 
   // Keep a ref to the editor so save() always reads the latest document
@@ -1676,6 +1689,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         getInitialsSlashItem(editor),
                         getRadioSlashItem(editor),
                         getAcceptanceSlashItem(editor),
+                        // Two-column layout items (xl-multi-column).
+                        ...getMultiColumnSlashMenuItems(editor),
                       ],
                       query
                     )
