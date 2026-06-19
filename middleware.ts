@@ -36,7 +36,11 @@ export async function middleware(request: NextRequest) {
   // session tokens in the URL hash (implicit flow), which the server never
   // sees — the page establishes the session client-side.
   const isInviteRoute = pathname.startsWith("/auth");
-  const isPublicRoute = isAuthRoute || isApiRoute || isInviteRoute;
+  // Public legal/privacy pages — reachable without a session (linked from the
+  // Privacy Policy and used by non-users to submit data requests).
+  const isLegalRoute = ["/privacy-request", "/privacy-policy", "/cookie-policy", "/terms"]
+    .some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublicRoute = isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute;
 
   if (!user && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone();
