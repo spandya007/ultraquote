@@ -803,10 +803,16 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const skipNextChange = useRef(false);
   useEffect(() => {
     if (contentLoaded.current) return;
-    contentLoaded.current = true;
-    if (!initialContent || initialContent.length === 0) return;
+    if (!initialContent || initialContent.length === 0) { contentLoaded.current = true; return; }
 
     const raf = requestAnimationFrame(() => {
+      // Set the guard only AFTER the content actually loads. Under React
+      // StrictMode (dev), effects run mount→cleanup→mount; the cleanup cancels
+      // this rAF, so the guard must still be unset on the second run or the
+      // content never loads (left the editor blank in dev). Re-checked here so
+      // a stray double-fire still loads only once.
+      if (contentLoaded.current) return;
+      contentLoaded.current = true;
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         editor.replaceBlocks(editor.document, initialContent as any);
