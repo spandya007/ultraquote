@@ -3,6 +3,19 @@
 Status: **IN PROGRESS** on branch `feature/blocknote-051-upgrade`.
 Last researched: 2026-06 (BlockNote latest was **0.51.4**).
 
+## Progress (2026-06-19)
+**Base upgrade tested OK; reactStrictMode re-enabled; multi-column ADDED. Awaiting final runtime test, then merge.**
+- Merged `main` into the branch (resolved serialize.ts: kept `signerFieldName` naming + 0.51
+  table-cell/divider/block-color fixes — both coexist).
+- `reactStrictMode` flipped back to `true` (separate commit; verify no editor crash on the preview).
+- **Multi-column DONE:** `withMultiColumn(schema)` + `multiColumnDropCursor` + dictionary
+  (`{ ...enLocale, multi_column: multiColumnLocales.en }`; base `en` from `@blocknote/core/locales`
+  subpath — NOT a top-level core export). Slash items via `getMultiColumnSlashMenuItems` ("Two
+  Columns"/"Three Columns"). Serializer renders `columnList`/`column` as a flex row (width→flex-grow)
+  + CSS. Help updated. NOTE: `getMultiColumnSlashMenuItems` DOES exist (re-export) — earlier note wrong.
+- Still TODO: final runtime test matrix incl. StrictMode no-crash + two-column create/Preview/PDF +
+  a DocuSeal signing round, then merge to main.
+
 ## Progress (2026-06-18)
 **Base upgrade is code-complete + builds clean; awaiting runtime testing. Multi-column NOT started.**
 - Deps bumped to `@blocknote/{core,react,mantine}@0.51.4` + added `@blocknote/xl-multi-column@0.51.4`.

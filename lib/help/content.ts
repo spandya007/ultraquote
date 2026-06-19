@@ -132,6 +132,13 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [p("Add a pricing table from the Insert menu (Building blocks → Pricing table) to show a scenario’s pricing inside the document. It stays live — if you change line items, the table updates. Pricing is optional; it only appears where you place a table.")],
       },
       {
+        heading: "Two-column layout",
+        blocks: [
+          p("To place content side by side, type “/” and choose Two Columns (or Three Columns). You can also drag a block to the left or right edge of another block to split it into columns. Drag the divider between columns to resize them."),
+          p("Two-column sections render in the Preview and PDF as well. Tip: keep columns for short, parallel content (e.g. two short lists); very wide tables or pricing tables read better full-width."),
+        ],
+      },
+      {
         heading: "Working inside tables",
         blocks: [
           p("Table cells hold text only — you can’t place a heading, a bulleted/numbered list, or another block inside a cell. To put several lines in one cell, press Shift+Enter for a soft line break, and use bold for emphasis. Keep real headings and lists above or below the table (or split into separate tables with text between them)."),
