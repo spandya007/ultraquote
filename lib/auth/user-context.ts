@@ -1,5 +1,11 @@
-import { cache } from "react";
+import { cache as reactCache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// React's `cache` is only provided under the "react-server" export condition
+// (the Next.js server runtime). In plain Node (e.g. vitest), it's undefined, so
+// fall back to identity — per-request memoization is a prod-only optimization.
+const cache: <T extends (...args: never[]) => unknown>(fn: T) => T =
+  typeof reactCache === "function" ? reactCache : (fn) => fn;
 
 // Per-request deduped tenant context.
 //
