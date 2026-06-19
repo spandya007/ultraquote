@@ -6,6 +6,13 @@ export function docusealConfigured(): boolean {
   return !!process.env.DOCUSEAL_API_TOKEN;
 }
 
+// The public signer page lives on the app domain (docuseal.com), NOT the API
+// host (api.docuseal.com). Build a signer link from a submitter's slug.
+const SIGNING_BASE = process.env.DOCUSEAL_SIGNING_BASE_URL || "https://docuseal.com";
+export function signingUrlForSlug(slug: string | null | undefined): string | null {
+  return slug ? `${SIGNING_BASE.replace(/\/$/, "")}/s/${slug}` : null;
+}
+
 /** Archives a submission (voids its signing links). Best-effort. */
 export async function archiveSubmission(submissionId: string): Promise<void> {
   try {

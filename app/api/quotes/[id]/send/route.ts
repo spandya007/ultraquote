@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loadSerializeInput } from "@/lib/pdf/load";
 import { buildSigningHtml } from "@/lib/pdf/serialize";
-import { docusealConfigured, createHtmlSubmission, archiveSubmission, type DocusealSubmitter } from "@/lib/docuseal";
+import { docusealConfigured, createHtmlSubmission, archiveSubmission, signingUrlForSlug, type DocusealSubmitter } from "@/lib/docuseal";
 import { requireWriteAccess } from "@/lib/access/guard";
 
 export const runtime = "nodejs";
@@ -153,9 +153,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   });
 
   const nowIso = new Date().toISOString();
+  // Collect each signer's DocuSeal signing link (from the submitter slug) so the
+  // UI can offer "copy link" — useful for handing the link over directly when
+  // email delivery is unavailable (e.g. the free-tier email quota is exhausted).
+  const signerLinks: { email: string; role: string; url: string | null }[] = [];
   for (const s of submitters) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const match = list.find((r: any) => (r.email || "").toLowerCase() === s.email.toLowerCase() || r.role === s.role);
+    const url = signingUrlForSlug(match?.slug) ?? (match?.embed_src ?? null);
     await db.from("quote_signers").insert({
       quote_id: params.id,
       signer_name: s.name || s.email,
@@ -166,9 +171,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       provider_signer_id: match?.id ? String(match.id) : null,
       sent_at: nowIso,
     });
+    signerLinks.push({ email: s.email, role: s.signerRole, url });
   }
 
   await db.from("quotes").update({ status: "sent", sent_at: nowIso }).eq("id", params.id);
 
-  return NextResponse.json({ ok: true, submissionId, signers: submitters.map(s => s.email) });
+  return NextResponse.json({ ok: true, submissionId, signers: signerLinks });
 }

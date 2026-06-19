@@ -205,20 +205,22 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
   const colorIndex: Record<string, number> = {};
   [...scenarios].sort((a, b) => a.sort_order - b.sort_order).forEach((s, i) => { colorIndex[s.id] = i; });
 
-  // Radio-field names become the title DocuSeal shows the signer, so derive a
-  // human-readable name from the question (e.g. "Data Backup Options") instead
-  // of a cryptic "Choice-<uuid>". Names must be unique across the document, so
-  // duplicates get a " (2)" suffix; an unlabelled question falls back to "Choice N".
-  const usedRadioNames = new Map<string, number>();
-  let radioSeq = 0;
-  function radioFieldName(label: string): string {
-    radioSeq++;
+  // A field's name becomes the title DocuSeal shows the signer, so derive a
+  // human-readable name from its label (e.g. "Data Backup Options" or the
+  // acceptance statement) instead of a cryptic "Choice-<uuid>"/"Acceptance-<uuid>".
+  // Names must be unique across the whole submission, so duplicates get a " (2)"
+  // suffix; an empty label falls back to "<fallback> N". One shared namespace
+  // across all field types guarantees cross-type uniqueness too.
+  const usedFieldNames = new Map<string, number>();
+  let fieldSeq = 0;
+  function signerFieldName(label: string, fallback: string): string {
+    fieldSeq++;
     // Strip a trailing colon and collapse whitespace; cap length for tidy titles.
     let base = label.replace(/\s+/g, " ").trim().replace(/:$/, "").trim();
     if (base.length > 60) base = base.slice(0, 60).trim();
-    if (!base) base = `Choice ${radioSeq}`;
-    const seen = usedRadioNames.get(base) ?? 0;
-    usedRadioNames.set(base, seen + 1);
+    if (!base) base = `${fallback} ${fieldSeq}`;
+    const seen = usedFieldNames.get(base) ?? 0;
+    usedFieldNames.set(base, seen + 1);
     return seen === 0 ? base : `${base} (${seen + 1})`;
   }
   // Renders a block array; recurses into each block's children so NESTED content
@@ -309,9 +311,12 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         const signer = props.signer === "tenant" ? "tenant" : "client";
         const role = signer === "tenant" ? "Company" : "Client";
         if (input.forSigning) {
+          // Clean, unique field name/title ("Client Initials", deduped) instead
+          // of "Client Initials-<uuid>".
+          const fieldName = signerFieldName(`${role} Initials`, `${role} Initials`);
           out.push(
             `<div class="initials-field">` +
-            `<initials-field name="${role} Initials-${block.id ?? i}" role="${role}" style="width:90px;height:44px;display:inline-block"></initials-field>` +
+            `<initials-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="${role}" style="width:90px;height:44px;display:inline-block"></initials-field>` +
             `<div class="initials-label">${role} initials</div></div>`
           );
         } else {
@@ -332,7 +337,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         const opts = String(props.options ?? "").split(",").map(o => o.trim()).filter(Boolean);
         if (input.forSigning) {
           // Field name = the title DocuSeal shows the signer; make it meaningful.
-          const fieldName = radioFieldName(rawLabel);
+          const fieldName = signerFieldName(rawLabel, "Choice");
           out.push(
             `<div class="radio-field">` +
             (question ? `<div class="radio-q">${question}</div>` : "") +
@@ -361,13 +366,16 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
 
       case "acceptanceField": {
         // A statement the CUSTOMER must accept. Role is always Client.
-        const label = escapeHtml(substituteTokens(String(props.label ?? ""), tokenMap));
+        const rawLabel = substituteTokens(String(props.label ?? ""), tokenMap);
+        const label = escapeHtml(rawLabel);
         if (input.forSigning) {
           // Required DocuSeal checkbox — the client can't complete without it.
-          const fieldName = `Acceptance-${block.id ?? i}`;
+          // Name it from the statement (the title DocuSeal shows the signer)
+          // instead of a cryptic "Acceptance-<uuid>".
+          const fieldName = signerFieldName(rawLabel, "Acceptance");
           out.push(
             `<div class="accept-field">` +
-            `<checkbox-field name="${escapeHtml(fieldName)}" role="Client" required="true" style="width:16px;height:16px;display:inline-block;vertical-align:top"></checkbox-field>` +
+            `<checkbox-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="Client" required="true" style="width:16px;height:16px;display:inline-block;vertical-align:top"></checkbox-field>` +
             `<span class="accept-text">${label}</span>` +
             `</div>`
           );
