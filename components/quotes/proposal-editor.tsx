@@ -1303,14 +1303,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         <div className="flex items-center gap-0.5 border-r pr-2 mr-1">
           <button
             title="Undo (⌘Z)"
-            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().undo().run(); scheduleSave(); }}
+            onMouseDown={(e) => { e.preventDefault(); editorRef.current.undo(); scheduleSave(); }}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
           <button
             title="Redo (⌘⇧Z)"
-            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().redo().run(); scheduleSave(); }}
+            onMouseDown={(e) => { e.preventDefault(); editorRef.current.redo(); scheduleSave(); }}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           >
             <Redo2 className="w-3.5 h-3.5" />
@@ -1659,9 +1659,12 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   getItems={async (query) =>
                     filterSuggestionItems(
                       [
-                        // Drop Video/Audio/File — they never render in the PDF.
+                        // Drop blocks we don't support in the proposal/PDF:
+                        // Video/Audio/File never render in the PDF; Quote/Code
+                        // Block/Check List are new in 0.51 and either confuse
+                        // ("Quote" vs an UltraQuote quote) or aren't wanted here.
                         ...getDefaultReactSlashMenuItems(editor).filter(
-                          (item) => !["Video", "Audio", "File"].includes((item as { title?: string }).title ?? "")
+                          (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List"].includes((item as { title?: string }).title ?? "")
                         ),
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
