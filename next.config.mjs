@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // BlockNote 0.14 is not StrictMode-safe: the double-invoked mount can
-  // re-create the editor and re-run content loading, causing node-view churn.
-  // The actual "Position undefined out of range" crash is fixed by loading
-  // saved content via editor.replaceBlocks() after mount (see proposal-editor.tsx),
-  // but we keep StrictMode off as a safeguard against editor double-mount.
-  reactStrictMode: false,
+  // Re-enabled with the BlockNote 0.51 upgrade — the 0.14 "Position undefined
+  // out of range" getPos crash on StrictMode double-mount no longer applies. The
+  // post-mount replaceBlocks load (proposal-editor.tsx) is kept (guarded by a
+  // contentLoaded ref, so the double-invoked effect won't double-load).
+  reactStrictMode: true,
   // Don't serve stale dynamic routes from the client Router Cache on
   // back/forward navigation — always refetch (fixes e.g. /quotes not showing a
   // newly added quote when navigating back to it).
