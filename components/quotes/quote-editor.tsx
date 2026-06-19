@@ -113,6 +113,8 @@ interface Props {
   tenant: Tenant | null;
   /** Company-wide tax rate from tenant_settings (Settings → Company Settings). */
   companyTaxRate: number | null;
+  /** Tenant brand font ('sans'|'serif'|'mono') for WYSIWYG editing. */
+  companyFont: string | null;
   /** False when the viewer is neither the quote's creator nor the tenant owner
    *  → full read-only mode (no auto-save, all controls disabled/hidden). */
   canEdit: boolean;
@@ -208,7 +210,7 @@ function calcScenarioTotals(items: LineItem[], taxRate: number) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEdit, isOwner, creatorName }: Props) {
+export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, companyFont, canEdit, isOwner, creatorName }: Props) {
   const router = useRouter();
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1053,6 +1055,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
               scenarios={scenarios}
               taxRate={taxRate}
               showMargins={showMargins}
+              docFont={companyFont}
               onReady={handleEditorReady}
               onPricingApplied={refreshScenarios}
               onSignatureFieldsChange={handleSigFieldsChange}

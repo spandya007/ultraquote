@@ -40,6 +40,13 @@ export async function loadSerializeInput(
     .eq("id", quote.tenant_id)
     .single();
 
+  // Company-wide brand font for the proposal body (applies to PDF/Preview).
+  const { data: tsettings } = await db
+    .from("tenant_settings")
+    .select("default_font")
+    .eq("tenant_id", quote.tenant_id)
+    .maybeSingle();
+
   const blocks: DocBlock[] = Array.isArray(quote.document_content) ? quote.document_content : [];
   const imageUrlMap = await buildImageUrlMap(blocks, supabase);
 
@@ -70,6 +77,7 @@ export async function loadSerializeInput(
     tenant: tenant ?? {
       name: "", contact_name: null, email: null, phone: null, address: null, logo_url: null,
     },
+    bodyFont: tsettings?.default_font ?? null,
     imageUrlMap,
   };
 }

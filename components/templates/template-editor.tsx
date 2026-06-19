@@ -28,9 +28,11 @@ interface Props {
   tenant: TenantData | null;
   /** Only the creator or the tenant owner may edit; others view read-only. */
   canEdit: boolean;
+  /** Tenant brand font for WYSIWYG editing. */
+  companyFont?: string | null;
 }
 
-export function TemplateEditor({ template, tenant, canEdit }: Props) {
+export function TemplateEditor({ template, tenant, canEdit, companyFont }: Props) {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createClient() as any;
@@ -77,6 +79,7 @@ export function TemplateEditor({ template, tenant, canEdit }: Props) {
           scenarios={[]}
           taxRate={0}
           showMargins={false}
+          docFont={companyFont}
         />
       </div>
     </div>

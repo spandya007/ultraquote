@@ -27,6 +27,7 @@ interface TenantSettings {
   quote_number_prefix: string;
   quote_number_sequence: number;
   default_payment_terms: string;
+  default_font: string | null;
 }
 
 interface Props {
@@ -131,6 +132,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   );
   const [validDays,    setValidDays]    = useState(String(settings?.default_valid_days    ?? 30));
   const [paymentTerms, setPaymentTerms] = useState(settings?.default_payment_terms ?? "Net 30");
+  const [font,         setFont]         = useState(settings?.default_font ?? "sans");
   const [savingDefaults, setSavingDefaults] = useState(false);
 
   // ── Save handlers ─────────────────────────────────────────────────────────
@@ -171,6 +173,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
       quote_number_prefix:   prefixClean,
       default_valid_days:    parsedDays,
       default_payment_terms: paymentTerms.trim() || "Net 30",
+      default_font:          font,
     }, { onConflict: "tenant_id" });
     setSavingDefaults(false);
     if (error) toast.error("Failed to save quote defaults");
@@ -376,6 +379,20 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
               placeholder="Net 30"
             />
             <p className="text-xs text-muted-foreground">Shown on generated quotes</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Proposal Font</label>
+            <select
+              value={font}
+              onChange={e => setFont(e.target.value)}
+              disabled={!isOwner}
+              className={inputCls()}
+            >
+              <option value="sans">Sans-serif (Helvetica / Arial)</option>
+              <option value="serif">Serif (Times New Roman)</option>
+              <option value="mono">Monospace (Courier)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">Font for the proposal PDF &amp; preview. Limited to fonts that render reliably in the PDF and the e-signature document.</p>
           </div>
         </div>
 

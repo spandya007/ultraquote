@@ -533,9 +533,22 @@ export function buildSigningHtml(input: SerializeInput): string {
   return buildFullHtml({ ...input, forSigning: true });
 }
 
+// Tenant brand font → CSS stack. Limited to fonts that render in BOTH Puppeteer
+// (proposal PDF) and DocuSeal (signing doc): serif→Times, mono→Courier. The
+// default (sans / unset) keeps the existing system stack so current proposals
+// look unchanged; it still ends in `sans-serif` so it's safe everywhere.
+function bodyFontStack(key: string | null | undefined): string {
+  switch (key) {
+    case "serif": return '"Times New Roman", Times, serif';
+    case "mono":  return '"Courier New", Courier, monospace';
+    default:      return '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  }
+}
+
 export function buildFullHtml(input: SerializeInput): string {
   const body = buildDocumentBody(input);
   const { quote, client, tenant, imageUrlMap = {} } = input;
+  const fontStack = bodyFontStack(input.bodyFont);
 
   // Tenant logo on the first page (resolved sb-storage:// → signed URL).
   const logoSrc = tenant.logo_url ? (imageUrlMap[tenant.logo_url] ?? tenant.logo_url) : "";
@@ -552,7 +565,7 @@ export function buildFullHtml(input: SerializeInput): string {
   @page { size: Letter; margin: 0.75in; }
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: ${fontStack};
     color: #1e293b; font-size: 12pt; line-height: 1.6; margin: 0;
   }
   /* The @page margin applies to the printed PDF. For the on-screen Preview

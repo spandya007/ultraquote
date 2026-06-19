@@ -697,6 +697,9 @@ interface Props {
   taxRate: number;
   /** Show internal profit-margin column in the inline pricing-table previews. */
   showMargins: boolean;
+  /** Tenant brand font ('sans'|'serif'|'mono') — applied to the editor canvas so
+   *  editing is WYSIWYG with the proposal PDF. */
+  docFont?: string | null;
   /** Called once on mount with an API the parent can invoke (save flush + checks). */
   onReady?: (api: ProposalEditorApi) => void;
   /** Called after pricing tables are extracted into scenarios (so the parent can refresh). */
@@ -722,7 +725,7 @@ type TextAlignment = "left" | "center" | "right";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricing, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
+export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricing, initialContent, clientData, tenantData, scenarios, taxRate, showMargins, docFont, onReady, onPricingApplied, onSignatureFieldsChange }: Props) {
   const supabaseRef = useRef(createClient());
   const isTemplateRef = useRef(isTemplate);
   isTemplateRef.current = isTemplate;
@@ -800,10 +803,16 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const skipNextChange = useRef(false);
   useEffect(() => {
     if (contentLoaded.current) return;
-    contentLoaded.current = true;
-    if (!initialContent || initialContent.length === 0) return;
+    if (!initialContent || initialContent.length === 0) { contentLoaded.current = true; return; }
 
     const raf = requestAnimationFrame(() => {
+      // Set the guard only AFTER the content actually loads. Under React
+      // StrictMode (dev), effects run mount→cleanup→mount; the cleanup cancels
+      // this rAF, so the guard must still be unset on the second run or the
+      // content never loads (left the editor blank in dev). Re-checked here so
+      // a stray double-fire still loads only once.
+      if (contentLoaded.current) return;
+      contentLoaded.current = true;
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         editor.replaceBlocks(editor.document, initialContent as any);
@@ -1715,7 +1724,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
 
       {/* Editor */}
       <div className="flex-1 overflow-y-auto overflow-x-visible">
-        <div className="overflow-x-visible px-2 py-4">
+        <div className="overflow-x-visible px-2 py-4" data-doc-font={docFont ?? "sans"}>
             <ScenarioContext.Provider value={{ scenarios, taxRate, showMargins }}>
               <BlockNoteView
                 editor={editor}

@@ -38,7 +38,7 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
         .single(),
       // Company-wide tax rate (Settings → Company Settings) — applied to all quotes.
       ctx?.tenant_id
-        ? db.from("tenant_settings").select("default_tax_rate").eq("tenant_id", ctx.tenant_id).maybeSingle()
+        ? db.from("tenant_settings").select("default_tax_rate, default_font").eq("tenant_id", ctx.tenant_id).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
 
@@ -48,6 +48,8 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
     : null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyTaxRate: number | null = (settingsRes?.data as any)?.default_tax_rate ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyFont: string | null = (settingsRes?.data as any)?.default_font ?? null;
 
   if (!quoteResult.data) {
     console.error("[QuotePage] query error:", quoteResult.error?.message);
@@ -86,6 +88,7 @@ export default async function QuotePage({ params }: { params: { id: string } }) 
       quote={{ ...raw, scenarios: sortedScenarios }}
       tenant={tenant}
       companyTaxRate={companyTaxRate}
+      companyFont={companyFont}
       canEdit={canEdit}
       isOwner={isOwner}
       creatorName={creatorName}

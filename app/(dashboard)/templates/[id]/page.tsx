@@ -24,11 +24,15 @@ export default async function TemplateEditorPage({ params }: { params: { id: str
   const canEdit = userData?.role === "owner" || (template.created_by != null && template.created_by === user?.id);
 
   let tenant = null;
+  let companyFont: string | null = null;
   if (userData?.tenant_id) {
     const { data } = await db
       .from("tenants").select("name, contact_name, email, address, phone").eq("id", userData.tenant_id).single();
     tenant = data;
+    const { data: ts } = await db
+      .from("tenant_settings").select("default_font").eq("tenant_id", userData.tenant_id).maybeSingle();
+    companyFont = ts?.default_font ?? null;
   }
 
-  return <TemplateEditor template={template} tenant={tenant} canEdit={canEdit} />;
+  return <TemplateEditor template={template} tenant={tenant} canEdit={canEdit} companyFont={companyFont} />;
 }

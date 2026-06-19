@@ -78,4 +78,7 @@ export interface SerializeInput {
   /** When true, signature-field blocks emit DocuSeal field tags (for /submissions/html)
    *  instead of a plain signature line. */
   forSigning?: boolean;
+  /** Tenant brand font for the proposal body: 'sans' | 'serif' | 'mono'
+   *  (tenant_settings.default_font). Undefined/unknown → sans. */
+  bodyFont?: string | null;
 }
