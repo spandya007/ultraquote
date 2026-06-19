@@ -1152,7 +1152,11 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         if (b.type === "heading") heading = blockText(b);
         if (b.type === "table") {
           const rows = (((b.content as any)?.rows) ?? []).map((r: any) =>
-            (r.cells ?? []).map((cell: any) => Array.isArray(cell) ? cell.map((n: any) => n?.text ?? "").join("") : ""));
+            (r.cells ?? []).map((cell: any) => {
+              // 0.51 cell = { type:"tableCell", content:[...] }; 0.14 = InlineContent[].
+              const inline = Array.isArray(cell) ? cell : (cell?.content ?? []);
+              return inline.map((n: any) => n?.text ?? "").join("");
+            }));
           tables.push({ heading, rows });
         }
         if (Array.isArray(b.children) && b.children.length) {

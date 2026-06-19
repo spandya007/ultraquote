@@ -385,8 +385,14 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rows: any[] = (block.content as any)?.rows ?? [];
         const rowsHtml = rows.map((r) => {
+          // BlockNote 0.51 wraps each cell as { type:"tableCell", content:[...] };
+          // 0.14 (and imported) tables store the cell as a plain InlineContent[].
+          // Handle both so docs authored on either version serialize.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cells = (r.cells ?? []).map((cell: any) => `<td>${renderInline(cell, tokenMap)}</td>`).join("");
+          const cells = (r.cells ?? []).map((cell: any) => {
+            const inline = Array.isArray(cell) ? cell : (cell?.content ?? []);
+            return `<td>${renderInline(inline, tokenMap)}</td>`;
+          }).join("");
           return `<tr>${cells}</tr>`;
         }).join("");
         if (rowsHtml) out.push(`<table class="doc-table">${rowsHtml}</table>`);
