@@ -95,12 +95,10 @@ function renderInline(content: InlineContent[] | string | undefined, tokenMap: R
       if (styles.code) html = `<code>${html}</code>`;
 
       const css: string[] = [];
-      if (styles.textColor && styles.textColor !== "default") css.push(`color:${styles.textColor}`);
-      if (styles.backgroundColor && styles.backgroundColor !== "default") {
-        // Variable tokens were inserted with a blue background — keep them tinted.
-        css.push(`background-color:${styles.backgroundColor === "blue" ? "#ede9fe" : styles.backgroundColor}`);
-        css.push("padding:0 2px;border-radius:3px");
-      }
+      const tc = textColorCss(styles.textColor);
+      if (tc) css.push(`color:${tc}`);
+      const bg = bgColorCss(styles.backgroundColor);
+      if (bg) { css.push(`background-color:${bg}`); css.push("padding:0 2px;border-radius:3px"); }
       if (css.length) html = `<span style="${css.join(";")}">${html}</span>`;
 
       return html;
@@ -108,9 +106,37 @@ function renderInline(content: InlineContent[] | string | undefined, tokenMap: R
     .join("");
 }
 
+// BlockNote's default color palette (Notion-style) — name → CSS hex, so the
+// PDF/Preview matches the editor (the names "red"/"blue"/… are specific shades,
+// not CSS keywords). Both inline text styles and block-level props use these.
+const BN_TEXT_COLORS: Record<string, string> = {
+  gray: "#9b9a97", brown: "#64473a", red: "#e03e3e", orange: "#d9730d",
+  yellow: "#dfab01", green: "#4d6461", blue: "#0b6e99", purple: "#6940a5", pink: "#ad1a72",
+};
+const BN_BG_COLORS: Record<string, string> = {
+  gray: "#ebeced", brown: "#e9e5e3", red: "#fbe4e4", orange: "#f6e9d9",
+  yellow: "#fbf3db", green: "#ddedea", blue: "#ddebf1", purple: "#eae4f2", pink: "#f4dfeb",
+};
+function textColorCss(v: unknown): string {
+  const k = String(v ?? "");
+  return k && k !== "default" ? (BN_TEXT_COLORS[k] ?? k) : "";
+}
+function bgColorCss(v: unknown): string {
+  const k = String(v ?? "");
+  return k && k !== "default" ? (BN_BG_COLORS[k] ?? k) : "";
+}
+
+// Block-level style: alignment + block text/background color (set via the
+// block's color menu — distinct from inline text styles handled above).
 function alignStyle(props: Record<string, unknown> | undefined): string {
+  const css: string[] = [];
   const a = props?.textAlignment;
-  return a && a !== "left" ? ` style="text-align:${a}"` : "";
+  if (a && a !== "left") css.push(`text-align:${a}`);
+  const tc = textColorCss(props?.textColor);
+  if (tc) css.push(`color:${tc}`);
+  const bg = bgColorCss(props?.backgroundColor);
+  if (bg) css.push(`background-color:${bg}`);
+  return css.length ? ` style="${css.join(";")}"` : "";
 }
 
 // ─── Scenario pricing table ─────────────────────────────────────────────────────
@@ -249,7 +275,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         const tag = block.type === "bulletListItem" ? "ul" : "ol";
         const items: string[] = [];
         while (i < blocks.length && blocks[i].type === block.type) {
-          items.push(`<li>${renderInline(blocks[i].content, tokenMap)}${renderChildren(blocks[i])}</li>`);
+          items.push(`<li${alignStyle(blocks[i].props)}>${renderInline(blocks[i].content, tokenMap)}${renderChildren(blocks[i])}</li>`);
           i++;
         }
         out.push(`<${tag}>${items.join("")}</${tag}>`);
