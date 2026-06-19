@@ -478,12 +478,13 @@ const ScenarioTableBlock = createReactBlockSpec(
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
-    pageBreak: PageBreakBlock,
-    scenarioTable: ScenarioTableBlock,
-    signatureField: SignatureFieldBlock,
-    acceptanceField: AcceptanceFieldBlock,
-    initialsField: InitialsFieldBlock,
-    radioField: RadioFieldBlock,
+    // 0.51: createReactBlockSpec returns a factory — call it to register.
+    pageBreak: PageBreakBlock(),
+    scenarioTable: ScenarioTableBlock(),
+    signatureField: SignatureFieldBlock(),
+    acceptanceField: AcceptanceFieldBlock(),
+    initialsField: InitialsFieldBlock(),
+    radioField: RadioFieldBlock(),
   },
 });
 
