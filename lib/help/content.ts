@@ -358,6 +358,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [p("Settings → Appearance. Choose Light, Dark, or Auto (follow your device), plus an accent color. It’s per-user and applies instantly; your proposals are unaffected.")],
       },
       {
+        heading: "Proposal font",
+        ownerOnly: true,
+        blocks: [
+          p("Settings → Quote Defaults → Proposal Font sets the typeface for your proposals — choose Sans-serif (Helvetica/Arial), Serif (Times New Roman), or Monospace (Courier). It’s a company-wide setting that applies to every quote."),
+          p("The font shows everywhere the proposal is rendered: while editing the Document, in the Preview and downloaded PDF, and in the e-signature document. Reload an open quote after changing it. (The choice is limited to these three so it renders reliably in both the PDF and the signing document.)"),
+        ],
+      },
+      {
         heading: "Changing your password",
         blocks: [p("Settings → Change Password. Forgot it? Use “Forgot password?” on the sign-in page to get a reset link by email.")],
       },
