@@ -272,6 +272,13 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         break;
       }
 
+      case "divider": {
+        // 0.51 default block: a visible horizontal rule (NOT a page break).
+        out.push(`<hr class="doc-divider" />`);
+        i++;
+        break;
+      }
+
       case "pageBreak": {
         out.push(`<div class="page-break"></div>`);
         i++;
@@ -552,6 +559,7 @@ export function buildFullHtml(input: SerializeInput): string {
   .accept-field .accept-text { flex: 1; }
 
   /* Imported (Word) tables */
+  .doc-divider { border: 0; border-top: 1px solid #cbd5e1; margin: 16px 0; }
   .doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10.5pt; page-break-inside: avoid; }
   .doc-table td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
 

@@ -1668,7 +1668,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         // Block/Check List are new in 0.51 and either confuse
                         // ("Quote" vs an UltraQuote quote) or aren't wanted here.
                         ...getDefaultReactSlashMenuItems(editor).filter(
-                          (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List"].includes((item as { title?: string }).title ?? "")
+                          (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List", "Toggle List"].includes((item as { title?: string }).title ?? "")
                         ),
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
