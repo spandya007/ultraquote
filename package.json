@@ -12,10 +12,13 @@
     "test:rls": "node scripts/test-db-reset.mjs && vitest run --config vitest.rls.config.ts"
   },
   "dependencies": {
-    "@blocknote/core": "^0.14.4",
-    "@blocknote/mantine": "^0.14.4",
-    "@blocknote/react": "^0.14.4",
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/mantine": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
+    "@blocknote/xl-multi-column": "^0.51.4",
     "@hookform/resolvers": "^3.9.0",
+    "@mantine/core": "^8.3.18",
+    "@mantine/hooks": "^8.3.18",
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.44.4",
     "class-variance-authority": "^0.7.0",

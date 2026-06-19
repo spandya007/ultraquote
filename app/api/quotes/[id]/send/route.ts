@@ -37,8 +37,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Which parties actually have a field placed in the document? Signature fields
   // map to their signer; an acceptance checkbox is always the Client (customer),
   // so it makes the Client a submitter even without a separate signature field.
+  // Flatten the block tree (recurse children) so signing fields nested inside
+  // columns/containers are detected, not just top-level ones.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flatten = (blocks: any[]): any[] => (blocks ?? []).flatMap((b) => [b, ...flatten(b.children ?? [])]);
   const kinds = new Set<string>();
-  for (const b of input.blocks ?? []) {
+  for (const b of flatten(input.blocks ?? [])) {
     if (b.type === "signatureField" || b.type === "initialsField" || b.type === "radioField") kinds.add(b.props?.signer === "tenant" ? "tenant" : "client");
     else if (b.type === "acceptanceField") kinds.add("client");
   }

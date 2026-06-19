@@ -8,9 +8,16 @@ import {
   SuggestionMenuController,
 } from "@blocknote/react";
 import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems } from "@blocknote/core";
+import { en as enLocale } from "@blocknote/core/locales";
+import {
+  withMultiColumn,
+  multiColumnDropCursor,
+  getMultiColumnSlashMenuItems,
+  locales as multiColumnLocales,
+} from "@blocknote/xl-multi-column";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -475,17 +482,35 @@ const ScenarioTableBlock = createReactBlockSpec(
 );
 
 // Schema that includes the custom blocks
-const schema = BlockNoteSchema.create({
-  blockSpecs: {
-    ...defaultBlockSpecs,
-    pageBreak: PageBreakBlock,
-    scenarioTable: ScenarioTableBlock,
-    signatureField: SignatureFieldBlock,
-    acceptanceField: AcceptanceFieldBlock,
-    initialsField: InitialsFieldBlock,
-    radioField: RadioFieldBlock,
-  },
-});
+// Flatten the document tree (recurse children) so detection of pricing/signature
+// blocks isn't limited to the top level — blocks nested inside columns (or any
+// other container) must be found too.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenBlocks(blocks: any[]): any[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = [];
+  for (const b of blocks ?? []) {
+    out.push(b);
+    if (Array.isArray(b.children) && b.children.length) out.push(...flattenBlocks(b.children));
+  }
+  return out;
+}
+
+// withMultiColumn adds the `column` / `columnList` blocks (two-column layout).
+const schema = withMultiColumn(
+  BlockNoteSchema.create({
+    blockSpecs: {
+      ...defaultBlockSpecs,
+      // 0.51: createReactBlockSpec returns a factory — call it to register.
+      pageBreak: PageBreakBlock(),
+      scenarioTable: ScenarioTableBlock(),
+      signatureField: SignatureFieldBlock(),
+      acceptanceField: AcceptanceFieldBlock(),
+      initialsField: InitialsFieldBlock(),
+      radioField: RadioFieldBlock(),
+    },
+  })
+);
 
 // Slash-menu item for inserting a page break
 function getPageBreakSlashItem(editor: typeof schema.BlockNoteEditor) {
@@ -756,6 +781,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     schema,
     uploadFile,
     resolveFileUrl,
+    // Multi-column: horizontal drop cursor + column-block translations.
+    dropCursor: multiColumnDropCursor,
+    dictionary: { ...enLocale, multi_column: multiColumnLocales.en },
   });
 
   // Keep a ref to the editor so save() always reads the latest document
@@ -835,13 +863,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   useEffect(() => {
     onReady?.({
       saveNow: save,
-      hasPricingTable: () => editorRef.current.document.some(b => b.type === "scenarioTable"),
+      hasPricingTable: () => flattenBlocks(editorRef.current.document).some(b => b.type === "scenarioTable"),
       documentScenarioRefs: () =>
-        editorRef.current.document
+        flattenBlocks(editorRef.current.document)
           .filter(b => b.type === "scenarioTable")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map(b => String((b.props as any)?.scenarioRef ?? "recommended")),
-      hasSignatureField: () => editorRef.current.document.some(b => b.type === "signatureField"),
+      hasSignatureField: () => flattenBlocks(editorRef.current.document).some(b => b.type === "signatureField"),
     });
   // save is stable; onReady is memoised by the parent.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -856,7 +884,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const lastSigKeyRef = useRef("");
   const notifySignatureFields = useCallback(() => {
     if (!onSigChangeRef.current) return;
-    const kinds = editorRef.current.document
+    const kinds = flattenBlocks(editorRef.current.document)
       .filter(b => b.type === "signatureField")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map(b => String((b.props as any)?.signer ?? "client"));
@@ -1151,7 +1179,11 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         if (b.type === "heading") heading = blockText(b);
         if (b.type === "table") {
           const rows = (((b.content as any)?.rows) ?? []).map((r: any) =>
-            (r.cells ?? []).map((cell: any) => Array.isArray(cell) ? cell.map((n: any) => n?.text ?? "").join("") : ""));
+            (r.cells ?? []).map((cell: any) => {
+              // 0.51 cell = { type:"tableCell", content:[...] }; 0.14 = InlineContent[].
+              const inline = Array.isArray(cell) ? cell : (cell?.content ?? []);
+              return inline.map((n: any) => n?.text ?? "").join("");
+            }));
           tables.push({ heading, rows });
         }
         if (Array.isArray(b.children) && b.children.length) {
@@ -1260,6 +1292,37 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     return null;
   }
 
+  // Wrap the selected block(s) into a two-column layout, splitting them across
+  // the two columns (left gets the extra when odd; a single block goes left with
+  // an empty right column to fill). Avoids the cumbersome drag-to-side gesture.
+  function makeTwoColumns() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blocks: any[] = editor.getSelection()?.blocks ?? [editor.getTextCursorPosition().block];
+    if (blocks.length === 0) return;
+    if (blocks.some((b) => b.type === "columnList" || b.type === "column")) {
+      toastRef.current.error("That selection already includes columns — pick plain blocks to split into two columns.");
+      return;
+    }
+    // Drop ids so the re-inserted children don't collide with the removed originals.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toPartial = (b: any): any => ({ type: b.type, props: b.props, content: b.content, children: (b.children ?? []).map(toPartial) });
+    const mid = Math.ceil(blocks.length / 2);
+    const left = blocks.slice(0, mid).map(toPartial);
+    const right = blocks.slice(mid).map(toPartial);
+    if (right.length === 0) right.push({ type: "paragraph" });
+    const columnList = {
+      type: "columnList",
+      children: [
+        { type: "column", props: { width: 1 }, children: left },
+        { type: "column", props: { width: 1 }, children: right },
+      ],
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor.replaceBlocks(blocks, [columnList as any]);
+    editor.focus();
+    scheduleSave();
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   const alignButtons: { alignment: TextAlignment; icon: React.ReactNode; label: string }[] = [
@@ -1302,14 +1365,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         <div className="flex items-center gap-0.5 border-r pr-2 mr-1">
           <button
             title="Undo (⌘Z)"
-            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().undo().run(); scheduleSave(); }}
+            onMouseDown={(e) => { e.preventDefault(); editorRef.current.undo(); scheduleSave(); }}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
           <button
             title="Redo (⌘⇧Z)"
-            onMouseDown={(e) => { e.preventDefault(); tt().chain().focus().redo().run(); scheduleSave(); }}
+            onMouseDown={(e) => { e.preventDefault(); editorRef.current.redo(); scheduleSave(); }}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           >
             <Redo2 className="w-3.5 h-3.5" />
@@ -1333,6 +1396,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               {icon}
             </button>
           ))}
+          <button
+            title="Make 2 columns from the selected block(s)"
+            onMouseDown={(e) => { e.preventDefault(); makeTwoColumns(); }}
+            className="p-1.5 rounded transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+          >
+            <Columns2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Insert Field dropdown */}
@@ -1658,9 +1728,12 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   getItems={async (query) =>
                     filterSuggestionItems(
                       [
-                        // Drop Video/Audio/File — they never render in the PDF.
+                        // Drop blocks we don't support in the proposal/PDF:
+                        // Video/Audio/File never render in the PDF; Quote/Code
+                        // Block/Check List are new in 0.51 and either confuse
+                        // ("Quote" vs an UltraQuote quote) or aren't wanted here.
                         ...getDefaultReactSlashMenuItems(editor).filter(
-                          (item) => !["Video", "Audio", "File"].includes((item as { title?: string }).title ?? "")
+                          (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List", "Toggle List"].includes((item as { title?: string }).title ?? "")
                         ),
                         getPageBreakSlashItem(editor),
                         getScenarioSlashItem(editor),
@@ -1668,6 +1741,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         getInitialsSlashItem(editor),
                         getRadioSlashItem(editor),
                         getAcceptanceSlashItem(editor),
+                        // Two-column layout items (xl-multi-column).
+                        ...getMultiColumnSlashMenuItems(editor),
                       ],
                       query
                     )

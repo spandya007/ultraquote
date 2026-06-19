@@ -1,7 +1,49 @@
 # BlockNote Upgrade & Two-Column Support — Research & Plan
 
-Status: **Backlog (not started).** Reference doc for a future dedicated effort.
+Status: **IN PROGRESS** on branch `feature/blocknote-051-upgrade`.
 Last researched: 2026-06 (BlockNote latest was **0.51.4**).
+
+## Progress (2026-06-19)
+**Base upgrade tested OK; reactStrictMode re-enabled; multi-column ADDED. Awaiting final runtime test, then merge.**
+- Merged `main` into the branch (resolved serialize.ts: kept `signerFieldName` naming + 0.51
+  table-cell/divider/block-color fixes — both coexist).
+- `reactStrictMode` flipped back to `true` (separate commit; verify no editor crash on the preview).
+- **Multi-column DONE:** `withMultiColumn(schema)` + `multiColumnDropCursor` + dictionary
+  (`{ ...enLocale, multi_column: multiColumnLocales.en }`; base `en` from `@blocknote/core/locales`
+  subpath — NOT a top-level core export). Slash items via `getMultiColumnSlashMenuItems` ("Two
+  Columns"/"Three Columns"). Serializer renders `columnList`/`column` as a flex row (width→flex-grow)
+  + CSS. Help updated. NOTE: `getMultiColumnSlashMenuItems` DOES exist (re-export) — earlier note wrong.
+- Still TODO: final runtime test matrix incl. StrictMode no-crash + two-column create/Preview/PDF +
+  a DocuSeal signing round, then merge to main.
+
+## Progress (2026-06-18)
+**Base upgrade is code-complete + builds clean; awaiting runtime testing. Multi-column NOT started.**
+- Deps bumped to `@blocknote/{core,react,mantine}@0.51.4` + added `@blocknote/xl-multi-column@0.51.4`.
+- **Mantine pinned to `^8`** (`@mantine/core` + `@mantine/hooks`): the latest `@blocknote/mantine`
+  resolves Mantine **9.3.2 which peer-requires React 19.2**, but we're on React 18 (Next 14.2).
+  BlockNote's peer allows Mantine 8 (`^8.3.11 || ^9.0.2`), and Mantine 8 supports React 18. So the
+  React-19 / Next-15 jump is NOT required for this upgrade (still pair them eventually).
+- **The only code change needed so far:** in 0.51 `createReactBlockSpec(config, impl)` returns a
+  FACTORY `(options?) => BlockSpec`, so each of the 6 custom blocks must be CALLED when registered
+  (`pageBreak: PageBreakBlock()` …). Everything else (render signatures, propSchema, slash menu via
+  `getDefaultReactSlashMenuItems`/`filterSuggestionItems`/`SuggestionMenuController`, `insertBlocks`,
+  `replaceBlocks`, `tryParseMarkdownToBlocks`) typechecks unchanged.
+- **`editor._tiptapEditor` still exists** in 0.51.4 (BlockNoteEditor.d.ts:266) — AI insert
+  (`insertContentAt`), undo/redo (`chain().undo()/redo()`), and selection/textBetween all survive.
+  (0.51 also adds public `prosemirrorState`/`prosemirrorView` getters — could modernise later.)
+- **There are now 6 custom blocks** (plan originally listed 2): pageBreak, scenarioTable,
+  signatureField, acceptanceField, initialsField, radioField. The 4 signing fields emit DocuSeal
+  field tags — so the post-upgrade test MUST include a full DocuSeal signing round.
+- `reactStrictMode` still `false` — re-enable + simplify the rAF/`replaceBlocks` load workaround only
+  AFTER confirming 0.51 fixes the `getPos` crash (test with StrictMode on, then flip).
+- **Multi-column API drift:** xl-multi-column 0.51.4 exports `withMultiColumn`,
+  `multiColumnDropCursor`, per-locale objects (`en`, …) + `getMultiColumnDictionary` — there is NO
+  `getMultiColumnSlashMenuItems` (plan's note is stale); column slash items come via the wrapped
+  schema / default items. Still TODO: wrap schema, dropCursor, dictionary, AND serializer cases for
+  `column`/`columnList` in `lib/pdf/serialize.ts`.
+
+---
+(Original plan below.)
 
 ## Why
 
