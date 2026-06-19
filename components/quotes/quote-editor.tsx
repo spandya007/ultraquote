@@ -397,6 +397,15 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
   // ── Send for signature (DocuSeal) ───────────────────────────────────────────
   const [sendOpen, setSendOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  // After a successful send, the per-signer DocuSeal signing links (so they can
+  // be copied/handed over directly — handy when email delivery is unavailable).
+  const [sentLinks, setSentLinks] = useState<{ email: string; role: string; url: string | null }[] | null>(null);
+
+  function closeSend() { setSendOpen(false); setSentLinks(null); }
+  async function copySigningLink(url: string) {
+    try { await navigator.clipboard.writeText(url); toast.success("Signing link copied"); }
+    catch { toast.error("Couldn't copy — select and copy the link manually"); }
+  }
   // Which signature fields are placed in the document ("client"/"tenant" per
   // field). Seeded from the saved content (the editor may not be mounted yet);
   // kept live via onSignatureFieldsChange from the editor.
@@ -439,6 +448,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
     }
     // Flush the latest document so the signing copy is current.
     await proposalApiRef.current?.saveNow();
+    setSentLinks(null);
     setSendOpen(true);
   }
 
@@ -453,8 +463,9 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
       setQuote(q => ({ ...q, status: "sent" }));
-      setSendOpen(false);
-      toast.success(`Sent for signature to ${(data.signers ?? []).join(", ")}`);
+      // Keep the modal open and show the signing links instead of closing.
+      setSentLinks(Array.isArray(data.signers) ? data.signers : []);
+      toast.success("Sent for signature");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -1648,6 +1659,40 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
               <Send className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold">Send for signature — {quote.quote_number}</span>
             </div>
+            {sentLinks ? (
+              <>
+                <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+                  <div className="flex items-start gap-2 rounded-md bg-green-50 border border-green-200 text-green-800 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300 px-3 py-2 text-sm">
+                    <Check className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>Sent for signature. DocuSeal emails each signer, but you can also copy a link below and share it directly (handy if email is delayed or unavailable).</span>
+                  </div>
+                  {sentLinks.map((s) => (
+                    <div key={s.email} className="rounded-md border px-3 py-2 space-y-1.5">
+                      <div className="text-sm font-medium">{s.role === "MSP Owner" ? "My company" : "Client"} — {s.email}</div>
+                      {s.url ? (
+                        <div className="flex items-center gap-2">
+                          <input readOnly value={s.url} onFocus={e => e.currentTarget.select()}
+                            className="flex-1 rounded-md border bg-muted/40 px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+                          <button onClick={() => copySigningLink(s.url!)}
+                            className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted transition-colors shrink-0">
+                            Copy
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Signing link not returned — open the submission in DocuSeal to get it.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+                  <button onClick={closeSend}
+                    className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors">
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+            <>
             <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               {(quote.status === "sent" || quote.status === "viewed") && (
                 <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2 text-sm">
@@ -1715,7 +1760,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
-              <button onClick={() => setSendOpen(false)} disabled={sending}
+              <button onClick={closeSend} disabled={sending}
                 className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50">
                 Cancel
               </button>
@@ -1725,6 +1770,8 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, canEd
                 {sending ? "Sending…" : "Send"}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
