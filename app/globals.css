@@ -75,3 +75,26 @@
 .bn-block-outer:not([data-prev-depth-changed])::before {
   border-left-color: transparent !important;
 }
+
+/* Two-column layout affordance (editor only — the PDF uses its own .doc-column
+   classes, so this never affects the rendered proposal). Without this, empty
+   columns are invisible and the split is unclear. We draw a faint dashed border
+   around each column, a little padding, and a min height so empty columns are
+   obviously there and easy to click into. The gutter between columns gets a
+   subtle guide line too. */
+.bn-block-column-list {
+  gap: 0 !important;
+}
+.bn-block-column {
+  border: 1px dashed rgba(120, 120, 140, 0.35);
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin: 2px 8px;
+  min-height: 2.25rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.bn-block-column:hover,
+.bn-block-column:focus-within {
+  border-color: rgba(99, 102, 241, 0.55); /* indigo-ish accent on the active column */
+  background-color: rgba(120, 120, 140, 0.04);
+}
