@@ -482,6 +482,20 @@ const ScenarioTableBlock = createReactBlockSpec(
 );
 
 // Schema that includes the custom blocks
+// Flatten the document tree (recurse children) so detection of pricing/signature
+// blocks isn't limited to the top level — blocks nested inside columns (or any
+// other container) must be found too.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenBlocks(blocks: any[]): any[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = [];
+  for (const b of blocks ?? []) {
+    out.push(b);
+    if (Array.isArray(b.children) && b.children.length) out.push(...flattenBlocks(b.children));
+  }
+  return out;
+}
+
 // withMultiColumn adds the `column` / `columnList` blocks (two-column layout).
 const schema = withMultiColumn(
   BlockNoteSchema.create({
@@ -849,13 +863,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   useEffect(() => {
     onReady?.({
       saveNow: save,
-      hasPricingTable: () => editorRef.current.document.some(b => b.type === "scenarioTable"),
+      hasPricingTable: () => flattenBlocks(editorRef.current.document).some(b => b.type === "scenarioTable"),
       documentScenarioRefs: () =>
-        editorRef.current.document
+        flattenBlocks(editorRef.current.document)
           .filter(b => b.type === "scenarioTable")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map(b => String((b.props as any)?.scenarioRef ?? "recommended")),
-      hasSignatureField: () => editorRef.current.document.some(b => b.type === "signatureField"),
+      hasSignatureField: () => flattenBlocks(editorRef.current.document).some(b => b.type === "signatureField"),
     });
   // save is stable; onReady is memoised by the parent.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -870,7 +884,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const lastSigKeyRef = useRef("");
   const notifySignatureFields = useCallback(() => {
     if (!onSigChangeRef.current) return;
-    const kinds = editorRef.current.document
+    const kinds = flattenBlocks(editorRef.current.document)
       .filter(b => b.type === "signatureField")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map(b => String((b.props as any)?.signer ?? "client"));
