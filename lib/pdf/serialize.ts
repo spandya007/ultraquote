@@ -311,9 +311,12 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         const signer = props.signer === "tenant" ? "tenant" : "client";
         const role = signer === "tenant" ? "Company" : "Client";
         if (input.forSigning) {
+          // Clean, unique field name/title ("Client Initials", deduped) instead
+          // of "Client Initials-<uuid>".
+          const fieldName = signerFieldName(`${role} Initials`, `${role} Initials`);
           out.push(
             `<div class="initials-field">` +
-            `<initials-field name="${role} Initials-${block.id ?? i}" role="${role}" style="width:90px;height:44px;display:inline-block"></initials-field>` +
+            `<initials-field name="${escapeHtml(fieldName)}" title="${escapeHtml(fieldName)}" role="${role}" style="width:90px;height:44px;display:inline-block"></initials-field>` +
             `<div class="initials-label">${role} initials</div></div>`
           );
         } else {
