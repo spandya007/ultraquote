@@ -27,6 +27,9 @@ later phase (see §11). This is a working draft to iterate on; bracketed items a
 | Support | Email | Email | Email |
 | Annual option | — | [yes, ~2 months free?] | [yes] |
 
+> ⚠️ The dollar amounts above are **default list prices, NOT hardcoded** — they are admin-editable and
+> each tenant can carry a discount. See §5a (Admin-controlled pricing & discounts).
+
 Notes:
 - **Quotes are always unlimited** on every tier — only *completed documents* meter, since that's where
   the DocuSeal cost + delivered value sit.
@@ -71,8 +74,40 @@ New **usage ledger** table `document_completions` (auditable, dedup-friendly):
   `reported_to_stripe boolean` (for pay-per-use). One row per completed doc → counting per period is a
   cheap `count(*)`.
 
-A small **plan catalog** in code (`lib/billing/plans.ts`): price IDs, seat_limit, doc_cap, display copy
-— single source of truth mapping `plan` → limits + Stripe price IDs.
+A small **plan catalog** in code (`lib/billing/plans.ts`): plan keys, seat_limit, doc_cap, display copy,
+and the *non-price* attributes — single source of truth mapping `plan` → limits. **Prices are NOT
+hardcoded here** (see §5a); the catalog references the current price config + Stripe price IDs.
+
+## 5a. Admin-controlled pricing & discounts (NEW — requested 2026-06-19)
+Pricing must be **configurable by the Platform Admin**, with a base amount per plan plus a per-tenant
+discount the admin controls. Two layers:
+
+**(1) Base/list prices — admin-editable, not hardcoded.**
+- Store the current list price for each plan in a platform-level config table `pricing_config`
+  (`plan`, `unit` = `'month' | 'doc'`, `amount_cents`, `stripe_price_id`, `active`, `updated_at`).
+- The `/admin` console gets a **Pricing** panel to view/edit these (platform-admin only; the table has
+  no client RLS policies — service-role only, like `platform_admins`).
+- Stripe nuance: a Stripe **Price is immutable**. Editing a base price = create a NEW Stripe Price and
+  point `pricing_config.stripe_price_id` at it. New checkouts use the new price; existing subscriptions
+  keep theirs unless explicitly migrated (v1: don't auto-migrate; document it).
+
+**(2) Per-tenant discount — admin-controlled, % or fixed $.**
+- Columns on `tenants`: `discount_type text` (`'percent' | 'fixed'`), `discount_value numeric`
+  (percent 0–100, or cents), `discount_note text`, `discount_until date null` (optional expiry),
+  `stripe_coupon_id text`.
+- Admin sets a tenant's discount in `/admin` → Manage tenant. We create/attach a **Stripe Coupon**
+  (`percent_off` or `amount_off`, `duration` = forever / once / repeating, optional `redeem_by`) to that
+  tenant's subscription. Stripe then applies it to every invoice automatically — including pay-per-use
+  metered invoices.
+- **Effective price = base − discount**, computed by Stripe; we display it (base, discount, net) on the
+  tenant's Settings → Billing page and the /admin tenant view.
+- Removing/zeroing the discount detaches the coupon from the subscription.
+
+**(3) Optional later: promo codes.** Stripe Promotion Codes (public codes customers self-apply at
+checkout) — defer to a later phase; the per-tenant admin discount covers the immediate need.
+
+Why Stripe Coupons rather than custom math: discounts then apply consistently across proration,
+renewals, and metered usage without us re-implementing billing arithmetic.
 
 ## 6. Metering & enforcement
 - **Meter:** in the DocuSeal webhook, when a quote transitions to `completed`, insert a
@@ -95,8 +130,10 @@ A small **plan catalog** in code (`lib/billing/plans.ts`): price IDs, seat_limit
   (e.g., remove members) — don't silently delete data.
 - **Cancel:** subscription ends at period end → existing **7-day read-only grace** → then expired block
   (already built). Data retained per the privacy policy (90 days post-termination).
-- **Beta → paid transition:** current tenants are `plan='beta'` (unlimited, no card). At GA, prompt
-  owners to pick a plan; give a grace window before enforcing.
+- **Beta → paid transition (DECIDED):** current tenants are `plan='beta'` (unlimited, no card). At GA,
+  extend each tenant's `subscription_end` to set a grace window; the existing expiry-reminder banner
+  warns as that date nears, with its CTA repointed to plan selection (Settings → Billing). When the
+  window lapses, normal grace→read-only applies until they pick a plan.
 
 ## 8. In-app upgrade nudges (depends on §6 metering)
 - Pay-per-use: at 3 completed docs/mo → "one more and Starter is cheaper"; at 4 → "switch & save."
@@ -104,23 +141,35 @@ A small **plan catalog** in code (`lib/billing/plans.ts`): price IDs, seat_limit
 - Team: at ~80% of doc cap → prompt (or "you're a heavy user — let's talk" if no Unlimited tier yet).
 - Surface via the existing toast/banner system + a Settings → Billing page.
 
-## 9. Open decisions (to iterate on — my recommended default in *italics*)
-1. Starter doc cap & overage: hard cap + upgrade, or include N then $/doc overage? *Include 10/mo, soft
-   cap: allow a few over with a nudge, hard-block well above.*
-2. Team doc cap: a number or unlimited? *50/mo included (revisit; could be unlimited if margins allow).*
-3. Team seats: how many included; overage seats billable? *5 included; no overage seats in v1.*
-4. Pay-per-use price per completed doc. *$9 (≈45× DocuSeal's ~$0.20 marginal).*
-5. Annual plans / discount? *Offer annual at ~2 months free once monthly is stable.*
-6. Free trial vs straight beta→paid? *No separate trial — beta users get a transition window; new users
-   can start on Pay-per-use (no commitment).*
+## 9. Open decisions
+**DECIDED 2026-06-19:**
+1. ✅ Starter doc cap: **10/mo included, SOFT cap** — allow a little over with an upgrade nudge,
+   hard-block only well above. (No fixed overage price in v1; nudge to Team.)
+2. ✅ Team doc cap: **50/mo included.**
+3. ✅ Beta→paid transition: at GA, extend each tenant's `subscription_end` to give a grace window. As
+   the end date approaches, the app prompts the owner to choose one of the three plans — **reuse the
+   existing expiry-reminder banner** (already warns in the final 7 days before `subscription_end`),
+   repointing its CTA to the plan-selection / Settings → Billing page. New signups can still start on
+   Pay-per-use (no commitment).
+
+**Still open (my recommended default in *italics*):**
+4. Team seats: how many included; overage seats billable? *5 included; no overage seats in v1.*
+5. Pay-per-use price per completed doc. *$9 (≈45× DocuSeal's ~$0.20 marginal).*
+6. Annual plans / discount? *Offer annual at ~2 months free once monthly is stable.*
 7. Re-completed quote (re-sent & signed again) — count again? *Yes, each completion is a billable event.*
 8. Tax handling (Stripe Tax)? *Enable Stripe Tax later; out of v1 scope.*
+9. ✅ DECIDED: prices are **admin-editable (not hardcoded)** and each tenant can have a Platform-Admin-
+   controlled **discount (% or fixed $)**. Modeled via a `pricing_config` table + per-tenant discount
+   columns + Stripe Coupons. See §5a.
 
 ## 10. Build phases (each shippable; billing requires Stripe + metering before any tier)
-- **Phase 0 — Foundation:** plan catalog (`lib/billing/plans.ts`), `tenants` billing columns,
-  `document_completions` table (migration), Stripe customer creation, `/api/webhooks/stripe` (test mode).
-- **Phase 1 — Subscriptions:** Stripe Checkout + Customer Portal; Settings → Billing page; map
-  subscription state → `plan`/`subscription_end`; Starter & Team purchasable.
+- **Phase 0 — Foundation:** plan catalog (`lib/billing/plans.ts`), `tenants` billing + discount columns,
+  `pricing_config` + `document_completions` tables (migration), Stripe customer creation,
+  `/api/webhooks/stripe` (test mode).
+- **Phase 1 — Subscriptions + admin pricing:** Stripe Checkout + Customer Portal; Settings → Billing
+  page (shows base/discount/net); map subscription state → `plan`/`subscription_end`; Starter & Team
+  purchasable; **/admin Pricing panel** (edit base list prices → new Stripe Prices) + **per-tenant
+  discount** control (% or $ → attach Stripe Coupon).
 - **Phase 2 — Metering & caps:** completion ledger from the DocuSeal webhook; seat enforcement; doc-cap
   checks at send; usage display in Settings → Billing.
 - **Phase 3 — Pay-per-use + nudges:** metered Stripe price + usage reporting; upgrade nudges.
