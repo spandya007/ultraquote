@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/ui/login-form";
+import { LegalLinks } from "@/components/legal/legal-links";
 
 export default async function LoginPage({
   searchParams,
@@ -21,6 +22,7 @@ export default async function LoginPage({
           </div>
         )}
         <LoginForm />
+        <LegalLinks className="mt-6" />
       </div>
     </main>
   );
