@@ -1710,6 +1710,14 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                 DocuSeal will email each signer a link. Signers below match the
                 signature fields placed in the document.
               </p>
+              <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2 text-xs">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <span>
+                  <strong>Beta / evaluation:</strong> signatures collected during the demo are for
+                  evaluation only and are not intended to be legally binding. Don’t use this to execute
+                  agreements you need to be enforceable.
+                </span>
+              </div>
 
               {hasClientSig && (
                 <div className="space-y-1">

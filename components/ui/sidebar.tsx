@@ -156,6 +156,12 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
             <span className="text-xs font-semibold text-muted-foreground tracking-wide">
               UltraQuote Builder for
             </span>
+            <span
+              title="UltraQuote is in beta — a free evaluation. Features may change and signatures are for evaluation only."
+              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+            >
+              BETA
+            </span>
           </div>
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
