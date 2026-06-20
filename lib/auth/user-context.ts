@@ -24,6 +24,9 @@ export interface UserContext {
   role: "owner" | "member";
   full_name: string | null;
   enabled: boolean | null;
+  // When the user accepted the Legal Terms (ToS + Privacy). null = not yet →
+  // the dashboard layout gates them to /account/accept-terms.
+  legal_accepted_at: string | null;
   // Full tenant row (joined), or null if the user has no tenant yet.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tenant: any | null;
@@ -37,7 +40,7 @@ export const getUserContext = cache(async (userId: string): Promise<UserContext 
   const admin = createAdminClient() as any;
   const { data } = await admin
     .from("users")
-    .select("tenant_id, role, full_name, enabled, tenant:tenants(*)")
+    .select("tenant_id, role, full_name, enabled, legal_accepted_at, tenant:tenants(*)")
     .eq("id", userId)
     .maybeSingle();
   return (data as UserContext | null) ?? null;

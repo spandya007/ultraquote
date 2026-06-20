@@ -40,6 +40,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (access.status === "expired") redirect(`/account/suspended?reason=expired&role=${access.role}`);
   if (access.status === "user_disabled") redirect("/account/disabled");
 
+  // Legal gate: require acceptance of the Terms of Service + Privacy Policy
+  // before using the app. /account/accept-terms lives outside this layout, so it
+  // isn't re-gated (no redirect loop). redirect() throws — call outside try.
+  if (ctx && !ctx.legal_accepted_at) redirect("/account/accept-terms");
+
   // Tenant branding for the sidebar (name + logo), from the shared context.
   const firstName: string =
     (ctx?.full_name as string | null)?.trim().split(/\s+/)[0] ||
