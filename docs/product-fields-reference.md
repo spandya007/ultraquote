@@ -95,3 +95,30 @@ PSA/CRM-specific flag. We deliberately keep only `autotask_id` and
 ConnectWise, HaloPSA, Syncro, etc., the work is: add the column to `products`,
 add a `HEADER_ALIASES` entry in `lib/import/csv-products.ts`, and (optionally)
 surface it in the drawer.**
+
+---
+
+## Type (`item_type`) vs Category (`category_id`) — two independent axes
+
+These are distinct classifications and are often confused:
+
+- **Type (`products.item_type`)** — a **fixed, system-defined** field; DB `check` constraint allows
+  exactly `Service | Hardware | Software | Other`. Describes *what kind* of thing the product is. Shown
+  as a color-coded badge + a filter on the Products list. **Not editable** (hardcoded in the schema).
+  Nullable.
+- **Category (`products.category_id` → `product_categories`)** — a **tenant-defined, free-form grouping**
+  (own table: `name`, `sort_order`, per tenant). Your own catalog buckets. Seeded with 6 defaults at
+  tenant onboarding (Managed Services, Hardware, Software, Security, Cloud, Professional Services).
+  Editable in principle (RLS allows owner insert/update/delete). Nullable → "Uncategorised".
+
+So Type = product *nature* (rigid, for consistent badging/handling); Category = *your taxonomy* (flexible
+per tenant). They can share names (e.g. "Hardware") but serve different purposes — e.g. a firewall might
+be Category "Security" with Type "Hardware".
+
+Neither drives pricing/billing math — `billing_period` (Monthly/One Time) and `is_taxable` do. Type and
+Category are purely classification / filtering / display.
+
+**UI gap (as of 2026-06-19):** there is **no category-management UI**. Categories are only created by the
+`provision_tenant` seed; the product drawer lets you *pick* an existing category but not add/rename/delete
+one. RLS already permits owner CRUD — surfacing a small owner-only category manager (Settings or Products
+page) is the missing piece to make categories truly "customizable per tenant."
