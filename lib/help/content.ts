@@ -244,6 +244,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
+        heading: "Organizing with categories",
+        ownerOnly: true,
+        blocks: [
+          p("Manage your product categories in Settings → Product Categories: add, rename, reorder, or delete them. Categories are your own internal grouping for filtering the catalog — they don’t appear on client proposals, and you can change them anytime."),
+          p("Deleting a category doesn’t delete its products — they simply become “Uncategorised,” and you can recategorize them whenever you like. (Type — Service/Hardware/Software/Other — is a separate, fixed product field.)"),
+        ],
+      },
+      {
         heading: "Importing products from a CSV",
         ownerOnly: true,
         blocks: [
