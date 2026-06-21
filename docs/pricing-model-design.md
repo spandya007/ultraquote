@@ -15,28 +15,42 @@ later phase (see §11). This is a working draft to iterate on; bracketed items a
   subscription window and adds plan/seat/doc-cap awareness.
 - Self-serve where possible (Stripe Checkout + Customer Portal) so onboarding/upgrades don't need admin.
 
-## 2. Tier definitions (v1 proposal — numbers are placeholders to finalize, §9)
+## 2. Tier definitions (v1 — default list prices, admin-editable per §5a)
 
-| | **Pay-per-use** | **Starter** | **Team** |
-|---|---|---|---|
-| Price | $0/mo + **$9 / completed doc** | **$29 / mo** | **$79 / mo** |
-| Seats (users) | 1 (owner) | 1 | up to **5** |
-| Quotes (create/send/preview/PDF) | Unlimited | Unlimited | Unlimited |
-| Completed (signed) docs | Pay per doc | **10 / mo** included, then [overage or hard cap] | **50 / mo** included [or unlimited] |
-| Templates, catalog, AI, dark mode, etc. | All core features | All | All |
-| Support | Email | Email | Email |
-| Annual option | — | [yes, ~2 months free?] | [yes] |
+| | **Pay-per-use** | **Starter** | **Team** | **Team Ultra** |
+|---|---|---|---|---|
+| Base price | $0/mo + **$9 / completed doc** | **$29 / mo** | **$79 / mo** | **$159 / mo** |
+| Included seats | 1 (owner) | 1 | 5 | 10 |
+| Additional seats | — | **+$10/seat (+5 docs/seat), up to 3 total** | **+$10/seat (+5 docs/seat), up to 10 total** | — (at cap) |
+| Included docs/mo | pay per doc | 10 | 50 | 100 |
+| Overage (docs beyond included) | n/a (per-doc) | **$3 / completed doc** | **$3 / completed doc** | **$3 / completed doc** |
+| Quotes (create/send/preview/PDF) | Unlimited | Unlimited | Unlimited | Unlimited |
+| Templates, catalog, AI, dark mode, etc. | All | All | All | All |
+| Annual option | — | [~2 months free] | [~2 months free] | [~2 months free] |
 
-> ⚠️ The dollar amounts above are **default list prices, NOT hardcoded** — they are admin-editable and
-> each tenant can carry a discount. See §5a (Admin-controlled pricing & discounts).
+> ⚠️ Dollar amounts are **default list prices, NOT hardcoded** — admin-editable, and each tenant can
+> carry a discount. See §5a.
+
+**Seat add-ons (Starter & Team):** +$10/seat/month, each added seat also adds +5 included docs/month.
+This reproduces a smooth ladder from one base plan instead of many SKUs (Stripe handles it via
+subscription seat *quantity*). E.g. Starter: 1u/10d = $29 · 2u/15d = $39 · 3u/20d = $49. Caps: Starter
+≤ 3 users, Team ≤ 10 users.
+
+**Flat $3 overage, every tier.** One transparent number ("$3 per completed document beyond your plan's
+monthly included docs, on any plan"). Always cheaper than Pay-per-use ($9) so subscribing always wins;
+above each tier's effective in-plan rate (Starter $2.90, Team $1.58, Ultra $1.59) so heavy users are
+nudged to upgrade rather than ride overage. No hard doc cap — overage replaces it (friendlier, never
+blocks mid-deal).
+
+**Ladder is flaw-free (checked):** Team + 5 add-on seats = $129 / 10 users / 75 docs; Team Ultra =
+$159 / 10 users / 100 docs. For ≤75 docs the add-on route is cheaper (users pick it); past ~75 docs,
+overage on the add-on route ($129 + 25×$3 = $204) exceeds Team Ultra ($159) → clean crossover, no
+configuration beats a higher plan on the same dimensions.
 
 Notes:
-- **Quotes are always unlimited** on every tier — only *completed documents* meter, since that's where
-  the DocuSeal cost + delivered value sit.
-- Pay-per-use is the no-commitment / trial-after-beta path. Breakeven vs Starter ≈ 3.2 docs/mo
-  ($29 ÷ $9) → nudge to Starter at 4 docs/mo.
-- Team breakeven is **seat/capacity-based**, not volume — upgrade trigger is "add 2nd user" or nearing
-  the Starter doc cap.
+- **Quotes are always unlimited** on every tier — only *completed documents* meter (DocuSeal cost +
+  delivered value live there).
+- Pay-per-use is the no-commitment / post-beta path. Breakeven vs Starter ≈ 3.2 docs/mo → nudge at 4.
 
 ## 3. What is metered: "completed documents"
 - A **completed document** = a quote whose signing round fully completes. The DocuSeal webhook
@@ -113,21 +127,31 @@ renewals, and metered usage without us re-implementing billing arithmetic.
 - **Meter:** in the DocuSeal webhook, when a quote transitions to `completed`, insert a
   `document_completions` row (idempotent on `quote_id`). For pay-per-use tenants, also report a Stripe
   usage record (mark `reported_to_stripe`).
-- **Seat enforcement:** block inviting members beyond `seat_limit` (Starter = 1 → block 2nd user with an
-  upgrade prompt; Team = 5). Hook into the existing team-invite route.
-- **Doc-cap enforcement (Starter/Team):** when **sending for signature** would push the tenant over its
-  monthly `doc_cap`, either [hard-block with upgrade prompt] or [allow + bill overage] (§9). Check at
-  send time in `app/api/quotes/[id]/send/route.ts`.
+- **Seat enforcement:** `seat_limit` = included seats + purchased add-on seats. Block inviting members
+  beyond it, with an "add a seat (+$10/mo)" or upgrade prompt. Add-on seats are a Stripe subscription
+  *quantity* (each +$10 and +5 to `doc_cap`). Caps: Starter ≤ 3, Team ≤ 10. Hook the team-invite route.
+- **Doc overage (no hard cap):** completed docs beyond the monthly included amount are billed at a flat
+  **$3/doc** via a metered Stripe price on the subscription — we report a usage record on each
+  `completed` event past the included count. Never blocks sending; an ~80%/100% nudge suggests upgrading.
 - **Integrate with access-state:** extend `lib/access/access-state.ts` so the resolver also exposes the
   plan + limits (it already returns `ok/grace/...`). Write-guards (`requireWriteAccess`) stay; add
   seat/doc-cap as separate, friendlier checks (not a hard lockout — they prompt upgrade).
 - **Past-due / failed payment:** `invoice.payment_failed` → `plan_status='past_due'`; after Stripe's
   retries exhaust → treat like the existing **grace → read-only**, reusing that machinery.
 
-## 7. Lifecycle: upgrade / downgrade / cancel
-- **Upgrade** (e.g., Starter→Team): Stripe proration; new limits apply immediately via webhook.
-- **Downgrade:** apply at period end (Stripe); if over the new tier's seat/doc limits, prompt to resolve
-  (e.g., remove members) — don't silently delete data.
+## 7. Lifecycle: plan changes / upgrade / downgrade / cancel
+**Plan-switch policy (DECIDED — industry-norm, gaming-resistant):** self-serve switching is allowed
+(via Stripe Customer Portal + our Billing page); no artificial limit on switch frequency.
+- **Upgrades = immediate + prorated.** User pays the prorated difference now and gets the higher
+  limits instantly. On a mid-period upgrade, grant the new (higher) monthly included-doc cap right away
+  — don't prorate the doc count (simpler + generous = no gotcha).
+- **Downgrades = take effect at the END of the current billing period** (Stripe subscription schedule).
+  This is the key norm: it prevents "hop up for one heavy month, drop back for a refund" gaming and
+  avoids mid-cycle refunds.
+- **Seat add/remove:** adding a seat is immediate + prorated; removing seats (or downgrading below
+  current usage) applies at period end and **prompts the owner to remove members/resolve over-limit
+  first** — never auto-deletes data.
+- **Pay-per-use ↔ subscription** counts as a plan change and follows the same rules.
 - **Cancel:** subscription ends at period end → existing **7-day read-only grace** → then expired block
   (already built). Data retained per the privacy policy (90 days post-termination).
 - **Beta → paid transition (DECIDED):** current tenants are `plan='beta'` (unlimited, no card). At GA,
@@ -152,15 +176,18 @@ renewals, and metered usage without us re-implementing billing arithmetic.
    repointing its CTA to the plan-selection / Settings → Billing page. New signups can still start on
    Pay-per-use (no commitment).
 
+4. ✅ Overage: **flat $3 / completed doc on every tier** (no hard cap — overage replaces it). See §2.
+5. ✅ Seats: per-seat **add-on $10/seat (+5 docs/seat)** on Starter (≤3 users) & Team (≤10 users);
+   included seats Pay-per-use 1 / Starter 1 / Team 5 / Team Ultra 10. See §2.
+6. ✅ **Team Ultra** added: $159 / 10 users / 100 docs (seats+docs only — NO white-label/API). See §2.
+7. ✅ Plan switching: self-serve; **upgrades immediate+prorated, downgrades at period end** (§7).
+8. ✅ Prices admin-editable + per-tenant discount (% or $) via Stripe Coupons (§5a).
+
 **Still open (my recommended default in *italics*):**
-4. Team seats: how many included; overage seats billable? *5 included; no overage seats in v1.*
-5. Pay-per-use price per completed doc. *$9 (≈45× DocuSeal's ~$0.20 marginal).*
-6. Annual plans / discount? *Offer annual at ~2 months free once monthly is stable.*
-7. Re-completed quote (re-sent & signed again) — count again? *Yes, each completion is a billable event.*
-8. Tax handling (Stripe Tax)? *Enable Stripe Tax later; out of v1 scope.*
-9. ✅ DECIDED: prices are **admin-editable (not hardcoded)** and each tenant can have a Platform-Admin-
-   controlled **discount (% or fixed $)**. Modeled via a `pricing_config` table + per-tenant discount
-   columns + Stripe Coupons. See §5a.
+9.  Pay-per-use price per completed doc. *$9 (≈45× DocuSeal's ~$0.20 marginal).*
+10. Annual plans / discount? *Offer annual at ~2 months free once monthly is stable.*
+11. Re-completed quote (re-sent & signed again) — count again? *Yes, each completion is a billable event.*
+12. Tax handling (Stripe Tax)? *Enable Stripe Tax later; out of v1 scope.*
 
 ## 10. Build phases (each shippable; billing requires Stripe + metering before any tier)
 - **Phase 0 — Foundation:** plan catalog (`lib/billing/plans.ts`), `tenants` billing + discount columns,
