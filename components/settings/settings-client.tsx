@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, SlidersHorizontal, Upload, Trash2, Loader2 } from "lucide-react";
+import { Building2, SlidersHorizontal, Upload, Trash2, Loader2, FolderTree } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
+import { CategoriesCard } from "@/components/settings/categories-card";
 
 const STORAGE_SCHEME = "sb-storage://";
 
@@ -409,6 +410,12 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
         )}
         </fieldset>
       </SectionCard>
+
+      {isOwner && (
+        <SectionCard icon={<FolderTree className="w-4 h-4" />} title="Product Categories">
+          <CategoriesCard tenantId={tenantId} />
+        </SectionCard>
+      )}
 
     </div>
   );
