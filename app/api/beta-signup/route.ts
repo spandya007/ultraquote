@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendMail } from "@/lib/email/mailer";
+
+const NOTIFY_TO = process.env.BETA_NOTIFY_TO || "hello@ultraquote.io";
 
 // Public endpoint for the /beta landing-page form. Inserts a lead into
 // beta_signups via the service-role client (the table is RLS-locked to
@@ -51,6 +54,25 @@ export async function POST(request: Request) {
       { error: "Something went wrong. Please email hello@ultraquote.io." },
       { status: 500 }
     );
+  }
+
+  // Best-effort notification — never block or fail the signup on email errors.
+  try {
+    await sendMail({
+      to: NOTIFY_TO,
+      replyTo: email,
+      subject: `New UltraQuote beta signup — ${companyName}`,
+      text:
+        `New beta signup:\n\n` +
+        `Company: ${companyName}\n` +
+        `Name:    ${contactName}\n` +
+        `Email:   ${email}\n` +
+        `Note:    ${message || "—"}\n\n` +
+        `Reply to this email to reach them directly.\n` +
+        `Manage signups: https://app.ultraquote.io/admin`,
+    });
+  } catch (e) {
+    console.error("beta-signup notify failed:", e instanceof Error ? e.message : e);
   }
 
   return NextResponse.json({ ok: true });
