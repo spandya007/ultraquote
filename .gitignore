@@ -36,3 +36,9 @@ yarn-error.log*
 # typescript / caches
 *.tsbuildinfo
 .eslintcache
+
+# playwright (E2E) — reports/artifacts
+playwright-report/
+test-results/
+blob-report/
+.playwright/

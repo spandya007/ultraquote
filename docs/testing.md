@@ -61,9 +61,37 @@ dispatch. Kept separate from the fast unit CI (`ci.yml`), which stays DB-free. I
 Supabase images); if Actions minutes get tight, narrow the path filter or trim services with
 `supabase start -x …`.
 
-## Phase 3 — not built
-- **E2E smoke** (Playwright): login → create quote → add line item → Preview; plus an access-gate flow
-  (expired tenant → blocked). Mock external services (Gemini, DocuSeal, Railway PDF, email).
+## Phase 3 (done): E2E smoke (Playwright)
+Drives the real app in Chromium against the **local Supabase** stack (same Colima/Docker stack as the
+RLS tests). Config: [playwright.config.ts](../playwright.config.ts); specs in `tests/e2e/`.
+
+**Run**
+- `npm run test:e2e` — boots `next dev` (via Playwright's `webServer`) against local Supabase and runs
+  the suite. `npm run test:e2e:ui` for the interactive runner.
+- Prereqs: `colima start` + `supabase start` (same as Phase 2). The Supabase env (URL + keys) is injected
+  by `playwright.config.ts` so it overrides `.env.local` (which points at cloud dev).
+
+**How it works**
+- `tests/e2e/global-setup.ts` rebuilds the local DB to match prod schema (`schema.sql` + migrations
+  012/013/015/016/017 — **014 is skipped**, its policy is already folded into `schema.sql`), applies
+  `tests/e2e/seed-e2e.sql` (two tenants, a catalog product, a client), then creates real Supabase **Auth**
+  owners via the GoTrue admin API (so they have passwords) and stamps `legal_accepted_at` so they clear
+  the dashboard gates. Uses `fetch` for the admin API (not supabase-js — its realtime client needs a
+  WebSocket global absent on Node < 22).
+- `tests/e2e/config.ts` holds the local Supabase keys (Supabase's well-known **default local-dev** keys —
+  not secrets, only work against 127.0.0.1) and the seeded tenant/user fixtures.
+
+**Covered** (`tests/e2e/`, 6 tests):
+- **auth** — unauthenticated → `/login`; owner logs in → dashboard ("Hello, …"); bad password → error.
+- **quote authoring** — New Quote (seeded client) → editor → add a catalog product → its price flows into
+  totals → Preview opens. (Create response is captured + navigated directly; the modal's client-side push
+  is flaky under the dev server.)
+- **access gate** — an expired tenant's owner is redirected to `/account/suspended` (dashboard and a
+  direct `/quotes` hit).
+
+No external mocks needed: this flow never calls Gemini/DocuSeal/Railway-PDF/email (Preview uses the
+internal serializer). **CI**: a Playwright workflow (boot Supabase on the runner, like `rls.yml`) is the
+next follow-up — not yet added.
 
 ## Deliberately manual (flaky/expensive to automate)
 BlockNote editor internals, PDF visual fidelity, DocuSeal webhook round-trips, real email. Use a
