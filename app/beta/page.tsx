@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BETA_HTML } from "./beta-html";
+import { BetaClient } from "./beta-client";
 
 export const metadata: Metadata = {
   title: "Request beta access — UltraQuote",
@@ -22,11 +22,10 @@ export const metadata: Metadata = {
 };
 
 // Public page (no auth) — beta-signup landing. Middleware allowlists /beta.
-// Rendered light/branded regardless of theme.
 export default function BetaPage() {
   return (
     <main className="min-h-screen bg-[#f1f5f9] py-12 px-4">
-      <div dangerouslySetInnerHTML={{ __html: BETA_HTML }} />
+      <BetaClient />
     </main>
   );
 }
