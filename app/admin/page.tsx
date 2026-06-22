@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminClient, type AdminTenantRow } from "@/components/admin/admin-client";
+import { BetaSignupsCard, type BetaSignupRow } from "@/components/admin/beta-signups-card";
 import type { TenantInvite, User } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +14,22 @@ interface TenantRowDb {
 export default async function AdminPage() {
   const admin = createAdminClient();
 
-  const [tenantsRes, usersRes, quotesRes, invitesRes] = await Promise.all([
+  const [tenantsRes, usersRes, quotesRes, invitesRes, betaRes] = await Promise.all([
     admin.from("tenants").select(
       "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason"
     ).order("created_at"),
     admin.from("users").select("id, tenant_id, email, full_name, role"),
     admin.from("quotes").select("id, tenant_id"),
     admin.from("tenant_invites").select("*").order("created_at", { ascending: false }),
+    // Missing table (migration 017 not yet run) returns an error, not a throw —
+    // `?? []` degrades gracefully to an empty list.
+    admin
+      .from("beta_signups")
+      .select("id, company_name, contact_name, email, message, created_at, invited_at, status")
+      .order("created_at", { ascending: false }),
   ]);
+
+  const betaSignups = (betaRes.data ?? []) as BetaSignupRow[];
 
   const tenants = (tenantsRes.data ?? []) as TenantRowDb[];
   const users = (usersRes.data ?? []) as Pick<User, "id" | "tenant_id" | "email" | "full_name" | "role">[];
@@ -50,5 +59,10 @@ export default async function AdminPage() {
     };
   });
 
-  return <AdminClient tenants={rows} />;
+  return (
+    <div className="space-y-8">
+      <AdminClient tenants={rows} />
+      <BetaSignupsCard signups={betaSignups} />
+    </div>
+  );
 }
