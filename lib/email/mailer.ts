@@ -28,6 +28,20 @@ function getTransporter(): Transporter | null {
   return transporter;
 }
 
+// Non-secret view of the mailer config, for the /admin diagnostic. Never
+// returns the password — only whether it's present.
+export function mailerConfig() {
+  const user = process.env.SMTP_USER || null;
+  return {
+    configured: Boolean(process.env.SMTP_USER && process.env.SMTP_PASS),
+    host: process.env.SMTP_HOST || "smtp.zoho.com",
+    port: Number(process.env.SMTP_PORT || 465),
+    user,
+    from: process.env.SMTP_FROM || user,
+    passPresent: Boolean(process.env.SMTP_PASS),
+  };
+}
+
 export async function sendMail(opts: {
   to: string;
   subject: string;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, Loader2, Mail, Check, RotateCcw } from "lucide-react";
+import { Inbox, Loader2, Mail, Check, RotateCcw, Send } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,8 +33,26 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
   const router = useRouter();
   const toast = useToast();
   const [actionId, setActionId] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; hint?: string } | null>(null);
 
   const newCount = signups.filter((s) => s.status === "new").length;
+
+  async function sendTestEmail() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/test-email", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      setTestResult({ ok: !!data.ok, message: data.message || "No response.", hint: data.hint });
+      if (data.ok) toast.success("Test email sent");
+      else toast.error("Test email failed");
+    } catch {
+      setTestResult({ ok: false, message: "Network error calling the test endpoint." });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function setStatus(row: BetaSignupRow, status: BetaSignupRow["status"]) {
     setActionId(row.id);
@@ -69,8 +87,33 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">{signups.length} total</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={sendTestEmail}
+            disabled={testing}
+            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            title="Send a test email to verify SMTP notifications work"
+          >
+            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            Send test email
+          </button>
+          <span className="text-xs text-muted-foreground tabular-nums">{signups.length} total</span>
+        </div>
       </div>
+
+      {testResult && (
+        <div
+          className={cn(
+            "border-b px-4 py-2.5 text-xs",
+            testResult.ok
+              ? "bg-green-50 text-green-800 dark:bg-green-500/10 dark:text-green-300"
+              : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+          )}
+        >
+          <span className="font-medium">{testResult.message}</span>
+          {testResult.hint && <div className="mt-1 opacity-90">{testResult.hint}</div>}
+        </div>
+      )}
 
       {signups.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
