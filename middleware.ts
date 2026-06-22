@@ -40,7 +40,11 @@ export async function middleware(request: NextRequest) {
   // Privacy Policy and used by non-users to submit data requests).
   const isLegalRoute = ["/privacy-request", "/privacy-policy", "/cookie-policy", "/terms"]
     .some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  const isPublicRoute = isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute;
+  // Public marketing/landing pages — reachable without a session (shared via
+  // email/SMS/social to drive beta signups).
+  const isMarketingRoute = pathname === "/beta" || pathname.startsWith("/beta/");
+  const isPublicRoute =
+    isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute || isMarketingRoute;
 
   if (!user && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone();
