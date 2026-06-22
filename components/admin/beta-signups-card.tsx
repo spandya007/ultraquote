@@ -34,7 +34,12 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
   const toast = useToast();
   const [actionId, setActionId] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; hint?: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+    hint?: string;
+    env?: Record<string, unknown>;
+  } | null>(null);
 
   const newCount = signups.filter((s) => s.status === "new").length;
 
@@ -44,7 +49,7 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
     try {
       const res = await fetch("/api/admin/test-email", { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      setTestResult({ ok: !!data.ok, message: data.message || "No response.", hint: data.hint });
+      setTestResult({ ok: !!data.ok, message: data.message || "No response.", hint: data.hint, env: data.env });
       if (data.ok) toast.success("Test email sent");
       else toast.error("Test email failed");
     } catch {
@@ -112,6 +117,13 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
         >
           <span className="font-medium">{testResult.message}</span>
           {testResult.hint && <div className="mt-1 opacity-90">{testResult.hint}</div>}
+          {testResult.env && (
+            <div className="mt-1.5 font-mono text-[11px] opacity-90">
+              runtime sees: SMTP_USER={String(testResult.env.SMTP_USER)} · SMTP_PASS=
+              {String(testResult.env.SMTP_PASS)} · NETLIFY={String(testResult.env.NETLIFY)} · host=
+              {String(testResult.env.SMTP_HOST)} · port={String(testResult.env.SMTP_PORT)}
+            </div>
+          )}
         </div>
       )}
 

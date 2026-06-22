@@ -10,12 +10,26 @@ export async function POST() {
   if (!adminUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const cfg = mailerConfig();
+  // What the running function actually sees — exposes the Netlify scoping issue.
+  const env = {
+    SMTP_USER: Boolean(process.env.SMTP_USER),
+    SMTP_PASS: Boolean(process.env.SMTP_PASS),
+    SMTP_HOST: process.env.SMTP_HOST || "(default smtp.zoho.com)",
+    SMTP_PORT: process.env.SMTP_PORT || "(default 465)",
+    // Proves whether the runtime can see Netlify vars AT ALL: this one is set by
+    // Netlify automatically on every build/function. If it's false too, the
+    // function isn't getting Netlify env at all.
+    NETLIFY: Boolean(process.env.NETLIFY),
+    user: process.env.SMTP_USER || null,
+  };
+
   if (!cfg.configured) {
     return NextResponse.json({
       ok: false,
       configured: false,
       message:
-        "SMTP is not configured on this deploy. Set SMTP_USER and SMTP_PASS in Netlify, then redeploy (env changes only apply on a fresh deploy).",
+        "The running function sees SMTP_USER/SMTP_PASS as empty. They're set in Netlify but not reaching the serverless runtime — check the variable Scopes include 'Functions'/'Runtime' and the Production deploy context.",
+      env,
       config: cfg,
     });
   }
@@ -33,6 +47,7 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       message: `Test email sent to ${to} via ${cfg.host}:${cfg.port}. Check the inbox (and spam).`,
+      env,
       config: cfg,
     });
   } catch (e) {
@@ -47,6 +62,7 @@ export async function POST() {
         response: err.response ?? null,
       },
       hint: smtpHint(err),
+      env,
       config: cfg,
     });
   }
