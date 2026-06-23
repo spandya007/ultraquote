@@ -1,0 +1,69 @@
+name: E2E tests
+
+# Boots a local Supabase stack (Docker on the GitHub runner) and runs the
+# Playwright E2E smoke suite (npm run test:e2e). Playwright's webServer starts
+# `next dev` against the local stack (the Supabase env is injected by
+# playwright.config.ts). Separate from ci.yml (fast, DB-free) and rls.yml; this
+# one is the slowest (Supabase images + a browser + a dev server).
+#
+# Path-filtered to app/flow-relevant changes to save Actions minutes.
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "middleware.ts"
+      - "supabase/**"
+      - "tests/e2e/**"
+      - "playwright.config.ts"
+      - ".github/workflows/playwright.yml"
+      - "package.json"
+      - "package-lock.json"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "middleware.ts"
+      - "supabase/**"
+      - "tests/e2e/**"
+      - "playwright.config.ts"
+      - ".github/workflows/playwright.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Browser + its OS deps (the runner allows the sudo apt step --with-deps does).
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Boots the local stack from supabase/config.toml (Docker on the runner —
+      # no Colima needed). global-setup.ts rebuilds the schema + seeds + creates
+      # the Auth users; the webServer (next dev) is started by Playwright.
+      - name: Start Supabase
+        run: supabase start
+      - name: Run E2E tests
+        run: npm run test:e2e
+      # Keep the HTML report (screenshots + traces) when something fails.
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

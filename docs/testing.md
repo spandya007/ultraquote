@@ -90,8 +90,15 @@ RLS tests). Config: [playwright.config.ts](../playwright.config.ts); specs in `t
   direct `/quotes` hit).
 
 No external mocks needed: this flow never calls Gemini/DocuSeal/Railway-PDF/email (Preview uses the
-internal serializer). **CI**: a Playwright workflow (boot Supabase on the runner, like `rls.yml`) is the
-next follow-up — not yet added.
+internal serializer).
+
+**CI**: [.github/workflows/playwright.yml](../.github/workflows/playwright.yml) boots a local Supabase
+stack on the GitHub runner (Docker — no Colima), installs Chromium, and runs `npm run test:e2e` on PRs +
+pushes to `main` touching app/flow paths (`app/**`, `components/**`, `lib/**`, `middleware.ts`,
+`supabase/**`, `tests/e2e/**`, …), plus manual dispatch. In CI (`process.env.CI`), Playwright starts its
+own `next dev` webServer (no reuse) and retries once; the HTML report is uploaded as an artifact on
+failure. Slowest of the three workflows (Supabase images + a browser + a dev server) — kept separate from
+`ci.yml` (unit, DB-free) and `rls.yml`.
 
 ## Deliberately manual (flaky/expensive to automate)
 BlockNote editor internals, PDF visual fidelity, DocuSeal webhook round-trips, real email. Use a
