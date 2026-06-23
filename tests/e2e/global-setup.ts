@@ -95,6 +95,15 @@ async function createOwners() {
       // Stamp legal acceptance so the /account/accept-terms gate passes. (enabled
       // defaults true from migration 012; owners are force-enabled anyway.)
       await sql.query("update public.users set legal_accepted_at = now() where id = $1", [created.id]);
+
+      // Make the active-tenant owner a platform admin too, so E2E can exercise
+      // the /admin console (tenant dossier, etc.).
+      if (o.email === OWNER.email) {
+        await sql.query(
+          "insert into public.platform_admins (user_id) values ($1) on conflict do nothing",
+          [created.id]
+        );
+      }
     }
   } finally {
     await sql.end();
