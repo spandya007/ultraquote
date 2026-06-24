@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
 import {
-  LOCAL_DB_URL, LOCAL_SUPABASE_URL, LOCAL_SERVICE_ROLE_KEY, OWNER, EXPIRED_OWNER,
+  LOCAL_DB_URL, LOCAL_SUPABASE_URL, LOCAL_SERVICE_ROLE_KEY, OWNER, EXPIRED_OWNER, PURGE_OWNER,
 } from "./config";
 
 // Talk to GoTrue's admin API directly via fetch — avoids supabase-js, whose
@@ -36,6 +36,7 @@ const MIGRATIONS = [
   "supabase/migrations/015_add_tenant_font.sql",
   "supabase/migrations/016_add_legal_acceptance.sql",
   "supabase/migrations/017_beta_signups.sql",
+  "supabase/migrations/018_tenant_deletion_schedule.sql",
 ];
 
 async function resetDb() {
@@ -66,8 +67,9 @@ async function createOwners() {
   // by the public-schema drop), then recreate cleanly.
   const listRes = await fetch(adminUrl("/users?per_page=1000"), { headers: authHeaders });
   const existing = (await listRes.json()) as { users?: { id: string; email?: string }[] };
+  const seedEmails = new Set([OWNER.email, EXPIRED_OWNER.email, PURGE_OWNER.email]);
   for (const u of existing.users ?? []) {
-    if (u.email === OWNER.email || u.email === EXPIRED_OWNER.email) {
+    if (u.email && seedEmails.has(u.email)) {
       await fetch(adminUrl(`/users/${u.id}`), { method: "DELETE", headers: authHeaders });
     }
   }
@@ -75,7 +77,7 @@ async function createOwners() {
   const sql = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL ?? LOCAL_DB_URL });
   await sql.connect();
   try {
-    for (const o of [OWNER, EXPIRED_OWNER]) {
+    for (const o of [OWNER, EXPIRED_OWNER, PURGE_OWNER]) {
       // user_metadata.tenant_id + role drive the handle_new_auth_user trigger,
       // which inserts the matching public.users row as 'owner'.
       const res = await fetch(adminUrl("/users"), {

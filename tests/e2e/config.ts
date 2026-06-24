@@ -16,6 +16,8 @@ export const LOCAL_SERVICE_ROLE_KEY =
 // Seeded tenants/users. UUIDs are fixed so tests can reference rows directly.
 export const ACTIVE_TENANT_ID = "11111111-1111-1111-1111-111111111111";
 export const EXPIRED_TENANT_ID = "22222222-2222-2222-2222-222222222222";
+// Throwaway tenant used ONLY by the deletion spec (it gets purged).
+export const PURGE_TENANT_ID = "99999999-9999-9999-9999-999999999999";
 
 export const OWNER = {
   email: "e2e-owner@ultraquote.test",
@@ -29,6 +31,13 @@ export const EXPIRED_OWNER = {
   password: "E2e-Test-Passw0rd!",
   fullName: "Ex Pired",
   tenantId: EXPIRED_TENANT_ID,
+};
+
+export const PURGE_OWNER = {
+  email: "e2e-purge@ultraquote.test",
+  password: "E2e-Test-Passw0rd!",
+  fullName: "Pur Ge",
+  tenantId: PURGE_TENANT_ID,
 };
 
 export const BASE_URL = "http://localhost:3000";

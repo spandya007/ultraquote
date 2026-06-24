@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTenantDossier } from "@/lib/admin/tenant-dossier";
 import { TenantDossierView } from "@/components/admin/tenant-dossier-view";
+import { TenantDangerZone } from "@/components/admin/tenant-danger-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,12 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         <ArrowLeft className="w-4 h-4" /> All tenants
       </Link>
       <TenantDossierView dossier={dossier} tenantId={params.id} />
+      <TenantDangerZone
+        tenantId={params.id}
+        tenantName={dossier.tenant.name}
+        deletionScheduledAt={dossier.tenant.deletion_scheduled_at}
+        deletionReason={dossier.tenant.deletion_reason}
+      />
     </div>
   );
 }

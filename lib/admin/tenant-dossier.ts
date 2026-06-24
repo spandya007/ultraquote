@@ -38,6 +38,8 @@ export interface TenantDossier {
     subscription_end: string | null;
     subscription_term: string | null;
     platform_enabled: boolean;
+    deletion_scheduled_at: string | null;
+    deletion_reason: string | null;
   };
   owner: { full_name: string | null; email: string } | null;
   users: { id: string; email: string; full_name: string | null; role: string; enabled: boolean }[];
@@ -73,7 +75,9 @@ export async function getTenantDossier(tenantId: string): Promise<TenantDossier 
 
   const { data: tenant } = await admin
     .from("tenants")
-    .select("id, name, email, created_at, subscription_end, subscription_term, platform_enabled")
+    .select(
+      "id, name, email, created_at, subscription_end, subscription_term, platform_enabled, deletion_scheduled_at, deletion_reason"
+    )
     .eq("id", tenantId)
     .maybeSingle();
   if (!tenant) return null;

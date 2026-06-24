@@ -8,6 +8,7 @@ import { getAccessState } from "@/lib/access/access-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getUserContext } from "@/lib/auth/user-context";
 import { SubscriptionBanner } from "@/components/account/subscription-banner";
+import { DeletionBanner } from "@/components/account/deletion-banner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -90,6 +91,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <IdleTimeout />
       <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} userName={firstName} />
       <main className="flex-1 overflow-y-auto bg-muted/20 pt-14 md:pt-0">
+        {ctx?.tenant?.deletion_scheduled_at && (
+          <DeletionBanner scheduledAt={ctx.tenant.deletion_scheduled_at} />
+        )}
         {banner && <SubscriptionBanner {...banner} />}
         {children}
       </main>

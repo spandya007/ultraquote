@@ -24,7 +24,34 @@ So the admin (and the tenant) can see what would be lost before anything is dele
 - E2E: `tests/e2e/tenant-dossier.spec.ts` (admin dossier + report + owner self-view). The seeded E2E
   owner is also a platform admin (global-setup) to exercise `/admin`.
 
-## Phase 2 — The delete action  ⏳ NEXT (not built)
+## Phase 2 — The delete action  ✅ DONE (scheduled, grace period, admin-only)
+Decisions: **scheduled deletion with a grace period** (`DELETION_GRACE_DAYS = 30` in
+`lib/admin/purge-tenant.ts` — privacy policy mentions 90, revisit), **platform-admin only**. The
+workspace stays usable during the grace window so the owner can export.
+
+- **Migration 018**: `tenants.deletion_scheduled_at` + `deletion_requested_by` + `deletion_reason`.
+- **Danger zone** (`components/admin/tenant-danger-zone.tsx`) at the bottom of the dossier page:
+  type-the-name-to-confirm → **Schedule deletion** (sets date = now + grace); when scheduled, shows
+  the date + **Cancel** + **Delete now** (immediate override). API: `schedule-deletion` route
+  (POST set / DELETE cancel), `purge` route (immediate). All platform-admin guarded.
+- **Owner warning**: `components/account/deletion-banner.tsx` in the dashboard layout when
+  `tenant.deletion_scheduled_at` is set.
+- **The purge** (`lib/admin/purge-tenant.ts purgeTenant()`): remove Storage `tenant-logos/<id>` →
+  delete the `tenants` row (cascades all child tables incl. `public.users`) → delete the members'
+  Auth logins via `admin.auth.admin.deleteUser`. `listDueTenantIds()` finds tenants past their date.
+- **Runner**: `POST /api/admin/deletions/run` purges all due tenants — callable by a platform admin
+  OR with the `CRON_SECRET` (header `x-cron-secret` or `?secret=`).
+- **E2E**: `tests/e2e/tenant-deletion.spec.ts` — schedule → owner sees banner → purge → dossier 404s
+  (uses a throwaway "E2E Purge Target" tenant seeded for this).
+
+### Still open
+- **Automate the runner**: a Netlify scheduled function (or external cron) that POSTs
+  `/api/admin/deletions/run` with `CRON_SECRET` daily. Until then, due deletions need a manual trigger.
+- **Storage**: only `tenant-logos/<id>` is enumerated; proposal images under per-quote paths aren't
+  removed (DB refs go, but the blobs may orphan). Improve if storage cost matters.
+- Confirm grace = 30 vs 90 days (privacy policy alignment). Audit log of who deleted what.
+
+### Original Phase 2 design notes (for reference)
 Lives at the bottom of the dossier page, gated behind reviewing it.
 
 - **Cascade chain (verify before building):** most children cascade via `on delete cascade` from
