@@ -99,7 +99,7 @@ export function TenantDangerZone({
                 {due ? " — now due" : ""}.
               </div>
               {deletionReason && <div className="text-muted-foreground">Reason: {deletionReason}</div>}
-              <div className="text-muted-foreground">The workspace stays usable until then so the owner can export.</div>
+              <div className="text-muted-foreground">The workspace stays usable until then so the owner can save copies of their data.</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

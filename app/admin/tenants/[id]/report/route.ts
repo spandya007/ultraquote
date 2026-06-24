@@ -87,8 +87,10 @@ function renderReport(d: TenantDossier): string {
 
 <div class="note">
   This is a summary of everything currently stored in your UltraQuote workspace. Please review it and
-  export anything you need to keep. In-flight (sent) and signed quotes are highlighted below — those
-  represent active or completed deals worth saving before any changes are made to your account.
+  save copies of anything you need to keep (you can download individual quotes as PDFs; contact
+  hello@ultraquote.io if you need a full copy of your data). In-flight (sent) and signed quotes are
+  highlighted below — those represent active or completed deals worth saving before any changes are
+  made to your account.
 </div>
 
 ${

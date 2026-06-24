@@ -26,7 +26,8 @@ export function WorkspaceSummaryCard({ dossier }: { dossier: TenantDossier }) {
       </div>
       <p className="text-sm text-muted-foreground">
         A summary of what&apos;s stored in your UltraQuote account. Keep this in mind before requesting
-        account deletion — export anything you need to keep.
+        account deletion — save copies of anything you need to keep (you can download individual quotes
+        as PDFs).
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -43,7 +44,7 @@ export function WorkspaceSummaryCard({ dossier }: { dossier: TenantDossier }) {
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
           You have{signed > 0 ? ` ${signed} signed` : ""}{signed > 0 && inFlight > 0 ? " and" : ""}
           {inFlight > 0 ? ` ${inFlight} sent` : ""} quote(s). These represent completed or in-progress
-          deals — be sure to download/export them before any account deletion.
+          deals — be sure to download them (as PDFs) before any account deletion.
         </div>
       )}
     </div>

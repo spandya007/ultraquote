@@ -45,6 +45,14 @@ workspace stays usable during the grace window so the owner can export.
   (uses a throwaway "E2E Purge Target" tenant seeded for this).
 
 ### Still open
+- **Tenant data export ("Download my data") — BACKLOG (do if required).** Today there is NO bulk
+  data export: only per-quote PDF download (quote editor) and per-template `.uqtemplate.json` export.
+  Clients, the product catalog, and quotes-in-bulk can't be exported. The deletion copy was therefore
+  **softened** (2026-06-24) to "save copies of anything you need (download quotes as PDFs); contact
+  hello@ultraquote.io for a full copy" rather than promising a button. If/when built: an owner-facing
+  "Download my data" button (Settings + the deletion banner) producing a ZIP of `clients.csv`,
+  `products.csv` (+ tiers), `quotes.csv` (+ scenarios/line items) and/or a full `quotes.json`. Also
+  supports data-portability under the privacy policy.
 - **Automate the runner**: a Netlify scheduled function (or external cron) that POSTs
   `/api/admin/deletions/run` with `CRON_SECRET` daily. Until then, due deletions need a manual trigger.
 - **Storage**: only `tenant-logos/<id>` is enumerated; proposal images under per-quote paths aren't
