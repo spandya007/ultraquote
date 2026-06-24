@@ -1,0 +1,12 @@
+# Netlify config for the STATIC marketing site (ultraquote.io).
+#
+# This site is a separate Netlify site whose "Base directory" is set to
+# `marketing-site`. With a base directory configured, Netlify reads the
+# netlify.toml in that directory — so this file overrides the repo-root
+# netlify.toml (which builds the Next.js app at app.ultraquote.io).
+#
+# The marketing site is plain HTML/CSS with no build step, so the build command
+# is empty and we publish the folder as-is. No Next.js plugin.
+[build]
+  command = ""
+  publish = "."
