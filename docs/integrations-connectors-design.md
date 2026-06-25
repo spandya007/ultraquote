@@ -19,12 +19,15 @@
 | **5** | **TD SYNNEX (StreamOne/Digital Bridge)** | Product + cost (in) | ★★★☆ | ★★★★ | Second distributor; cloud + hardware; sandbox available. |
 | **6** | **Zoho CRM** | Client/Deal ⇄ (both) | ★★★☆ | ★★★ | Smaller than HubSpot but loyal; **we already use Zoho internally**; multi-data-center complexity. |
 | **7** | **Public API + Webhooks + Zapier/Make** | Anything (both) | ★★★★☆ | ★★★ | Force-multiplier: one build → the long tail (thousands of apps) without bespoke connectors. Strongly consider early. |
-| **—** | **Amazon Business** | — | ★☆ | n/a | **Does NOT fit the catalog-data use case** (see §3a). It's a *procurement/punchout* platform, not a reseller catalog-data API. Recommend dropping it from this initiative. |
+| **8** | **Amazon Business (search → quote)** | Search → quote line (no catalog) | ★★★☆ | ★★★★ | **Account-linked live product search added straight to a quote** — exactly what Quoter/QuoteWerks/Kaseya do (Owner links their Amazon Business account, searches, adds w/ markup; *no* catalog entry). Real MSP demand. **Gated**: requires approval into Amazon Business's partner-integration program; price-accuracy caveats (Quoter ships it as Beta); US/CA only. See §3a. |
 
 **The honest reframe of your list:** the biggest, fastest wins are **outbound** (QBO invoicing) and **CRM**
 (HubSpot) — not the inbound distributor catalog feeds you ranked #1/#2. Distributor APIs are valuable but
-carry per-tenant onboarding friction (each MSP must have a reseller account + request API access), and
-**Amazon Business can't supply catalog cost data at all** in a supported/compliant way. So I'd sequence
+carry per-tenant onboarding friction (each MSP must have a reseller account + request API access). And on
+**Amazon Business**: my first pass was too dismissive — it can't do the *bulk-pull-cost-into-your-catalog*
+model, but it **can** do the *search-and-add-to-quote* model that Quoter demos (account-linked live search,
+item added straight to the quote, no catalog). That path is real but **gated behind Amazon's partner
+program** + ships Beta-grade at competitors — so it's a later differentiator, not a first phase. Sequence:
 QBO + HubSpot first, then Ingram as the flagship catalog connector.
 
 ---
@@ -73,7 +76,13 @@ generated in the distributor portal; we store them encrypted.
 never duplicate) and supports multiple providers at once.
 
 ### 2d. Sync engine
-- **Pull (catalog):** on-demand "Import from Ingram" + a scheduled refresh of linked products' cost/avail.
+- **Live search → quote line (no catalog):** an in-editor **"search provider"** interface —
+  `search(query) → offers[]` + `toLineItem(offer)`. Amazon Business, Ingram, TD SYNNEX all implement it;
+  the quote editor's "Add from catalog" spotlight gets per-provider tabs (matches Quoter's UX). The chosen
+  offer is **snapshotted directly onto the quote line** (name/desc/image/price), bypassing `products`.
+  This is the pattern your Quoter demo showed — build it once, reuse for every provider.
+- **Pull (catalog):** on-demand "Import from Ingram" into `products` + a scheduled refresh of linked
+  products' cost/availability (for MSPs who *do* want reusable catalog entries).
 - **Push (QBO/CRM):** triggered by the existing lifecycle events — quote **sent** (create CRM deal),
   quote **signed** (DocuSeal webhook → already transitions to `completed`; hook here to create the QBO
   invoice + flip the CRM deal to won). Reuse the `completed` event as the single push trigger.
@@ -94,24 +103,42 @@ field-mapping + sync toggles. Owner-only (consistent with products/settings bein
 
 ## 3. Per-vendor deep dive
 
-### 3a. Amazon Business — reality check (recommend: DROP for catalog data)
-**What it actually is:** a *purchasing* platform. Its integrations are **Punchout** (cXML/OCI) and
-**Punch-in** — a procurement system "punches out" to Amazon, the buyer fills a cart, and the cart returns
-to the procurement system for approval/PO. That's **buying**, not **quoting**.
+### 3a. Amazon Business — two different models (one of them IS viable)
+There are **two distinct ways** to use Amazon Business, and they have opposite feasibility. My first pass
+conflated them; corrected below after looking at what Quoter/QuoteWerks/Kaseya actually ship.
 
-**Why you can't pull "name/description/image/cost" into your catalog:**
-- There is **no supported Amazon Business API** that exposes Amazon's catalog + *your negotiated business
-  price* to a third-party app for re-use in quoting.
-- The **Product Advertising API (PA-API 5.0)** returns catalog data (title, images, features, price) but
-  (1) requires an approved **Amazon Associates** account, (2) requires **ongoing qualifying sales** to
-  keep access, and (3) its **ToS restricts use to driving Amazon purchases via your affiliate links** —
-  populating a reseller's quoting catalog would violate it. The "price" is **public retail**, not MSP cost.
-- **Selling Partner API (SP-API)** is for *sellers* managing their own Amazon listings/orders — wrong tool.
+**Model A — bulk-pull catalog + your cost into `products` (NOT viable):**
+- No supported Amazon API exposes Amazon's catalog + your *negotiated business cost* for bulk import.
+- **Product Advertising API (PA-API 5.0)** = affiliate-gated (Amazon Associates + ongoing qualifying
+  sales), ToS restricts use to driving Amazon purchases, and returns *public retail* price, not your cost.
+- **Selling Partner API (SP-API)** = for *sellers* managing their own listings. Wrong tool.
+- So you can't make Amazon a catalog-cost feed like Ingram. (This is what I flagged before — still true.)
 
-**Recommendation:** exclude Amazon Business from the catalog-enrichment initiative. If a customer
-genuinely wants Amazon as a *buying channel*, that's a procurement punchout project (different product,
-out of scope for a quoting tool). For "what does this hardware cost me," the right sources are the
-**distributor APIs** below, which return true reseller cost.
+**Model B — live account-linked search → add straight to a quote (VIABLE — this is what you saw):**
+This is exactly Quoter's flow (verified from their docs):
+- **Connect:** Settings → Integrations → Amazon → **"Login to your Amazon Business account to
+  authenticate"** (OAuth account-link). One click; the Owner doesn't handle keys.
+- **Use:** in the quote editor, a dedicated **Amazon tab** in the item picker → search by keyword/MPN →
+  **Add to Quote** → review/adjust details + sell price (default markup applies) → it lands as a **quote
+  line item**, **not** in the catalog. (Confirms your point: items need not enter the UltraQuote catalog.)
+- **Pricing:** real-time price/availability "using your Amazon Business account."
+- **Real-world caveats (Quoter documents these — set expectations / it's still Beta there):**
+  - The offer/price returned may **not match the featured offer** in the buyer's Amazon Business account
+    (e.g. a 3rd-party-seller offer vs an Amazon-shipped offer) — price accuracy is imperfect.
+  - **No live refresh** of price/stock on a saved line — remove + re-add to re-pull current price.
+  - **US/Canada only**; can't be saved into Templates.
+
+**Access reality (the catch):** the buyer-side Amazon Business product-search/buy integration is a
+**gated partner program** — the public Amazon developer docs are all SP-API (seller) and PA-API
+(affiliate); the buying-API surface isn't self-serve. Quoter/QuoteWerks/Kaseya are **approved Amazon
+Business integration partners**. So building this = **applying to and getting approved by Amazon
+Business's integration/solution-provider program** (a relationship + review, not a weekend API key) — that
+approval timeline/uncertainty is the real cost, plus the Beta-grade reliability above.
+
+**Recommendation:** keep Amazon Business **on the roadmap as Model B** (search → quote), not Model A.
+Design it as a **"live search provider"** (see §2d) so the same in-editor search UX also serves Ingram/
+TD SYNNEX. But sequence it *after* QBO/HubSpot/Ingram because of the partner-approval gate. **Owner
+setup:** one-click "Connect Amazon Business" OAuth (US/CA), once UltraQuote is an approved partner.
 
 ### 3b. Ingram Micro — the flagship catalog connector ✅
 - **Portal:** `developer.ingrammicro.com` (xVantage / Reseller APIs). OpenAPI SDK on GitHub
@@ -213,7 +240,7 @@ with X?" sales objections. Strongly consider slotting it at #2–3.
 | Ingram Micro | **Ingram reseller account** | Developer portal → request API access (approval) → client id/secret + customer # | Paste credentials |
 | TD SYNNEX | **TD SYNNEX reseller account** | Digital Bridge → API key + secret | Paste credentials |
 | Pax8 | Pax8 partner account | Portal → Integrations → create API credential | Paste/OAuth |
-| Amazon Business | n/a — not supported for catalog data (§3a) | — | — |
+| Amazon Business | Amazon Business account (US/CA) — **and UltraQuote approved into Amazon's partner program** | OAuth account-link (Login with Amazon Business) | "Connect Amazon Business" → search items → add to quote (no catalog) |
 
 OAuth ones (QBO/HubSpot/Zoho/Pax8) = one-click consent, no secrets handled by the Owner. Distributor ones
 require the Owner to already be a reseller and to generate API keys in that distributor's portal.
@@ -248,7 +275,7 @@ require the Owner to already be a reseller and to generate API keys in that dist
 - Ingram Micro Developer Portal — developer.ingrammicro.com (Reseller APIs: catalog, PNA, order); xi-sdk-openapispec (GitHub).
 - TD SYNNEX — StreamOne Ion API (tdsynnex.com/ion/api), Digital Bridge developer portal.
 - Pax8 — devx.pax8.com (Developer Platform, API credentials, marketplace).
-- Amazon Business — business.amazon.com (Punchout / systems integration); Product Advertising API 5.0 (webservices.amazon.com/paapi5) — affiliate-gated, ToS-restricted.
+- Amazon Business — business.amazon.com (Punchout / systems integration); Product Advertising API 5.0 (webservices.amazon.com/paapi5) — affiliate-gated, ToS-restricted. **Buyer-side search→quote model** verified from Quoter's docs (help.quoter.com/.../Amazon-Business — "login to your Amazon Business account to authenticate"; Amazon tab in item picker; Beta; US/CA; price-offer-mismatch caveat) + scalepad.com/quoter/integrations/amazon; same pattern at QuoteWerks + Kaseya Quote Manager.
 - HubSpot — developers.hubspot.com (OAuth scopes, CRM v3 contacts/companies/deals).
 - Zoho CRM — zoho.com/crm/developer (v8 scopes, OAuth self-client vs server-based, multi-DC).
 - Prior internal research: `docs/integrations-accounting-psa-research.md` (QBO + Autotask, competitive: Quoter/Kaseya/Zomentum).
