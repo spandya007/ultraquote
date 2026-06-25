@@ -99,6 +99,52 @@ drawer gets an image field + the client-facing tables/PDF can optionally show it
 A new **Settings → Integrations** page: a card per provider with Connect/Disconnect, status, last-sync,
 field-mapping + sync toggles. Owner-only (consistent with products/settings being owner-managed).
 
+### 2g. Vendor line-item lifecycle — snapshot, freeze & refresh (DECIDED 2026-06-24)
+Vendor items (Amazon Business / distributor search → quote) are **never added to the `products`
+catalog**. They live as **quote line-item rows** that carry a **snapshot** of the vendor data plus a
+vendor reference — e.g. `source='vendor'`, `provider`, `vendor_item_ref` (ASIN/MPN/SKU), the existing
+`description`/`unit_cost`/`unit_price`, and a `vendor_fetched_at`. The snapshot is **always stored** —
+it's the record of what was quoted and the fallback when the vendor API is slow/down/expired.
+
+How a *change in the vendor's cost/availability* is handled depends on the quote's lifecycle state:
+
+| State | Behavior on vendor data change |
+|---|---|
+| **Draft** | Re-fetch vendor value on open; if it differs, show **"price changed $X → $Y — apply?"**. The author decides (apply / ignore). Author stays in control; nothing changes silently. |
+| **Sent / Viewed** | **Numbers frozen.** The client-facing copy never changes (see below). A **non-destructive badge** appears **in the author's editor only**, detected by re-fetch+compare — the stored snapshot is **never overwritten**. To act, the author goes **Withdraw → revise → re-send** (supersedes the prior copy). |
+| **Signed** | **Fully inert** — no badge, no refresh, no action. Vendor price moves are irrelevant to the executed contract. Genuine changes go through a **new quote / change order** (and a separate invoice/credit memo in accounting), never by mutating the signed quote. |
+
+Supporting rules:
+- **The client's copy is immutable.** "Send for signature" ships a rendered **snapshot** to DocuSeal;
+  that's what the client sees/signs. Vendor changes after send do **not** alter it. The badge lives only
+  in the author's editor.
+- **Badge = detection only.** Re-fetch the current vendor value and compare to the snapshot; render an
+  indicator. Never write back to a sent/signed line.
+- **Why sent is recoverable but signed is not (the downstream-consistency reason):** on `sent`, **no QBO
+  invoice exists yet** (the invoice fires on `signed`), so revising a sent quote creates **zero accounting
+  inconsistency**; the only downstream object is the CRM **deal**, still *open*, which a re-send updates
+  cleanly. On `signed`, the **QBO invoice + HubSpot closed-won have already fired** — any quote change
+  would desync the systems of record. This is the core reason signed is frozen and inert.
+- **The race:** if the vendor price moves after send but the client **signs at the old (sent) price**, you
+  **honor the quoted sell price** — only your margin shifted. The badge is your *window* to Withdraw +
+  re-send *before* they sign if the margin hit is unacceptable; the system never auto-decides this.
+- **Cost change vs availability change:** a **cost** move = a margin warning (your problem, not the
+  client's). An **item discontinued / out-of-stock** = a fulfillment risk → a stronger flag (you likely
+  want to proactively withdraw rather than let them sign something you can't deliver).
+- **Sell price vs cost:** the vendor returns **cost**; the sell price = cost × the MSP's markup. On a cost
+  change, recompute **margin** and flag it, but only change the **sell price** if the author opts in
+  (a cost drop must not silently cut the client's price).
+
+> **⚠️ Dependency:** the sent-stage flow requires a **"Withdraw a sent quote"** capability (cancel the
+> DocuSeal submission → return to draft). This is currently a backlog item (#12) and is a **prerequisite**
+> for "revise + re-send a sent quote" — sequence Withdraw alongside (or just before) the vendor connectors.
+
+**Parked (Owner to decide before finalizing — do not lose):**
+1. **CRM deal timing** — create the HubSpot/Zoho deal **on send** (so it exists during the sent stage and
+   a re-send updates it) vs **only on signed**? Decides whether a re-send touches an existing open deal.
+2. **Availability/discontinued assertiveness** on a sent quote — a passive flag, or an assertive
+   "no longer available — withdraw recommended" prompt?
+
 ---
 
 ## 3. Per-vendor deep dive
