@@ -236,7 +236,61 @@ a separate, later phase.
 
 ---
 
-## 11. Parked decisions (Owner to weigh in)
+## 11. Rollout & operations for existing users (migration runbook)
+This change is **additive and backward-compatible** — existing logins, roles, and data are untouched.
+
+### 11.1 Identity model — answering "Platform Admin + Owner = one entity?"
+One **auth login** can hold **multiple memberships**, each in its own table; that's already how Prod works
+and it doesn't change:
+- `platform_admins` → **Platform Admin** hat
+- `organization_admins` → **Org Admin** hat (NEW, optional)
+- `users` (tenant_id + role) → **Owner / Member** hat
+
+So `sameer@cmithayward.com` today is **Platform Admin (`platform_admins`) + Owner of CMIT-Hayward
+(`users`)** — two hats on one login. After this change he simply *can* also gain an **Org Admin** hat.
+Nothing is forced to split. (Whether you *prefer* separate logins per hat is a policy choice — see 11.4.)
+
+### 11.2 Migration day (zero-downtime)
+1. Back up (Supabase export / Pro daily backups).
+2. Apply migration: `organizations` + `organization_admins` + **`tenants.organization_id` (nullable)**.
+3. **Every existing Workspace defaults to `organization_id = NULL` → "standalone"** = exactly today's
+   behavior (same access gate, same per-Workspace billing). No customer notices anything.
+4. Verify: Sameer still Platform Admin + Owner; CMIT-Hayward / Pandya's / etc. all standalone; login + the
+   access gate behave as before (the new org-level gate only applies once `organization_id` is set).
+5. Org features (`/org` console, Org Admin invites) ship behind Phase 1+ — **no existing user is placed
+   under an Org without an explicit action.**
+
+### 11.3 Converting an existing brand into an Organization (when you choose to)
+A data **re-parenting, not a re-onboarding** — the Workspace keeps its owner, members, products, quotes:
+1. Platform Admin creates the **Organization** (name, pricing, branding).
+2. Set that Workspace's `organization_id` (e.g. CMIT-Hayward → CMIT); repeat for sibling Workspaces.
+3. Invite the **Org Admin(s)**.
+4. **Billing transition:** move the Workspace's subscription up to the Org (consolidated invoice). Until
+   Stripe billing exists this is config; once built, the Org becomes the `billing_account`.
+5. **Notify the Owner(s)** their Workspace now sits under an Org, and what the Org Admin can see
+   (the Oversight-vs-Full visibility tier, §4) — a trust disclosure.
+6. **Reversible:** unset `organization_id` → back to standalone.
+
+### 11.4 Sameer specifically (the dual/triple-hat account)
+- **Option A — leave as-is (recommended first):** CMIT-Hayward stays **standalone**; Sameer stays
+  Platform Admin + Owner. Use it as the reference/test Workspace. Zero change.
+- **Option B — dogfood the Org flow:** create Organization "CMIT", move CMIT-Hayward under it, and let
+  Sameer also be its **Org Admin** → one login holding **Platform Admin + Org Admin + Owner**. The cleanest
+  way to exercise the new flows end-to-end. (Deliberate exception to the §9.4 "Org Admin shouldn't also be
+  an Owner" guidance — fine for your own dogfooding.)
+
+### 11.5 UI implication — a console / hat switcher
+Because one login can wear several hats, the app must let it **choose context.** Today the sidebar shows a
+"Platform Admin" link when `platform_admins` matches; extend principal resolution to also offer an
+**Organization (`/org`) link** when `organization_admins` matches, alongside the normal Workspace app when
+they're a Workspace user. A small **Platform / Organization / Workspace** switcher covers multi-hat logins.
+
+### 11.6 Guarantees / risks
+- **Backward-compat is gated on `organization_id IS NULL`** = today's path → safe + reversible.
+- **Never auto-assign** existing Workspaces to an Org — don't surprise customers with a new admin above them.
+- Existing per-Workspace subscriptions persist until a Workspace is explicitly moved under an Org.
+
+## 12. Parked decisions (Owner to weigh in)
 - **Quote/pricing visibility for Org Admins** — default **Oversight** (no line items/cost), with an opt-in
   **Full** tier? (My recommendation; confirm.)
 - **"Manage pricing"** = subscription/seats per workspace (in scope) vs **org-managed shared catalog**
