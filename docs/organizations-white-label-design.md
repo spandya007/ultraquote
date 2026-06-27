@@ -1,10 +1,11 @@
 # UltraQuote — Organizations / White-Label Hierarchy Design
 
-> Design doc (2026-06-25). Adds a layer **above** today's tenant so UltraQuote can be white-labeled /
+> Design doc (2026-06-25). Adds a layer **above** today's Workspace so UltraQuote can be white-labeled /
 > resold to MSP brands (CMIT, TeamLogic, …) and other CPQ-style businesses. A new **Organization** groups
-> multiple Owner workspaces under one billing + brand umbrella, managed by an **Org Admin** (the role you
-> called "Tenant Admin"). No code yet — feasibility verdict, data model, permissions, billing, risks,
-> phasing.
+> multiple **Workspaces** (each run by an **Owner**) under one billing + brand umbrella, managed by an
+> **Org Admin** (the role you called "Tenant Admin"). No code yet — feasibility verdict, data model,
+> permissions, billing, risks, phasing. **See §1 for canonical nomenclature** (Workspace = the `tenants`
+> table; Owner = the person who runs it).
 
 ---
 
@@ -32,33 +33,59 @@
 
 ---
 
-## 1. Terminology (and why)
-Today **"tenant" = one Owner's workspace** (the DB table, RLS, everything). Renaming that would be a huge,
-risky churn. So we **add a new layer above it** rather than rename:
+## 1. Nomenclature (canonical — use these terms going forward)
+The product/UI and this doc use the terms in the **Term** column. The DB keeps its existing names (we do
+**not** rename the `tenants` table — that would be huge, risky churn); the **DB** column shows the
+internal name. **"Tenant" is the internal/DB name for a Workspace** — prefer **Workspace** everywhere
+user-facing.
 
-| Layer | DB | Who | Maps to your words |
-|---|---|---|---|
-| Platform | `platform_admins` | You | Platform Admin |
-| **Organization** *(new)* | `organizations` | The MSP brand / reseller (CMIT) | "Tenant" (the brand) |
-| **Org Admin** *(new role)* | `organization_admins` | Brand admins (1..n per org) | **"Tenant Admin"** |
-| Workspace = tenant | `tenants` (+ `organization_id`) | One MSP office/location | your "Owners' workspace" |
-| Owner | `users.role='owner'` | Workspace owner | Owner |
-| Member | `users.role='member'` | Teammate | Teammates |
+| Term (canonical) | What it IS | DB | Cardinality | Your earlier word |
+|---|---|---|---|---|
+| **Platform Admin** | You — runs the whole platform | `platform_admins` | global | Platform Admin |
+| **Organization** ("Org") | An MSP **brand / reseller** — the billing + white-label umbrella | `organizations` *(new)* | many | your "Tenant" (the brand) |
+| **Org Admin** | A **person** who administers an Organization (new role) | `organization_admins` *(new)* | 1..n per Org | **"Tenant Admin"** |
+| **Workspace** | One MSP **account/office** — the data container (subscription, products, clients, quotes, branding) | `tenants` (+ `organization_id`) | many per Org, or standalone | "Owner's workspace" |
+| **Owner** | The **person** who heads a Workspace | `users.role='owner'` | exactly 1 per Workspace | Owner |
+| **Member** | A **teammate** in a Workspace | `users.role='member'` | 0..n per Workspace | Teammate |
 
-So the hierarchy is **4 levels**: Platform Admin → Org Admin → Owner → Member, with **standalone tenants**
-(no org) continuing exactly as today for your direct customers.
+**Entity vs person (important):** a **Workspace** is the *account*; an **Owner** is the *person* who runs
+it — they map **1:1** but are different kinds of thing. "Add an Owner" really means **create a Workspace +
+invite its Owner**. "Org Admin manages Owners" means **manages the Workspaces, each fronted by an Owner.**
+
+So the hierarchy is **4 levels**: Platform Admin → Org Admin → Owner → Member. A **standalone Workspace**
+(`organization_id = NULL`) belongs to no Organization and behaves exactly as today (your direct customers).
 
 ```
 Platform Admin (you)
-├── Organization "CMIT"           ← billing + brand umbrella
-│   ├── Org Admins (1..n)         ← manage Owners, subscriptions, pricing, see activity
-│   ├── Workspace: CMIT-Hayward   → Owner + Members  (a tenant)
-│   └── Workspace: CMIT-SF        → Owner + Members  (a tenant)
+├── Organization "CMIT"              ← billing + brand umbrella
+│   ├── Org Admins (1..n)            ← manage Workspaces, subscriptions, pricing; see activity
+│   ├── Workspace: CMIT-Hayward      → Owner + Members
+│   └── Workspace: CMIT-SF           → Owner + Members
 ├── Organization "TeamLogic" …
-└── Standalone tenant (direct customer, organization_id = NULL)  ← today's model, unchanged
+└── Standalone Workspace (direct customer, organization_id = NULL)  ← today's model, unchanged
 ```
 
 ---
+
+## 1b. Architecture diagram
+```mermaid
+graph TD
+  PA["Platform Admin (you)<br/>/admin console"]
+  subgraph ORG["Organization: CMIT — one bill · white-label brand"]
+    OA["Org Admin(s)<br/>/org console (scoped, service-role)"]
+    BILL["Billing<br/>1 invoice per Org · custom price"]
+    WS1["Workspace: CMIT-Hayward<br/>Owner + Members"]
+    WS2["Workspace: CMIT-SF<br/>Owner + Members"]
+  end
+  SA["Standalone Workspace<br/>Owner — billed directly (today)"]
+  PA --> ORG
+  PA --> SA
+  OA --> WS1
+  OA --> WS2
+  OA -. sees/sets .-> BILL
+```
+*(More Organizations — TeamLogic, … — each its own bill + brand. Standalone Workspaces
+(`organization_id = NULL`) are today's direct customers, unchanged.)*
 
 ## 2. Data model
 **New `organizations`:** `id`, `name`, `slug`, billing fields (`subscription_term`, `subscription_end`,
@@ -86,8 +113,8 @@ part). They manage their org from here; they do **not** operate "inside" a singl
 
 Console surfaces (mirrors `/admin` + the new dossier work):
 - **Owners/workspaces list** — name, owner, user count, quote count, subscription status, last activity.
-- **Add / invite Owner** (creates a tenant under the org + invites the owner). **Disable / delete** a
-  workspace (reuse the tenant deletion + dossier we just built — scoped to their org).
+- **Add / invite a Workspace** (creates a Workspace under the org + invites its Owner). **Disable /
+  delete** a Workspace (reuse the Workspace-deletion + dossier we just built — scoped to their org).
 - **Subscription & pricing** per workspace (within limits the Platform Admin sets for the org).
 - **Activity / reporting** — rollups: # owners, # users, subscription statuses, **quote status counts &
   values** across all their workspaces (this is the dossier/dashboard data, aggregated at org level).
@@ -125,10 +152,10 @@ You want **different subscription charges per Org** and to **bill the Org for al
   **custom pricing** (per-org base price + discount). The frozen per-tenant pricing model already supports
   admin-editable prices + per-tenant discounts (see `docs/pricing-model-design.md` §5a) — **extend the
   same mechanism to the org level**: Platform Admin sets each org's negotiated pricing.
-- **Usage rolls up:** metering (completed documents, seats) **aggregates across all the org's tenants** →
-  **one Stripe customer + one invoice per org.** Standalone tenants keep per-tenant billing (today's model).
+- **Usage rolls up:** metering (completed documents, seats) **aggregates across all the org's Workspaces**
+  → **one Stripe customer + one invoice per org.** Standalone Workspaces keep their own billing (today's model).
 - **Stripe timing is a gift:** billing isn't built yet, so design the metering/Stripe layer **org-aware
-  from the start** — a `billing_account` that is *either* a tenant (standalone) *or* an organization. No
+  from the start** — a `billing_account` that is *either* a Workspace (standalone) *or* an Organization. No
   retrofit. This should be folded into **Stripe Phase 0** (the next big build).
 - The Org Admin can **see** their consolidated usage/bill; the Platform Admin sets the org's price/plan.
   Whether Org Admins set *per-workspace* sub-limits within their plan is a §9 decision.
@@ -136,11 +163,11 @@ You want **different subscription charges per Org** and to **bill the Org for al
 ---
 
 ## 6. Access lifecycle (extends the existing resolver)
-A tenant's effective access becomes the **AND of three levels**:
-`org_enabled AND org_subscription_ok` **∧** `tenant_enabled AND tenant_subscription_ok` **∧** `user_enabled`.
+A **Workspace's** effective access becomes the **AND of three levels**:
+`org_enabled AND org_subscription_ok` **∧** `workspace_enabled AND workspace_subscription_ok` **∧** `user_enabled`.
 - Concretely: extend `getAccessState` so that if `tenant.organization_id` is set, it first checks the
   **org** status (suspended/expired) — suspending or letting an **org** lapse gates **all** its workspaces
-  at once (one kill switch for the brand). Standalone tenants (no org) behave exactly as today.
+  at once (one kill switch for the brand). Standalone Workspaces (no org) behave exactly as today.
 - Reuse the existing grace/expired/suspended machinery (migration 012) — just add the org as a
   higher-precedence gate. Low, well-contained change.
 - **Deletion:** deleting an **org** should schedule/cascade-delete its tenants (reuse the tenant-deletion
@@ -151,8 +178,8 @@ A tenant's effective access becomes the **AND of three levels**:
 ## 7. Onboarding / invite chain
 A 3-step invite chain, each reusing the existing invite mechanics (`lib/invites.ts`):
 1. **Platform Admin → Org Admin:** create the `organization` (+ pricing/branding) and invite the first
-   Org Admin (like inviting a tenant owner today, but at org level).
-2. **Org Admin → Owner:** create a workspace (tenant) under the org and invite its Owner.
+   Org Admin (like inviting a Workspace Owner today, but at org level).
+2. **Org Admin → Owner:** create a Workspace under the org and invite its Owner.
 3. **Owner → Member:** unchanged (today's Settings → Team).
 
 ---
@@ -160,7 +187,7 @@ A 3-step invite chain, each reusing the existing invite mechanics (`lib/invites.
 ## 8. White-label scope (tiered — don't bite it all at once)
 "White-label" is a spectrum; sequence it:
 - **Tier 1 — light branding (cheap):** org logo + accent applied to all its workspaces; "for <Org>" in
-  the app chrome. Mostly reuses existing tenant branding/accent, lifted to org level.
+  the app chrome. Mostly reuses existing Workspace branding/accent, lifted to org level.
 - **Tier 2 — domain + de-branding (heavy):** a **custom domain per org** (e.g. `quotes.cmit.com`),
   per-host org resolution, remove/replace "UltraQuote" branding, and **per-brand transactional email**
   (invites/quotes sent from the org's domain — interacts with the Zoho/SMTP setup). This is the big lift:
@@ -184,7 +211,7 @@ A 3-step invite chain, each reusing the existing invite mechanics (`lib/invites.
    for franchises but a meaningful feature (inheritance, overrides, sync). **Parked.**
 6. **Custom domains / de-branding** (Tier 2) — the heaviest technical piece (TLS, routing, email identity).
 7. **Lifecycle/deletion** now has an org dimension — extend the access resolver + the tenant-deletion
-   purge to walk org → tenants.
+   purge to walk org → Workspaces.
 8. **Terminology churn** — introduce "Organization/Org Admin"; do **not** rename the existing `tenants`.
 9. **Reporting volume** — org rollups across many workspaces' quotes/usage; fine at MSP scale, but design
    the queries to aggregate server-side (service role), not per-row in the browser.
@@ -198,7 +225,7 @@ a separate, later phase.
 ## 10. Suggested phasing
 - **Phase 1 — hierarchy foundation:** `organizations` + `organization_admins` + `tenants.organization_id`
   (migration). `getOrgAdminUser()` guard. `/org` console (read-only first): list workspaces + rollups
-  (owners/users/subscriptions/quote-status counts & values). Standalone tenants unaffected.
+  (owners/users/subscriptions/quote-status counts & values). Standalone Workspaces unaffected.
 - **Phase 2 — org management:** Org Admin invites Owners / creates workspaces; disable/delete workspace
   (reuse dossier + deletion); per-workspace subscription within org limits. Platform Admin invites Org
   Admins + sets org pricing.
