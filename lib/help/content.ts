@@ -354,6 +354,20 @@ export const HELP_TOPICS: HelpTopic[] = [
           p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, a user was disabled on the Team page (see Your team & permissions), or UltraQuote has suspended the account. Contact UltraQuote if your whole team is locked out."),
         ],
       },
+      {
+        heading: "Your workspace summary",
+        ownerOnly: true,
+        blocks: [
+          p("Settings → Your workspace shows a quick summary of everything stored in your account — clients, active products, quotes (including how many are signed and how many are sent/awaiting signature), and team members. It’s a handy at-a-glance check of what you have, especially before requesting any account changes."),
+        ],
+      },
+      {
+        heading: "If your workspace is scheduled for deletion",
+        blocks: [
+          p("If your UltraQuote workspace is scheduled for permanent deletion, a red banner appears across the top showing the deletion date. Your workspace stays fully usable until then, so you can finish anything in progress and save copies of what you need."),
+          p("Before the date: download any quotes you want to keep as PDFs (open a quote → Preview/Download PDF). If you need a full copy of your data, or the deletion is a mistake, contact hello@ultraquote.io right away to cancel it. On the deletion date the workspace and all its data are permanently removed and can’t be recovered."),
+        ],
+      },
     ],
   },
   {
