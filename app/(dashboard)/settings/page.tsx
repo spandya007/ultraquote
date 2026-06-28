@@ -6,6 +6,8 @@ import { ChangePasswordCard } from "@/components/settings/change-password-card";
 import { AppearanceCard } from "@/components/settings/appearance-card";
 import { MfaCard } from "@/components/settings/mfa-card";
 import { SubscriptionCard } from "@/components/settings/subscription-card";
+import { WorkspaceSummaryCard } from "@/components/settings/workspace-summary-card";
+import { getTenantDossier } from "@/lib/admin/tenant-dossier";
 
 export default async function SettingsPage({
   searchParams,
@@ -34,6 +36,9 @@ export default async function SettingsPage({
     db.from("tenants").select("*").eq("id", tenantId).single(),
     db.from("tenant_settings").select("*").eq("tenant_id", tenantId).single(),
   ]);
+
+  // Owner-only "what's in your workspace" summary (keyed to the owner's own tenant).
+  const dossier = isOwner ? await getTenantDossier(tenantId) : null;
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-8">
@@ -68,6 +73,7 @@ export default async function SettingsPage({
           platformEnabled={tenant.platform_enabled ?? true}
         />
       )}
+      {isOwner && dossier && <WorkspaceSummaryCard dossier={dossier} />}
       <TeamCard />
       <ChangePasswordCard />
       <MfaCard />

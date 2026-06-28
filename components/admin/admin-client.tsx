@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle } from "lucide-react";
+import Link from "next/link";
+import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle, Search } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 import type { SubscriptionTerm, TenantInvite } from "@/types";
@@ -278,6 +279,13 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                     })()}
                   </td>
                   <td className="px-6 py-3 text-right whitespace-nowrap">
+                    <Link
+                      href={`/admin/tenants/${row.id}`}
+                      className="mr-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+                      title="View workspace contents (pre-deletion review)"
+                    >
+                      <Search className="w-3 h-3" /> Details
+                    </Link>
                     <button
                       onClick={() => setManageRow(row)}
                       className="mr-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"

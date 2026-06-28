@@ -41,3 +41,14 @@ values
 insert into public.clients (id, tenant_id, company_name, contact_name, contact_email) values
   ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
    'Globex Corporation', 'Hank Scorpio', 'hank@globex.test');
+
+-- Throwaway tenant used only by the deletion spec (gets purged). Give it a
+-- client + product so the cascade has children to remove.
+insert into public.tenants (id, name, email) values
+  ('99999999-9999-9999-9999-999999999999', 'E2E Purge Target', 'purge@ultraquote.test');
+insert into public.tenant_settings (tenant_id) values ('99999999-9999-9999-9999-999999999999');
+insert into public.clients (id, tenant_id, company_name) values
+  ('99999999-0000-0000-0000-000000000001', '99999999-9999-9999-9999-999999999999', 'Throwaway Client');
+insert into public.products (id, tenant_id, name, item_type, billing_period, unit_price, source) values
+  ('99999999-0000-0000-0000-000000000002', '99999999-9999-9999-9999-999999999999',
+   'Throwaway Product', 'Service', 'Monthly', 10.00, 'manual');
