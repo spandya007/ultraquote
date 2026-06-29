@@ -9,4 +9,3 @@
 
 alter table public.tenants
   add column if not exists created_by_org_admin_user uuid references auth.users(id) on delete set null;
-. 
