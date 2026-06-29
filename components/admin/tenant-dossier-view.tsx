@@ -57,7 +57,21 @@ function Stat({ label, value, warn }: { label: string; value: number | string; w
   );
 }
 
-export function TenantDossierView({ dossier, tenantId }: { dossier: TenantDossier; tenantId: string }) {
+export function TenantDossierView({
+  dossier,
+  tenantId,
+  reportHref,
+  hideProductDetail,
+}: {
+  dossier: TenantDossier;
+  tenantId: string;
+  // Where the "Download report" link points. Defaults to the platform-admin
+  // route; the Org Admin console passes its own org-scoped report route.
+  reportHref?: string;
+  // Org Admins (Oversight tier) see the product COUNT but not the product list
+  // (names/prices are confidential catalog detail). Counts stay visible.
+  hideProductDetail?: boolean;
+}) {
   const { tenant, owner, counts, flagged } = dossier;
 
   const risks: { tone: "danger" | "warning" | "info"; text: string }[] = [];
@@ -89,7 +103,7 @@ export function TenantDossierView({ dossier, tenantId }: { dossier: TenantDossie
           </p>
         </div>
         <a
-          href={`/admin/tenants/${tenantId}/report`}
+          href={reportHref ?? `/admin/tenants/${tenantId}/report`}
           target="_blank"
           rel="noopener"
           className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
@@ -147,8 +161,8 @@ export function TenantDossierView({ dossier, tenantId }: { dossier: TenantDossie
         </section>
       )}
 
-      {/* Flagged: active products */}
-      {flagged.activeProducts.length > 0 && (
+      {/* Flagged: active products (hidden for Org Admins — catalog detail) */}
+      {!hideProductDetail && flagged.activeProducts.length > 0 && (
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-3 flex items-center gap-2 font-semibold text-base">
             <Package className="w-4 h-4 text-blue-600" /> Active catalog products ({flagged.activeProducts.length})

@@ -130,6 +130,16 @@ renewals, and metered usage without us re-implementing billing arithmetic.
 - **Seat enforcement:** `seat_limit` = included seats + purchased add-on seats. Block inviting members
   beyond it, with an "add a seat (+$10/mo)" or upgrade prompt. Add-on seats are a Stripe subscription
   *quantity* (each +$10 and +5 to `doc_cap`). Caps: Starter ≤ 3, Team ≤ 10. Hook the team-invite route.
+- **Seat *release* on member removal (TODO when billing lands):** the seat basis is the count of
+  `public.users` rows, so **deleting** a member must hook the same seat-quantity logic as inviting —
+  decrement the Stripe subscription *quantity* (or free room under `seat_limit`) when a member is removed.
+  Two existing removal paths must call this: (a) the owner's **Settings → Team** remove/disable, and (b)
+  the **Platform Admin → Manage → Team members** manager (Remove / Delete account / Make-member), plus the
+  Org-Admin dual-hat ✕. **Disable ≠ delete:** a *disabled* member keeps its `users` row → still a billed
+  seat; only **delete** frees the seat. Decide proration policy: typical SaaS does **not** refund a
+  mid-period seat removal — the freed seat is reusable and the lower count is billed at the next renewal
+  (co-terminous seats, per `subscription-and-access-lifecycle-design.md` D1). Owner seat is never released
+  while the workspace exists.
 - **Doc overage (no hard cap):** completed docs beyond the monthly included amount are billed at a flat
   **$3/doc** via a metered Stripe price on the subscription — we report a usage record on each
   `completed` event past the included count. Never blocks sending; an ~80%/100% nudge suggests upgrading.

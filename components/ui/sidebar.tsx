@@ -15,6 +15,7 @@ import {
   Settings,
   HelpCircle,
   ShieldCheck,
+  Building2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -34,7 +35,7 @@ const navItems = [
   { href: "/help",      label: "Help",       icon: HelpCircle },
 ];
 
-export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; userName?: string }) {
+export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; showOrg?: boolean; userName?: string }) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -176,6 +177,7 @@ export function Sidebar({ brandName, logoUrl, showAdmin, userName }: { brandName
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(({ href, label, icon }) => navLink(href, label, icon))}
+        {showOrg && navLink("/org", "Organization", Building2)}
         {showAdmin && navLink("/admin", "Platform Admin", ShieldCheck)}
       </nav>
 

@@ -39,7 +39,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // at the API layer). See docs/subscription-and-access-lifecycle-design.md (§4).
   if (access.status === "suspended") redirect("/account/suspended?reason=suspended");
   if (access.status === "expired") redirect(`/account/suspended?reason=expired&role=${access.role}`);
-  if (access.status === "user_disabled") redirect("/account/disabled");
+  if (access.status === "user_disabled") {
+    // A pure Platform Admin or Org Admin has no public.users row, so
+    // getAccessState returns user_disabled. Route them to their console
+    // instead of the block page. (platformAdminRes was resolved above.)
+    if (platformAdminRes.data) redirect("/admin");
+    const { data: orgMembership } = await createAdminClient()
+      .from("organization_admins")
+      .select("org_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (orgMembership) redirect("/org");
+    redirect("/account/disabled");
+  }
 
   // Legal gate: require acceptance of the Terms of Service + Privacy Policy
   // before using the app. /account/accept-terms lives outside this layout, so it
@@ -70,6 +82,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const platformAdmin = platformAdminRes.data;
 
+  // Also check if this user is an Org Admin (for the sidebar link).
+  const { data: orgMembership } = await createAdminClient()
+    .from("organization_admins")
+    .select("org_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isOrgAdmin = Boolean(orgMembership);
+
   // Expiry banner: read-only notice during grace, or an amber reminder in the
   // last 7 days before the subscription ends. (Hard-block states already
   // redirected above.)
@@ -89,7 +109,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden">
       <IdleTimeout />
-      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} userName={firstName} />
+      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} showOrg={isOrgAdmin} userName={firstName} />
       <main className="flex-1 overflow-y-auto bg-muted/20 pt-14 md:pt-0">
         {ctx?.tenant?.deletion_scheduled_at && (
           <DeletionBanner scheduledAt={ctx.tenant.deletion_scheduled_at} />

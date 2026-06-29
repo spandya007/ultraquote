@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, ArrowLeft } from "lucide-react";
-import { getPlatformAdminUser } from "@/lib/platform-admin";
+import { Building2, ArrowLeft } from "lucide-react";
+import { getOrgAdminUser } from "@/lib/org-admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { IdleTimeout } from "@/components/auth/idle-timeout";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-// Platform-level console — deliberately outside the tenant dashboard shell.
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const adminUser = await getPlatformAdminUser();
-  if (!adminUser) redirect("/");
+// Organization console — deliberately outside the tenant dashboard shell,
+// built the same way as /admin (service-role queries, own layout).
+export default async function OrgLayout({ children }: { children: React.ReactNode }) {
+  const orgAdmin = await getOrgAdminUser();
+  if (!orgAdmin) redirect("/");
 
-  // Same 2FA gate as the dashboard (this layout is a separate route).
+  // 2FA gate (same as dashboard + admin layouts).
   let needsMfa = false;
   try {
     const supabase = await createClient();
@@ -22,15 +23,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   } catch { /* ignore */ }
   if (needsMfa) redirect("/auth/mfa");
 
-  // "Back to app" only makes sense for a dual-hat login that also has a
-  // workspace. A pure Platform Admin has no users row, so "/" would just bounce
-  // them straight back here — hide the link for them.
-  const { data: workspaceUser } = await createAdminClient()
-    .from("users")
-    .select("id")
-    .eq("id", adminUser.id)
-    .maybeSingle();
-  const hasWorkspace = Boolean(workspaceUser);
+  const admin = createAdminClient();
+
+  const [orgRes, tenantUserRes] = await Promise.all([
+    admin.from("organizations").select("name").eq("id", orgAdmin.orgId).maybeSingle(),
+    // Check if this user also has a Workspace (dual-hat).
+    admin.from("users").select("id").eq("id", orgAdmin.user.id).maybeSingle(),
+  ]);
+
+  const orgName = orgRes.data?.name ?? "Organization";
+  const hasWorkspace = Boolean(tenantUserRes.data);
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -38,8 +40,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b bg-card">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-violet-600" />
-            <h1 className="font-semibold">Platform Admin</h1>
+            <Building2 className="w-5 h-5 text-blue-600" />
+            <h1 className="font-semibold">{orgName}</h1>
+            <span className="text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 px-2 py-0.5 rounded">
+              Org Admin
+            </span>
           </div>
           <div className="flex items-center gap-5">
             {hasWorkspace && (
@@ -47,7 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 href="/"
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to app
+                <ArrowLeft className="w-4 h-4" /> Back to workspace
               </Link>
             )}
             <ThemeToggle className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" />

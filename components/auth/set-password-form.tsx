@@ -16,6 +16,7 @@ type Phase = "loading" | "invalid" | "ready";
 export function SetPasswordForm() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [isRecovery, setIsRecovery] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [email, setEmail] = useState("");
   const [tenantName, setTenantName] = useState<string | null>(null);
 
@@ -52,6 +53,15 @@ export function SetPasswordForm() {
       }
       setEmail(user.email ?? "");
 
+      // Detect Org Admin invite (metadata.type = 'org_admin'; no tenant row).
+      const meta = user.user_metadata ?? {};
+      if (meta.type === "org_admin") {
+        setIsOrgAdmin(true);
+        setTenantName((meta.org_name as string | null) ?? null);
+        setPhase("ready");
+        return;
+      }
+
       const { data: tenant } = await db.from("tenants").select("name").single(); // RLS: own tenant only
       setTenantName(tenant?.name ?? null);
       setPhase("ready");
@@ -83,7 +93,14 @@ export function SetPasswordForm() {
       return;
     }
 
-    // Invite acceptance only — recovery users are already members.
+    if (isOrgAdmin) {
+      // Org Admin invite: create organization_admins row, then go to /org.
+      await fetch("/api/auth/accept-org-invite", { method: "POST" }).catch(() => {});
+      window.location.href = "/org";
+      return;
+    }
+
+    // Tenant invite acceptance only — recovery users are already members.
     if (!isRecovery) {
       await fetch("/api/auth/accept-invite", { method: "POST" }).catch(() => {});
     }
@@ -127,6 +144,8 @@ export function SetPasswordForm() {
         <p className="text-sm text-muted-foreground">
           {isRecovery ? (
             <>Enter a new password for <span className="font-medium text-foreground">{email}</span>.</>
+          ) : isOrgAdmin ? (
+            <>You’ve been invited as an <span className="font-medium text-foreground">Org Admin</span> for <span className="font-medium text-foreground">{tenantName ?? "your organization"}</span>. Set a password to get started.</>
           ) : (
             <>You’ve been invited to <span className="font-medium text-foreground">{tenantName ?? "your team"}</span>.
               Set a password to finish creating your account.</>

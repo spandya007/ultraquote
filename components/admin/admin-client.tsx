@@ -10,6 +10,7 @@ import type { SubscriptionTerm, TenantInvite } from "@/types";
 import {
   computeEndDate, subscriptionStatus, todayIso, SUB_STATUS_CLS,
 } from "@/lib/access/subscription";
+import { TenantMembersManager, type MemberRow } from "./tenant-members-manager";
 
 export interface AdminTenantRow {
   id: string;
@@ -26,6 +27,10 @@ export interface AdminTenantRow {
   subscription_term: SubscriptionTerm | null;
   platform_enabled: boolean;
   suspended_reason: string | null;
+  organization_id: string | null;
+  organization_name: string | null;
+  created_by_org_admin: boolean;
+  members: MemberRow[];
 }
 
 const TERM_OPTS: { value: SubscriptionTerm | ""; label: string }[] = [
@@ -213,10 +218,12 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
           <h2 className="font-semibold text-base">Tenants</h2>
           <span className="text-sm text-muted-foreground">({tenants.length})</span>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
               <th className="px-6 py-2.5 font-medium">Tenant</th>
+              <th className="px-3 py-2.5 font-medium">Organization</th>
               <th className="px-3 py-2.5 font-medium">Owner</th>
               <th className="px-3 py-2.5 font-medium text-right" title="Billing basis: active users in the tenant">Users</th>
               <th className="px-3 py-2.5 font-medium text-right">Quotes</th>
@@ -242,6 +249,25 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                   <td className="px-6 py-3">
                     <div className="font-medium">{row.name}</div>
                     {row.contact_email && <div className="text-xs text-muted-foreground">{row.contact_email}</div>}
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    {row.organization_name ? (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                        <Building2 className="w-3 h-3" /> {row.organization_name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Direct</span>
+                    )}
+                    {row.created_by_org_admin && (
+                      <div className="mt-1">
+                        <span
+                          title="This workspace was created by an Org Admin — set its subscription term."
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                        >
+                          Added by Org Admin
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-3">
                     {row.owner_email ? (
@@ -337,15 +363,18 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               );
             })}
             {tenants.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">No tenants yet.</td></tr>
+              <tr><td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">No tenants yet.</td></tr>
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {manageRow && (
         <ManageSubscriptionModal
-          row={manageRow}
+          // Look up the LIVE row so member actions (which router.refresh()
+          // without closing) show fresh data in the still-open modal.
+          row={tenants.find((t) => t.id === manageRow.id) ?? manageRow}
           onClose={() => setManageRow(null)}
           onSaved={() => { setManageRow(null); router.refresh(); }}
         />
@@ -500,8 +529,8 @@ function ManageSubscriptionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2.5 px-6 py-4 border-b">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b sticky top-0 bg-card z-10">
           <CalendarClock className="w-4 h-4 text-muted-foreground" />
           <h2 className="font-semibold">Manage — {row.name}</h2>
         </div>
@@ -584,9 +613,12 @@ function ManageSubscriptionModal({
               </button>
             )}
           </div>
+
+          {/* Team members — transfer ownership / offboard */}
+          <TenantMembersManager tenantId={row.id} members={row.members} />
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t sticky bottom-0 bg-card">
           <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Close</button>
         </div>
       </div>
