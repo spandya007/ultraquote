@@ -3,9 +3,17 @@
 -- their public.users rows) are created separately via the GoTrue admin API in
 -- global-setup so they have real passwords.
 
+-- An Organization (migration 019). The ACTIVE tenant is enrolled under it; the
+-- org's admin (created in global-setup) is scoped to exactly this org.
+insert into public.organizations (id, name) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'E2E Org');
+
 -- Active tenant: NULL subscription_end = unlimited/active -> access state "ok".
-insert into public.tenants (id, name, email) values
-  ('11111111-1111-1111-1111-111111111111', 'E2E Active Co', 'active@ultraquote.test');
+-- organization_id enrolls it under the E2E Org (additive; the EXPIRED + PURGE
+-- tenants below leave it NULL = standalone, for org-scope isolation tests).
+insert into public.tenants (id, name, email, organization_id) values
+  ('11111111-1111-1111-1111-111111111111', 'E2E Active Co', 'active@ultraquote.test',
+   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 
 -- Expired tenant: subscription_end far in the past -> access state "expired".
 insert into public.tenants (id, name, email, subscription_start, subscription_end, subscription_term)
