@@ -56,6 +56,15 @@ Company **Name** and **Contact Email** are platform-admin-set and **locked** fro
 - **"What a deletion would remove"** manifest (row counts + Auth logins + stored files).
 - **Download report** (`/admin/tenants/[id]/report`) — a print-ready branded HTML summary you can save to
   PDF and email the owner before making changes.
+- **Team members** manager (in **/admin → Manage** for the tenant) — **transfer ownership** (Make owner →
+  promote the replacement, then Make member / Remove the departing one) and **offboard** people:
+  - **Make owner / Make member** — role change. The **last owner** can't be demoted (promote a replacement
+    first).
+  - **Remove** — drops the workspace membership but keeps the Supabase Auth login.
+  - **Delete** — removes the membership **and** deletes the Auth login (full offboarding). Refused if the
+    login is also a **Platform/Org Admin** (strip those hats first) or if they're the **only owner**.
+  - All no-orphan-guarded server-side. (There is no in-app way for a workspace Owner to remove another
+    Owner — this Platform-Admin tool is the path.)
 
 ### 1.6 Delete a tenant (scheduled, with grace)
 On the dossier page → **Danger zone** (platform-admin only; type the exact tenant name to confirm):
@@ -94,6 +103,13 @@ What the **Platform Admin** does here:
 - The Tenants list shows an **Organization badge** per workspace (or **"Direct"** for standalone), plus an
   amber **"Added by Org Admin"** badge on workspaces an Org Admin created — your cue to **set its
   subscription term** (Org-Admin-created workspaces start with **no subscription window**).
+- **Make an Org Admin also a workspace Owner (dual-hat):** in the org card's Org Admins list, the
+  *"Also own a workspace…"* dropdown grants that Org Admin login the **Owner** role on one workspace **in
+  their org** (co-owner if it already has one). The **✕** removes it. Constraints: **one workspace per
+  login** (the auth model allows a login exactly one workspace — to change it, remove then re-assign);
+  **never cross-org**; and removing is refused if they're the workspace's **only** owner (no orphaning).
+  Such a login lands on that **workspace dashboard** on sign-in, with an **Organization** link in the
+  sidebar to reach `/org`.
 
 What an **Org Admin** can do (scoped to their own org — see `docs/org-admin-guide.md`):
 - A **read + limited-write** `/org` console: list their workspaces with rollups (owner, # users, # quotes,

@@ -20,6 +20,9 @@ export interface OrgMemberWorkspace {
 export interface OrgEnrolledAdmin {
   user_id: string;
   email: string | null;
+  // If this Org Admin also operates a workspace (dual-hat owner) in this org.
+  workspace_tenant_id: string | null;
+  workspace_name: string | null;
 }
 
 export interface OrgRow {
@@ -153,6 +156,33 @@ function OrgCard({
     if (!res.ok) { toast.error(j.error ?? "Action failed"); return; }
     toast.success(action === "resend" ? "Invite resent" : "Invite revoked");
     await loadInvites();
+    router.refresh();
+  }
+
+  async function handleAdminWorkspace(userId: string, tenantId: string | null) {
+    // Warn before adding a co-owner to a workspace that already has one.
+    if (tenantId) {
+      const ws = org.workspaces.find((w) => w.id === tenantId);
+      if (
+        ws?.owner_email &&
+        !window.confirm(
+          `${ws.name} already has an owner (${ws.owner_email}). This adds the Org Admin as a CO-owner — ` +
+            `both will fully operate the workspace. Continue?`
+        )
+      ) {
+        return;
+      }
+    }
+    setActionId(userId);
+    const res = await fetch(`/api/admin/orgs/${org.id}/admins/workspace`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, tenant_id: tenantId }),
+    });
+    const j = await res.json();
+    setActionId(null);
+    if (!res.ok) { toast.error(j.error ?? "Failed to update"); return; }
+    toast.success(tenantId ? "Org Admin assigned as workspace owner" : "Workspace ownership removed");
     router.refresh();
   }
 
@@ -351,10 +381,39 @@ function OrgCard({
             {org.admins.length > 0 && (
               <div className="mb-3 space-y-1">
                 {org.admins.map((a) => (
-                  <div key={a.user_id} className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm shadow-sm">
+                  <div key={a.user_id} className="flex flex-wrap items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm shadow-sm">
                     <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="flex-1 truncate">{a.email ?? <span className="text-muted-foreground italic">unknown email</span>}</span>
+                    <span className="flex-1 min-w-32 truncate">{a.email ?? <span className="text-muted-foreground italic">unknown email</span>}</span>
                     <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">Active</span>
+                    {/* Dual-hat: also owns a workspace in this org? */}
+                    {a.workspace_name ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 px-2 py-0.5 font-medium">
+                          <Building2 className="w-3 h-3" /> Owns {a.workspace_name}
+                        </span>
+                        <button
+                          onClick={() => handleAdminWorkspace(a.user_id, null)}
+                          disabled={actionId === a.user_id}
+                          title="Remove workspace ownership"
+                          className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-50"
+                        >
+                          {actionId === a.user_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                        </button>
+                      </span>
+                    ) : org.workspaces.length > 0 ? (
+                      <select
+                        className="rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                        value=""
+                        disabled={actionId === a.user_id}
+                        onChange={(e) => e.target.value && handleAdminWorkspace(a.user_id, e.target.value)}
+                        title="Also make this Org Admin the Owner of a workspace in this org"
+                      >
+                        <option value="">Also own a workspace…</option>
+                        {org.workspaces.map((ws) => (
+                          <option key={ws.id} value={ws.id}>{ws.name}</option>
+                        ))}
+                      </select>
+                    ) : null}
                   </div>
                 ))}
               </div>

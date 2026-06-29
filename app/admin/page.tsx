@@ -21,7 +21,7 @@ export default async function AdminPage() {
     admin.from("tenants").select(
       "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason, organization_id, created_by_org_admin_user"
     ).order("created_at"),
-    admin.from("users").select("id, tenant_id, email, full_name, role"),
+    admin.from("users").select("id, tenant_id, email, full_name, role, enabled"),
     admin.from("quotes").select("id, tenant_id"),
     admin.from("tenant_invites").select("*").order("created_at", { ascending: false }),
     // beta_signups: missing table degrades gracefully (`?? []`).
@@ -36,7 +36,7 @@ export default async function AdminPage() {
 
   const betaSignups = (betaRes.data ?? []) as BetaSignupRow[];
   const tenants = (tenantsRes.data ?? []) as TenantRowDb[];
-  const users = (usersRes.data ?? []) as Pick<User, "id" | "tenant_id" | "email" | "full_name" | "role">[];
+  const users = (usersRes.data ?? []) as Pick<User, "id" | "tenant_id" | "email" | "full_name" | "role" | "enabled">[];
   const quotes = (quotesRes.data ?? []) as { id: string; tenant_id: string }[];
   const invites = (invitesRes.data ?? []) as TenantInvite[];
   const rawOrgs = (orgsRes.data ?? []) as { id: string; name: string; slug: string | null; platform_enabled: boolean; created_at: string }[];
@@ -67,6 +67,9 @@ export default async function AdminPage() {
       organization_id: t.organization_id,
       organization_name: t.organization_id ? orgNameById.get(t.organization_id) ?? null : null,
       created_by_org_admin: Boolean(t.created_by_org_admin_user),
+      members: tenantUsers.map((u) => ({
+        id: u.id, email: u.email, full_name: u.full_name, role: u.role, enabled: u.enabled ?? true,
+      })),
     };
   });
 
@@ -90,7 +93,17 @@ export default async function AdminPage() {
       admin_count: orgAdmins.filter((a) => a.org_id === o.id).length,
       admins: orgAdmins
         .filter((a) => a.org_id === o.id)
-        .map((a) => ({ user_id: a.user_id, email: adminEmailById.get(a.user_id) ?? null })),
+        .map((a) => {
+          // Does this Org Admin also operate a workspace (dual-hat owner)?
+          const membership = users.find((u) => u.id === a.user_id) ?? null;
+          const ws = membership ? tenants.find((t) => t.id === membership.tenant_id) ?? null : null;
+          return {
+            user_id: a.user_id,
+            email: adminEmailById.get(a.user_id) ?? null,
+            workspace_tenant_id: membership?.tenant_id ?? null,
+            workspace_name: ws?.name ?? null,
+          };
+        }),
       // Workspaces ALREADY in this org (shown in the card, with owner + counts).
       workspaces: memberWorkspaces.map((t) => {
         const owner = users.find((u) => u.tenant_id === t.id && u.role === "owner");

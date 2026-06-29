@@ -10,6 +10,7 @@ import type { SubscriptionTerm, TenantInvite } from "@/types";
 import {
   computeEndDate, subscriptionStatus, todayIso, SUB_STATUS_CLS,
 } from "@/lib/access/subscription";
+import { TenantMembersManager, type MemberRow } from "./tenant-members-manager";
 
 export interface AdminTenantRow {
   id: string;
@@ -29,6 +30,7 @@ export interface AdminTenantRow {
   organization_id: string | null;
   organization_name: string | null;
   created_by_org_admin: boolean;
+  members: MemberRow[];
 }
 
 const TERM_OPTS: { value: SubscriptionTerm | ""; label: string }[] = [
@@ -370,7 +372,9 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
 
       {manageRow && (
         <ManageSubscriptionModal
-          row={manageRow}
+          // Look up the LIVE row so member actions (which router.refresh()
+          // without closing) show fresh data in the still-open modal.
+          row={tenants.find((t) => t.id === manageRow.id) ?? manageRow}
           onClose={() => setManageRow(null)}
           onSaved={() => { setManageRow(null); router.refresh(); }}
         />
@@ -525,8 +529,8 @@ function ManageSubscriptionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2.5 px-6 py-4 border-b">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b sticky top-0 bg-card z-10">
           <CalendarClock className="w-4 h-4 text-muted-foreground" />
           <h2 className="font-semibold">Manage — {row.name}</h2>
         </div>
@@ -609,9 +613,12 @@ function ManageSubscriptionModal({
               </button>
             )}
           </div>
+
+          {/* Team members — transfer ownership / offboard */}
+          <TenantMembersManager tenantId={row.id} members={row.members} />
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t sticky bottom-0 bg-card">
           <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Close</button>
         </div>
       </div>
