@@ -40,4 +40,18 @@ export const PURGE_OWNER = {
   tenantId: PURGE_TENANT_ID,
 };
 
+// Organization layer (migrations 019/020). The ACTIVE tenant is enrolled under
+// this org (see seed-e2e.sql); the EXPIRED tenant is left standalone so the org
+// admin's scope isolation can be exercised. The Org Admin is a SEPARATE principal
+// (a row in organization_admins, NO public.users row) — created in global-setup
+// without tenant_id metadata so the auth trigger makes no workspace membership.
+export const ORG_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+export const ORG_ADMIN = {
+  email: "e2e-orgadmin@ultraquote.test",
+  password: "E2e-Test-Passw0rd!",
+  fullName: "Ora Admin",
+  orgId: ORG_ID,
+};
+
 export const BASE_URL = "http://localhost:3000";
