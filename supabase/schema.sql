@@ -17,7 +17,22 @@ create table public.tenants (
   phone               text,
   email               text,
   created_at          timestamptz not null default now(),
-  stripe_customer_id  text
+  stripe_customer_id  text,
+  -- Subscription window + PLATFORM kill switch (migration 012). NULL end =
+  -- unlimited/active; suspended_* records a platform-admin suspension.
+  subscription_start  date,
+  subscription_end    date,
+  subscription_term   text check (subscription_term in ('monthly', 'quarterly', 'yearly', 'custom')),
+  platform_enabled    boolean not null default true,
+  suspended_at        timestamptz,
+  suspended_reason    text,
+  -- Scheduled deletion (migration 018). Future date = purge after the grace
+  -- window; NULL = not scheduled. The purge runs in app code (service role).
+  deletion_scheduled_at timestamptz,
+  deletion_requested_by uuid,   -- platform admin's auth uid
+  deletion_reason       text
+  -- organization_id + created_by_org_admin_user are added in the Organizations
+  -- section below (the FK target `organizations` is defined there).
 );
 
 -- ─── Tenant Settings ─────────────────────────────────────────────────────────
@@ -31,6 +46,7 @@ create table public.tenant_settings (
   quote_number_sequence     int not null default 1,
   default_payment_terms     text not null default 'Net 30',
   signature_provider        text not null default 'docuseal',
+  default_font              text,   -- proposal brand font: sans|serif|mono, NULL=default (migration 015)
   unique (tenant_id)
 );
 
@@ -42,7 +58,13 @@ create table public.users (
   email       text not null,
   full_name   text,
   role        text not null default 'member' check (role in ('owner', 'member')),
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  -- TENANT→user kill switch (migration 012). enabled=false locks the user out.
+  enabled     boolean not null default true,
+  disabled_at timestamptz,
+  disabled_by uuid references public.users(id) on delete set null,
+  -- Legal acceptance gate (migration 016). NULL = not yet accepted.
+  legal_accepted_at timestamptz
 );
 
 -- Keep users.email in sync with auth.users
@@ -837,3 +859,144 @@ begin
       on storage.objects for delete to authenticated using (bucket_id = 'proposal-assets');
   end if;
 end $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Access lifecycle, beta signups & Organizations
+-- (folded in from migrations 012/013/017/019/020 — the column additions from
+-- 012/015/016/018 live inline in the tables above. Migration 014's quote-delete
+-- policy is already in the Policies section. Keep this the from-scratch base;
+-- add NEW migrations as deltas until the next regeneration.)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─── Access helper functions (migration 012) ─────────────────────────────────
+-- Resolve read/write access from the subscription window + kill switches. Used
+-- by app code today; defined here for the planned phase-2 RLS hardening. GRACE
+-- is 7 days (mirrors lib/access/access-state.ts). security definer + stable so
+-- they're safe inside RLS. tenant_can_read must precede user_can_read.
+
+create or replace function public.tenant_can_read(t uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(platform_enabled, true)
+     and (subscription_end is null
+          or subscription_end + interval '7 days' >= current_date)
+  from public.tenants where id = t
+$$;
+
+create or replace function public.tenant_can_write(t uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(platform_enabled, true)
+     and (subscription_end is null or subscription_end >= current_date)
+  from public.tenants where id = t
+$$;
+
+create or replace function public.user_can_read(u uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(usr.enabled, true) and public.tenant_can_read(usr.tenant_id)
+  from public.users usr where usr.id = u
+$$;
+
+create or replace function public.user_can_write(u uuid)
+returns boolean language sql stable security definer as $$
+  select coalesce(usr.enabled, true) and public.tenant_can_write(usr.tenant_id)
+  from public.users usr where usr.id = u
+$$;
+
+-- ─── Protect platform-managed tenant fields (migration 013) ──────────────────
+-- A tenant user (auth.uid() set) may not change Company Name / Contact Email —
+-- those are platform-admin-set at invite time. Service-role (platform admin)
+-- updates have a null auth.uid() and pass; unchanged values pass either way.
+
+create or replace function public.protect_tenant_admin_fields()
+returns trigger language plpgsql security definer as $$
+begin
+  if auth.uid() is not null then
+    if new.name is distinct from old.name then
+      raise exception 'Company name is managed by UltraQuote and cannot be changed here.';
+    end if;
+    if new.email is distinct from old.email then
+      raise exception 'Contact email is managed by UltraQuote and cannot be changed here.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_tenant_admin_fields on public.tenants;
+create trigger protect_tenant_admin_fields
+  before update on public.tenants
+  for each row execute function public.protect_tenant_admin_fields();
+
+-- ─── Beta signups (migration 017) ────────────────────────────────────────────
+-- Public beta-signup capture for /beta. Written by the service-role API route;
+-- RLS enabled with NO policies (service-role only, never browser-readable).
+
+create table public.beta_signups (
+  id           uuid primary key default gen_random_uuid(),
+  company_name text not null,
+  contact_name text not null,
+  email        text not null,
+  message      text,
+  source       text not null default 'beta_page',
+  user_agent   text,
+  created_at   timestamptz not null default now(),
+  invited_at   timestamptz,        -- set when you send the invite (manual for now)
+  status       text not null default 'new'  -- new | invited | declined
+);
+
+create index beta_signups_created_at_idx on public.beta_signups (created_at desc);
+create index beta_signups_email_idx on public.beta_signups (lower(email));
+
+alter table public.beta_signups enable row level security;
+-- Intentionally no policies: only the service-role key (server) may read/write.
+
+-- ─── Organizations (migrations 019 / 020) ────────────────────────────────────
+-- White-label hierarchy above the Workspace (tenants) level. organizations,
+-- organization_admins and org_admin_invites all have RLS enabled with NO client
+-- policies — service-role only (same pattern as platform_admins). Backward-
+-- compatible: a tenant with organization_id = NULL is standalone (today's model).
+
+create table public.organizations (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null,
+  slug             text unique,
+  platform_enabled boolean not null default true,
+  logo_url         text,
+  accent           text,
+  created_at       timestamptz not null default now()
+);
+alter table public.organizations enable row level security;
+
+create table public.organization_admins (
+  org_id     uuid not null references public.organizations(id) on delete cascade,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (org_id, user_id)
+);
+alter table public.organization_admins enable row level security;
+
+create table public.org_admin_invites (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references public.organizations(id) on delete cascade,
+  email       text not null,
+  full_name   text,
+  invited_by  uuid references auth.users(id),
+  status      text not null default 'pending'
+                check (status in ('pending', 'accepted', 'revoked')),
+  created_at              timestamptz not null default now(),
+  accepted_at             timestamptz,
+  invited_auth_user_id    uuid,   -- auth.users.id of the pending invitee; cleared on accept
+  unique (org_id, email)
+);
+alter table public.org_admin_invites enable row level security;
+
+-- Link a Workspace to an Organization (NULL = standalone) + record the Org Admin
+-- who created it, if any (migration 020). Added here because the FK target
+-- (organizations) is defined just above.
+alter table public.tenants
+  add column if not exists organization_id uuid
+    references public.organizations(id) on delete set null,
+  add column if not exists created_by_org_admin_user uuid
+    references auth.users(id) on delete set null;
+
+create index if not exists tenants_organization_id_idx
+  on public.tenants (organization_id);

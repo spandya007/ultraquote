@@ -15,32 +15,20 @@ const authHeaders = {
 };
 const adminUrl = (p: string) => `${LOCAL_SUPABASE_URL}/auth/v1/admin${p}`;
 
-// Playwright globalSetup: rebuild the LOCAL Supabase DB to match production
-// schema (schema.sql + migrations 012–017), seed tenants/catalog/client, then
-// create real Auth owners (with passwords) via the GoTrue admin API and stamp
-// their public.users rows (role/legal acceptance) so they clear the dashboard
-// gates. Runs against 127.0.0.1 only — never cloud.
+// Playwright globalSetup: rebuild the LOCAL Supabase DB from schema.sql (the
+// complete from-scratch schema through migration 020), seed tenants/catalog/
+// client + an Organization, then create real Auth owners + an Org Admin (with
+// passwords) via the GoTrue admin API and stamp their public.users rows
+// (role/legal acceptance) so they clear the dashboard gates. 127.0.0.1 only.
 
 // Playwright runs from the project root, so resolve files relative to cwd
 // (avoids import.meta, which would flip this module into ESM and break loading).
 const file = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
-// schema.sql is current through 011 for columns, but its RLS section already
-// includes 014's "quotes: owner delete" policy — so 014 is intentionally
-// skipped here (re-applying it errors "policy already exists"). 012/013 add the
-// subscription/kill-switch columns + trigger; 015–018 add additive columns/
-// tables the app reads; 019/020 add the Organization layer. Keep in sync with
-// scripts/test-db-reset.mjs as new migrations land.
-const MIGRATIONS = [
-  "supabase/migrations/012_subscription_and_access.sql",
-  "supabase/migrations/013_protect_tenant_admin_fields.sql",
-  "supabase/migrations/015_add_tenant_font.sql",
-  "supabase/migrations/016_add_legal_acceptance.sql",
-  "supabase/migrations/017_beta_signups.sql",
-  "supabase/migrations/018_tenant_deletion_schedule.sql",
-  "supabase/migrations/019_organizations.sql",
-  "supabase/migrations/020_org_admin_provenance.sql",
-];
+// schema.sql is the complete from-scratch schema, regenerated through migration
+// 020, so no deltas are applied here. Add 021+ as they land (and keep in sync
+// with scripts/test-db-reset.mjs) until the next schema.sql regeneration.
+const MIGRATIONS: string[] = [];
 
 async function resetDb() {
   const client = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL ?? LOCAL_DB_URL });
