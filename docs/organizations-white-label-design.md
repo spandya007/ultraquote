@@ -236,6 +236,19 @@ a separate, later phase.
 
 ---
 
+## 11. Known gaps / backlog
+- **`organizations.platform_enabled` is not enforced in the access gate.** The
+  column exists (migration 019) and the Org "suspend workspace" action flips the
+  *tenant's* `platform_enabled`, but disabling the **Organization itself** does
+  NOT cascade to gate its workspaces' access. `lib/access/` has no org awareness
+  (Option A kept subscriptions Platform-Admin-level). If org-level suspension
+  should lock all member workspaces, extend `getAccessState()` to check the
+  parent org's `platform_enabled` when `tenant.organization_id` is set, and add
+  the corresponding access-helper tests. Fold into **Stripe Phase 0 / Phase 3**
+  (org billing), when the org becomes the billing account. *(Noted 2026-06-29.)*
+
+---
+
 ## 11. Rollout & operations for existing users (migration runbook)
 This change is **additive and backward-compatible** — existing logins, roles, and data are untouched.
 
