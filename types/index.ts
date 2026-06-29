@@ -23,6 +23,10 @@ export interface Tenant {
   platform_enabled: boolean;
   suspended_at: string | null;
   suspended_reason: string | null;
+  organization_id: string | null;
+  // Auth uid of the Org Admin who created this workspace (migration 020).
+  // NULL = created by the Platform Admin / normal onboarding flow.
+  created_by_org_admin_user: string | null;
 }
 
 export interface TenantSettings {
@@ -61,6 +65,29 @@ export interface PlatformAdmin {
 }
 
 export type InviteStatus = "pending" | "accepted" | "revoked";
+
+// ─── Organizations ───────────────────────────────────────────────────────────
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string | null;
+  platform_enabled: boolean;
+  logo_url: string | null;
+  accent: string | null;
+  created_at: string;
+}
+
+export interface OrgAdminInvite {
+  id: string;
+  org_id: string;
+  email: string;
+  full_name: string | null;
+  invited_by: string | null;
+  status: InviteStatus;
+  created_at: string;
+  accepted_at: string | null;
+}
 
 export interface TenantInvite {
   id: string;

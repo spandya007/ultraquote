@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   let body: {
     company_name?: string; contact_email?: string; owner_email?: string; owner_name?: string;
-    subscription_term?: string; subscription_end?: string;
+    subscription_term?: string; subscription_end?: string; organization_id?: string;
   };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
   const ownerEmail = body.owner_email?.trim().toLowerCase();
   const contactEmail = body.contact_email?.trim() || ownerEmail;
   const ownerName = body.owner_name?.trim() || null;
+  // Optional: create this workspace already linked to an organization.
+  const organizationId = body.organization_id?.trim() || null;
 
   if (!companyName || !ownerEmail) {
     return NextResponse.json({ error: "Company name and owner email are required" }, { status: 400 });
@@ -63,6 +65,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // If linking to an org, verify it exists first (fail before provisioning).
+  if (organizationId) {
+    const { data: org } = await admin.from("organizations").select("id").eq("id", organizationId).maybeSingle();
+    if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+  }
+
   const { data: tenantId, error: provisionErr } = await admin.rpc("provision_tenant_shell", {
     p_name: companyName,
     p_email: contactEmail,
@@ -72,13 +80,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to provision tenant" }, { status: 500 });
   }
 
-  // Stamp the subscription window on the shell (clock starts now, D3b).
+  // Stamp the subscription window on the shell (clock starts now, D3b) +
+  // optionally link it to an organization.
   await admin
     .from("tenants")
     .update({
       subscription_start: subStart,
       subscription_term: subTerm || null,
       subscription_end: subEnd,
+      organization_id: organizationId,
     })
     .eq("id", tenantId);
 

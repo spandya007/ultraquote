@@ -11,8 +11,8 @@
 - A Platform Admin sees a **"Platform Admin"** link in the sidebar and can open **`/admin`** (a console
   outside the tenant app shell). The console reads across all tenants via the **service-role client**.
 - One login can also be a tenant **Owner** at the same time (today: `sameer@cmithayward.com` is both) —
-  the two roles are independent memberships. (Future: an **Org Admin** layer — see
-  `docs/organizations-white-label-design.md`.)
+  the roles are independent memberships. A login can additionally hold an **Org Admin** hat
+  (`organization_admins`) — see §1.8 and the new `docs/org-admin-guide.md`.
 
 ---
 
@@ -76,6 +76,81 @@ On the dossier page → **Danger zone** (platform-admin only; type the exact ten
   (catches the Netlify "All Scopes" gotcha — see [[netlify-env-var-scopes-gotcha]] note in memory).
 - Read raw signups in Supabase if needed (`beta_signups`, service-role).
 
+### 1.8 Organizations & Org Admins (white-label hierarchy — Phase 1+2)
+`/admin` → **Organizations** section (below the Tenants list). An **Organization** is a brand/reseller
+umbrella grouping multiple **Workspaces** (= tenants) under one **Org Admin**. Standalone workspaces
+(`organization_id = NULL`) are direct customers and behave exactly as before. Design + roadmap:
+`docs/organizations-white-label-design.md`.
+
+What the **Platform Admin** does here:
+- **Create / rename an Organization** (name + optional slug). Slug is reserved for future white-label
+  URLs/domains — unused today.
+- **Invite an Org Admin** (per org card) — emails an invite landing on `/auth/set-password`; on accept,
+  an `organization_admins` row is created. The Org Admin is its **own principal** (no tenant row). Resend
+  / revoke supported.
+- **Add a workspace to an org** — either **Invite new workspace** (creates a fresh workspace + invites its
+  owner, already linked to the org) or pull in an **existing standalone** workspace from the dropdown.
+- **Remove a workspace from an org** (✕) — it reverts to standalone; its data is untouched. Reversible.
+- The Tenants list shows an **Organization badge** per workspace (or **"Direct"** for standalone), plus an
+  amber **"Added by Org Admin"** badge on workspaces an Org Admin created — your cue to **set its
+  subscription term** (Org-Admin-created workspaces start with **no subscription window**).
+
+What an **Org Admin** can do (scoped to their own org — see `docs/org-admin-guide.md`):
+- A **read + limited-write** `/org` console: list their workspaces with rollups (owner, # users, # quotes,
+  subscription status); **suspend / re-enable** a workspace; **invite a new workspace** into their org.
+- They **cannot**: delete a workspace, set subscriptions, see quote content or product cost/margin, or
+  touch any workspace outside their org. Creating a workspace **emails you** (`hello@ultraquote.io`) +
+  raises the "Added by Org Admin" badge.
+
+> **Phase boundary:** subscriptions stay **Platform-Admin-only** (Option A) until Stripe Phase 3, when the
+> org becomes the billing account and gets its own subscription envelope. Deleting workspaces stays with
+> you. See the design doc's phasing.
+
+---
+
+## 1.9 Who can do what (role × operation)
+
+**Legend:** ✅ allowed · ❌ not allowed (by design) · 🔜 designed, not built yet.
+Scopes: **Platform Admin** = all orgs + all workspaces · **Org Admin** = one org · **Owner/Member** = one
+workspace.
+
+### Platform / Organization
+
+| Operation | Platform Admin | Org Admin | Owner | Member |
+|---|---|---|---|---|
+| See **all** orgs + workspaces | ✅ | ❌ | ❌ | ❌ |
+| Create / rename Organization | ✅ | ❌ | ❌ | ❌ |
+| Invite / revoke **Org Admins** | ✅ | ❌ | ❌ | ❌ |
+| Move workspace into / out of an org | ✅ | ❌ | ❌ | ❌ |
+| View **own org's** workspaces + rollups | ✅ | ✅ | ❌ | ❌ |
+
+### Workspace lifecycle
+
+| Operation | Platform Admin | Org Admin | Owner | Member |
+|---|---|---|---|---|
+| Create a new workspace (invite owner) | ✅ | ✅ (own org)¹ | ❌ | ❌ |
+| Suspend / re-enable a workspace | ✅ | ✅ (own org) | ❌ | ❌ |
+| Set a workspace's subscription | ✅ | ❌ (🔜 Phase 3) | ❌ | ❌ |
+| **Delete** a workspace (schedule + purge) | ✅ | ❌ | ❌ | ❌ |
+| Edit platform-managed fields (name/email) | ✅ | ❌ | ❌ | ❌ |
+| Invite / disable **members** | ❌ | ❌ | ✅ | ❌ |
+
+¹ Org-Admin-created workspaces notify the Platform Admin by email + carry an "Added by Org Admin" badge,
+and start with **no subscription** (Platform Admin sets the term).
+
+### Inside a workspace (the app)
+
+| Operation | Platform Admin | Org Admin | Owner | Member |
+|---|---|---|---|---|
+| See quote **content** / product **cost & margin** | ❌² | ❌³ | ✅ | ✅ |
+| Create / edit quotes | ❌ | ❌ | ✅ (all) | ✅ (own; read others) |
+| Edit products / company settings | ❌ | ❌ | ✅ | ❌ |
+| Add / edit clients | ❌ | ❌ | ✅ | add-only |
+
+² Platform Admin sees aggregate **counts/values** in the dossier, not line-item content.
+³ Org Admin visibility is **Oversight tier** (counts/status only). The opt-in **Full** tier (quote +
+catalog read) is 🔜 Phase 4.
+
 ---
 
 ## 2. Operational tasks (the platform "to-do list")
@@ -137,5 +212,7 @@ edit company details.
 - Tenant onboarding: `docs/tenant-onboarding-design.md`, `docs/manual-tenant-onboarding.md`
 - Roles/permissions: `docs/roles-permissions-design.md`
 - Pricing (frozen): `docs/pricing-model-design.md`
-- Future Org Admin / white-label layer: `docs/organizations-white-label-design.md`
+- Organizations / Org Admin: `docs/org-admin-guide.md` (the Org Admin's own reference) +
+  `docs/organizations-white-label-design.md` (design + roadmap). Migrations: `019_organizations.sql`
+  (org tables + `tenants.organization_id`), `020_org_admin_provenance.sql` (`created_by_org_admin_user`).
 - Integrations roadmap: `docs/integrations-connectors-design.md`
