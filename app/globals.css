@@ -4,7 +4,10 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Light mode uses a soft tinted-gray CANVAS with pure-white cards, so cards
+       lift off the page (the Linear/Stripe/Notion pattern). Page 96% < card 100%
+       + border + shadow = clear separation, instead of white-on-white. */
+    --background: 214 32% 95%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -26,23 +29,29 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Dark-mode surfaces follow an ELEVATION-BY-LIGHTNESS ladder (cards lift off
+       the page by being lighter, since shadows are near-invisible on dark). A
+       pronounced ~8% step makes cards clearly stand out:
+       background 9% < card 17% < muted/inputs 23% < border 33%. Surfaces are
+       desaturated so the base reads as clean slate, not saturated black; accent
+       colors (--primary/--ring) stay vivid. */
+    --background: 222 27% 9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 220 16% 17%;
     --card-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 18% 23%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 18% 23%;
+    --muted-foreground: 215 18% 70%;
+    --accent: 217 18% 26%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    /* Borders/inputs lightened from 17.5% → more defined on dark cards. */
-    --border: 217.2 32.6% 32%;
-    --input: 217.2 32.6% 38%;
+    /* Border sits above every surface so cards/fields keep a clean hairline. */
+    --border: 217 16% 33%;
+    --input: 217 16% 37%;
     --ring: 224.3 76.3% 48%;
   }
 }
@@ -68,6 +77,22 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
+}
+
+@layer utilities {
+  /* Richer, theme-aware card elevation. Cards use shadow-sm / shadow / shadow-md;
+     Tailwind's defaults are too faint to read on the light gray canvas and are
+     essentially INVISIBLE on dark (faint black on near-black). We override
+     --tw-shadow (not box-shadow) so Tailwind's ring composition still works.
+     Light: soft slate shadow. Dark: a real edge shadow + a 1px top highlight so
+     cards both lift (lighter surface) AND cast a visible halo. */
+  .shadow-sm { --tw-shadow: 0 1px 2px 0 rgb(2 6 23 / 0.08); }
+  .shadow    { --tw-shadow: 0 1px 3px 0 rgb(2 6 23 / 0.10), 0 1px 2px -1px rgb(2 6 23 / 0.08); }
+  .shadow-md { --tw-shadow: 0 4px 8px -2px rgb(2 6 23 / 0.10), 0 2px 4px -2px rgb(2 6 23 / 0.08); }
+
+  .dark .shadow-sm { --tw-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.04), 0 1px 2px 0 rgb(0 0 0 / 0.5); }
+  .dark .shadow    { --tw-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 6px -1px rgb(0 0 0 / 0.55), 0 1px 3px -1px rgb(0 0 0 / 0.45); }
+  .dark .shadow-md { --tw-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 6px 14px -3px rgb(0 0 0 / 0.6), 0 3px 6px -3px rgb(0 0 0 / 0.5); }
 }
 
 /* Hide BlockNote's faint nesting-indicator line (the left guide drawn on nested
