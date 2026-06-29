@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2, Users, FileText, CheckCircle, XCircle, Clock, AlertCircle,
-  Loader2, Plus, Ban, Play,
+  Loader2, Plus, Ban, Play, Search,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
@@ -179,7 +180,14 @@ export function OrgClient({
                         : "Unlimited"
                       }
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <Link
+                        href={`/org/workspaces/${ws.id}`}
+                        className="mr-1.5 inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                        title="View workspace stats + download report"
+                      >
+                        <Search className="w-3.5 h-3.5" /> Details
+                      </Link>
                       <button
                         onClick={() => toggleSuspend(ws)}
                         disabled={actionId === ws.id}

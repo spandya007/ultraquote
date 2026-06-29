@@ -28,6 +28,14 @@ business data stays private to each Workspace (this is the default "Oversight" v
    Admin is **notified by email** and sets the workspace's subscription term.
 2. **Suspend / re-enable a workspace** — the per-row **Suspend** button blocks **all** of that Workspace's
    users (including its owner) until you **Re-enable** it. Use it to pause an account.
+3. **View workspace details** — the per-row **Details** link opens a read-only dossier: counts (clients,
+   products, templates, **quotes**, scenarios, line items, signers, team members), **signed quotes**
+   (executed contracts), **in-flight quotes** (sent/awaiting signature), subscription end date, and
+   activity. Still **Oversight tier** — counts and statuses only, never the quote line items or product
+   cost/margin.
+4. **Download a workspace report** — on the Details page, **Download report** produces a print-ready HTML
+   summary (save as PDF) you can share with the workspace owner. Useful for periodic check-ins and, later,
+   as a billing-usage record.
 
 ### What you cannot do
 - **Delete** a workspace (only the Platform Admin can — it's destructive).
