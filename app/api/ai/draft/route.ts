@@ -5,6 +5,7 @@ import { loadSerializeInput } from "@/lib/pdf/load";
 import { blocksToMarkdown } from "@/lib/ai/blocks-to-markdown";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
+import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import type { DocBlock } from "@/lib/pdf/types";
 
 // Heavy AI-drafting path: generate grounded proposal narrative from the quote's
@@ -29,33 +30,6 @@ interface Body {
   sections?: string[];     // full outline (Phase 2)
   intake?: Intake;
   referenceQuoteIds?: string[];
-}
-
-// BlockNote 0.14's markdown parser mangles GFM tables into a malformed `table`
-// block (empty content + rows dumped into children) that crashes the table
-// extension's mouse handler. The model is told not to use tables, but convert
-// any stray table to a bullet list so the parser never produces a table block.
-function stripMarkdownTables(md: string): string {
-  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
-  const isSep = (l: string) => /^\s*\|?[\s:|-]+\|?\s*$/.test(l) && l.includes("-");
-  const lines = md.split("\n");
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    if (isRow(lines[i])) {
-      while (i < lines.length && (isRow(lines[i]) || isSep(lines[i]))) {
-        if (!isSep(lines[i])) {
-          const cells = lines[i].trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-          out.push("- " + cells.filter(Boolean).join(" — "));
-        }
-        i++;
-      }
-    } else {
-      out.push(lines[i]);
-      i++;
-    }
-  }
-  return out.join("\n");
 }
 
 const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {

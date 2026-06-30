@@ -21,6 +21,7 @@ import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Spar
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
+import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { createClient } from "@/lib/supabase/client";
 import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
@@ -1085,7 +1086,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "AI request failed");
-      setSectionDraft({ section, markdown: data.markdown });
+      // Strip tables client-side too (idempotent with the route) so this is
+      // independent of which side recompiled, and preview === what's inserted.
+      setSectionDraft({ section, markdown: stripMarkdownTables(data.markdown) });
     } catch (e) {
       toastRef.current.error((e as Error).message);
     } finally {
