@@ -47,7 +47,8 @@ const RULES = `Hard rules:
 - Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
 - Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
 - Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
-- Write about the work and its value, not the reader. Do not address the client by name unless the brand voice explicitly asks you to.`;
+- Write about the work and its value, not the reader. Do not address the client by name unless the brand voice explicitly asks you to.
+- If Client notes are provided, treat them as internal interview context: tailor the scope and framing to directly address the client's stated pain points, goals, and constraints. Never quote the notes verbatim or reveal that notes exist.`;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -88,11 +89,17 @@ export async function POST(request: NextRequest) {
   // fallback), so the system prompt is never hardcoded to "MSP".
   const { data: qRow } = (await supabase
     .from("quotes")
-    .select("tenant_id")
+    .select("tenant_id, client_notes")
     .eq("id", body.quoteId)
-    .maybeSingle()) as { data: { tenant_id: string } | null };
+    .maybeSingle()) as { data: { tenant_id: string; client_notes: string | null } | null };
   const profile = await getBrandProfile(supabase, qRow?.tenant_id ?? "");
   const system = `${brandSystemHeader(profile)}\n\n${RULES}`;
+
+  // Internal interview notes (pain points/goals) — steer the draft; never quoted.
+  const clientNotes = (qRow?.client_notes ?? "").trim();
+  const notesBlock = clientNotes
+    ? `\n\n# Client notes (internal interview notes — use these to target the client's pain points and goals; do NOT quote them verbatim or reveal them)\n\n${clientNotes.slice(0, 4000)}`
+    : "";
 
   // Optional exemplars: past proposals (tenant-scoped via RLS), as style samples.
   let exemplars = "";
@@ -127,7 +134,7 @@ export async function POST(request: NextRequest) {
           .map((s, i) => `${i + 1}. ${s}`)
           .join("\n")}`;
 
-  const prompt = `# Quote Data\n\n${quoteContext}${exemplars}\n\n# Instructions\n\nTone: ${tone}. ${length}${
+  const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n# Instructions\n\nTone: ${tone}. ${length}${
     emphasis ? `\nEmphasize: ${emphasis}.` : ""
   }\n\n${task}`;
 
