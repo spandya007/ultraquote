@@ -390,6 +390,12 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
           <table key={s.id} style={{
             width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 11,
             border: `1px solid ${c.border}`,
+            // This live-preview <table> is display-only. Make it transparent to
+            // pointer events so BlockNote's table-handles plugin never resolves
+            // it to this custom block (which has content:"none" / no rows) and
+            // crashes its mousemove handler reading content.rows. Nothing here is
+            // interactive (the scenario <select> is a sibling above the table).
+            pointerEvents: "none",
           }}>
             <thead>
               <tr>
