@@ -814,11 +814,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       if (contentLoaded.current) return;
       contentLoaded.current = true;
       try {
+        // Self-heal any previously-saved malformed table block (would otherwise
+        // crash BlockNote's table mouse handler on hover — see sanitizeBlocks).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        editor.replaceBlocks(editor.document, initialContent as any);
-        // Ignore the onChange triggered by this programmatic load so we don't
-        // immediately re-save identical content back to Supabase.
-        skipNextChange.current = true;
+        const cleaned = sanitizeBlocks(initialContent as any[]);
+        editor.replaceBlocks(editor.document, cleaned as any);
+        // If nothing was dropped, ignore the echo onChange so we don't re-save
+        // identical content; if we DID clean a block, let it persist.
+        skipNextChange.current = cleaned.length === (initialContent as unknown[]).length;
       } catch (e) {
         console.error("[ProposalEditor] failed to load saved content:", e);
       }
@@ -1104,18 +1107,45 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     }
   }
 
-  // Fill an empty document, otherwise insert after the cursor. Shared by Import
-  // and Apply-template.
+  // Drop malformed table blocks before inserting. BlockNote 0.14's markdown
+  // parser (tryParseMarkdownToBlocks, used by AI Draft + .md Import) can emit a
+  // `table` block whose content has no valid `rows` array; the table extension's
+  // mouse handler then crashes reading `content.rows` of undefined. Keep
+  // well-formed tables, drop empty/malformed ones; recurse children.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function sanitizeBlocks(blocks: any[]): any[] {
+    if (!Array.isArray(blocks)) return [];
+    return blocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((b: any) => {
+        if (b?.type === "table") {
+          const rows = b?.content?.rows;
+          return Array.isArray(rows) && rows.length > 0;
+        }
+        return true;
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((b: any) =>
+        Array.isArray(b?.children) && b.children.length
+          ? { ...b, children: sanitizeBlocks(b.children) }
+          : b
+      );
+  }
+
+  // Fill an empty document, otherwise insert after the cursor. Shared by Import,
+  // Apply-template, and AI Draft.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function insertBlocksIntoDoc(blocks: any[]) {
     const ed = editorRef.current;
+    const safe = sanitizeBlocks(blocks);
+    if (safe.length === 0) { toastRef.current.error("Nothing to insert"); return; }
     const doc = ed.document;
     const docEmpty =
       doc.length === 1 && doc[0].type === "paragraph" &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (!doc[0].content || (Array.isArray(doc[0].content) && (doc[0].content as any).length === 0));
-    if (docEmpty) ed.replaceBlocks(ed.document, blocks);
-    else ed.insertBlocks(blocks, ed.getTextCursorPosition().block, "after");
+    if (docEmpty) ed.replaceBlocks(ed.document, safe);
+    else ed.insertBlocks(safe, ed.getTextCursorPosition().block, "after");
     scheduleSave();
   }
 

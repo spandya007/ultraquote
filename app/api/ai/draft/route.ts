@@ -44,6 +44,7 @@ Hard rules:
 - Refer to the pricing table rather than restating specific figures in prose.
 - Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
 - Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
+- Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
 - Write in a confident, professional, client-facing voice. Address the client by name where natural.`;
 
 export async function POST(request: NextRequest) {
