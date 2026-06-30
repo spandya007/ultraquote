@@ -992,13 +992,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   // Build explicit ProseMirror paragraph nodes (NOT an HTML string). Inserting
   // HTML mid-paragraph made TipTap wrap the content in a blockquote; paragraph
   // nodes insert as clean, normal paragraphs.
-  function aiTextToNodes(t: string) {
-    const paras = t.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
-    if (paras.length === 0) return [{ type: "paragraph" }];
-    return paras.map(p => ({
-      type: "paragraph",
-      content: [{ type: "text", text: p.replace(/\s*\n\s*/g, " ") }],
-    }));
+  // Split AI output into clean paragraph strings (blank line = new paragraph;
+  // single newlines collapse to spaces).
+  function splitAiParas(t: string): string[] {
+    return t.split(/\n{2,}/).map(s => s.trim().replace(/\s*\n\s*/g, " ")).filter(Boolean);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function tt() { return (editorRef.current as any)._tiptapEditor; }
@@ -1054,9 +1051,23 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   function acceptSuggestion() {
     if (!aiSuggestion) return;
     const { from, to, suggested } = aiSuggestion;
-    // insertContentAt replaces [from,to] for selection edits, or inserts at the
-    // cursor when from === to (generate/continue).
-    tt().chain().focus().insertContentAt({ from, to }, aiTextToNodes(suggested)).run();
+    const ed = editorRef.current;
+    const paras = splitAiParas(suggested);
+    if (paras.length === 0) { setAiSuggestion(null); return; }
+
+    // First paragraph replaces the selected range INLINE (so phrase-level edits
+    // stay in place). Insert a text node, not a string, to avoid HTML parsing.
+    tt().chain().focus().insertContentAt({ from, to }, [{ type: "text", text: paras[0] }]).run();
+
+    // Remaining paragraphs become proper SIBLING blocks after the current block,
+    // via BlockNote's insertBlocks. Inserting raw paragraph nodes through
+    // ProseMirror nested each one as a child of the previous (the staircase bug).
+    if (paras.length > 1) {
+      const cur = ed.getTextCursorPosition().block;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ed.insertBlocks(paras.slice(1).map(p => ({ type: "paragraph", content: p })) as any, cur, "after");
+    }
+
     scheduleSave();
     setAiSuggestion(null);
     toastRef.current.success("Applied — use Undo to revert");
