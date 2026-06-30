@@ -6,6 +6,7 @@ import { blocksToMarkdown } from "@/lib/ai/blocks-to-markdown";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
+import { getBrandProfile, brandSystemHeader } from "@/lib/ai/brand-profile";
 import type { DocBlock } from "@/lib/pdf/types";
 
 // Heavy AI-drafting path: generate grounded proposal narrative from the quote's
@@ -38,15 +39,15 @@ const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {
   detailed: "Write a thorough, comprehensive treatment of each section.",
 };
 
-const SYSTEM = `You are an expert proposal writer for a Managed Service Provider (MSP), drafting the narrative body of a client-facing proposal.
-
-Hard rules:
+// Static hard rules. The author role + voice are prepended dynamically from the
+// tenant's brand profile (brandSystemHeader) so nothing is hardcoded to "MSP".
+const RULES = `Hard rules:
 - Use ONLY the services, scope, and prices given in the Quote Data. Never invent line items, prices, dates, headcounts, SLAs, or commitments.
 - Refer to the pricing table rather than restating specific figures in prose.
 - Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
 - Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
 - Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
-- Write in a confident, professional, client-facing voice. Address the client by name where natural.`;
+- Address the client by name where natural.`;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -82,6 +83,16 @@ export async function POST(request: NextRequest) {
   const input = await loadSerializeInput(supabase, body.quoteId);
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   const quoteContext = quoteContextMarkdown(input);
+
+  // Author role + voice from the tenant's brand profile (tenant → org → neutral
+  // fallback), so the system prompt is never hardcoded to "MSP".
+  const { data: qRow } = (await supabase
+    .from("quotes")
+    .select("tenant_id")
+    .eq("id", body.quoteId)
+    .maybeSingle()) as { data: { tenant_id: string } | null };
+  const profile = await getBrandProfile(supabase, qRow?.tenant_id ?? "");
+  const system = `${brandSystemHeader(profile)}\n\n${RULES}`;
 
   // Optional exemplars: past proposals (tenant-scoped via RLS), as style samples.
   let exemplars = "";
@@ -122,7 +133,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const raw = await claudeGenerate({
-      system: SYSTEM,
+      system,
       prompt,
       maxTokens: sections.length > 1 ? 8192 : 4096,
     });
