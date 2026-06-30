@@ -167,7 +167,21 @@ approved outline (Phase 2). Outline uses Gemini JSON mode exactly like
 - Consistent with existing boundaries: feature popovers stay light-themed; AI
   modals reuse the established staging UI.
 
-## 10. Open questions (confirm before build)
+## 10. Decisions (confirmed 2026-06-29)
+
+- **Q1 — Model:** **Claude `claude-opus-4-8`** for the heavy `/api/ai/draft` +
+  `/api/ai/outline` paths (official `@anthropic-ai/sdk`); Gemini Flash stays for
+  the existing `/api/ai/write` inline ops. Built provider-split at the `lib/ai`
+  layer (`lib/ai/claude.ts` alongside `lib/ai/gemini.ts`).
+- **Q2 — Access:** any quote **editor** (auth + `requireWriteAccess`, mirrors
+  `/api/ai/write`). Not owner-only — it writes only `document_content`.
+- **Q3 — Reference scope:** **all tenant quotes** the user can read (RLS-scoped).
+- **Q4 — Intake:** **3 questions** (tone, length, optional emphasis).
+- **Q5 — Exemplar caps:** ≤2 reference proposals, each truncated (~6k chars),
+  like extract-pricing's `slice()`.
+- **Env:** new `ANTHROPIC_API_KEY` (Console + billing) in `.env.local` + Netlify.
+
+### Original open questions (for history)
 
 - **Q1 — Model strategy.** Keep everything on `gemini-2.5-flash`, or route the
   heavy *draft* path to a more capable model while keeping Flash for cheap inline
