@@ -1087,7 +1087,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         body: JSON.stringify({
           quoteId: quoteIdRef.current,
           section,
-          intake: { tone: "professional", length: "standard" },
+          intake: { tone: "professional", length: "short" },
         }),
       });
       const data = await res.json();

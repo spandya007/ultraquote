@@ -463,15 +463,21 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Brand voice</label>
+            <label className="text-sm font-medium">Brand voice &amp; writing style</label>
             <textarea
               value={voice}
               onChange={e => setVoice(e.target.value)}
-              rows={2}
+              rows={3}
               maxLength={500}
               className={cn(inputCls(), "resize-y")}
-              placeholder="Tone & style — e.g. warm and consultative, plain language, no jargon, avoid hype."
+              placeholder="e.g. Warm and consultative; plain language, no jargon, no hype. One short paragraph per section. Don't address the client by name."
             />
+            <p className="text-xs text-muted-foreground">
+              Guides the AI&apos;s tone <em>and</em> style. You can control things like:
+              formality (warm / formal / technical), length (one short paragraph vs. detailed),
+              terseness, jargon, and whether to address the client by name. Defaults when blank:
+              a neutral professional voice, one short paragraph per section, no client name.
+            </p>
           </div>
           {isOwner && (
             <div className="flex justify-end">

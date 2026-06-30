@@ -57,15 +57,20 @@ export async function getBrandProfile(
   };
 }
 
+// Strip a trailing sentence terminator so interpolating a user value mid-sentence
+// (e.g. "— a {type}, drafting…") or before our own period (voice) doesn't produce
+// "installer., drafting" or "no jargon..".
+const noTrailingPunct = (s: string) => s.replace(/[.,;:!?]+\s*$/, "").trim();
+
 // Builds the dynamic system-prompt header (role + about + voice) from a profile.
 // Empty fields are omitted; with nothing set the role is neutral (never "MSP").
 export function brandSystemHeader(p: BrandProfile): string {
   const role = p.businessType
-    ? `You are an expert proposal writer for ${p.businessName} — a ${p.businessType}, drafting the narrative body of a client-facing proposal.`
+    ? `You are an expert proposal writer for ${p.businessName} — a ${noTrailingPunct(p.businessType)}, drafting the narrative body of a client-facing proposal.`
     : `You are an expert proposal writer for ${p.businessName}, drafting the narrative body of a client-facing proposal.`;
   const about = p.about ? `\nAbout ${p.businessName}: ${p.about}` : "";
   const voice = p.brandVoice
-    ? `\nWrite in this brand voice: ${p.brandVoice}.`
+    ? `\nWrite in this brand voice: ${noTrailingPunct(p.brandVoice)}.`
     : `\nWrite in a confident, professional, client-facing voice.`;
   return `${role}${about}${voice}`;
 }

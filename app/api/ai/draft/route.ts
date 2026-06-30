@@ -34,7 +34,7 @@ interface Body {
 }
 
 const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {
-  short: "Keep it tight — one short paragraph per section.",
+  short: "Write one short, terse paragraph for the section — concise and high-signal, no filler or wind-up.",
   standard: "Aim for two to three focused paragraphs per section.",
   detailed: "Write a thorough, comprehensive treatment of each section.",
 };
@@ -47,7 +47,7 @@ const RULES = `Hard rules:
 - Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
 - Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
 - Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
-- Address the client by name where natural.`;
+- Write about the work and its value, not the reader. Do not address the client by name unless the brand voice explicitly asks you to.`;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
