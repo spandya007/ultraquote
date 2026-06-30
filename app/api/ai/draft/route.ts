@@ -31,6 +31,33 @@ interface Body {
   referenceQuoteIds?: string[];
 }
 
+// BlockNote 0.14's markdown parser mangles GFM tables into a malformed `table`
+// block (empty content + rows dumped into children) that crashes the table
+// extension's mouse handler. The model is told not to use tables, but convert
+// any stray table to a bullet list so the parser never produces a table block.
+function stripMarkdownTables(md: string): string {
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|?[\s:|-]+\|?\s*$/.test(l) && l.includes("-");
+  const lines = md.split("\n");
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (isRow(lines[i])) {
+      while (i < lines.length && (isRow(lines[i]) || isSep(lines[i]))) {
+        if (!isSep(lines[i])) {
+          const cells = lines[i].trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+          out.push("- " + cells.filter(Boolean).join(" — "));
+        }
+        i++;
+      }
+    } else {
+      out.push(lines[i]);
+      i++;
+    }
+  }
+  return out.join("\n");
+}
+
 const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {
   short: "Keep it tight — one short paragraph per section.",
   standard: "Aim for two to three focused paragraphs per section.",
@@ -120,11 +147,12 @@ export async function POST(request: NextRequest) {
   }\n\n${task}`;
 
   try {
-    const markdown = await claudeGenerate({
+    const raw = await claudeGenerate({
       system: SYSTEM,
       prompt,
       maxTokens: sections.length > 1 ? 8192 : 4096,
     });
+    const markdown = stripMarkdownTables(raw);
     if (!markdown) {
       return NextResponse.json({ error: "The AI returned an empty draft. Please try again." }, { status: 502 });
     }
