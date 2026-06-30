@@ -1735,13 +1735,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         {!isTemplate && (
         <div className="relative">
           <button
-            title="Draft a proposal section (Executive Summary, Scope, etc.) grounded in this quote's client and pricing"
+            title="AI Draft — generate a proposal section (Executive Summary, Scope, etc.) grounded in this quote's client, pricing, and client notes"
             onMouseDown={(e) => { e.preventDefault(); if (!draftBusy) setDraftOpen(o => !o); }}
             disabled={!!draftBusy}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
           >
-            {draftBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PenLine className="w-3.5 h-3.5" />}
-            {draftBusy ? "Drafting…" : "Draft"}
+            {draftBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {draftBusy ? "Drafting…" : "AI Draft"}
             {!draftBusy && <ChevronDown className="w-3 h-3" />}
           </button>
 
@@ -1954,8 +1954,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl border shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center gap-2 px-5 py-3 border-b">
-              <PenLine className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-semibold">Draft: {sectionDraft.section}</span>
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">AI Draft: {sectionDraft.section}</span>
             </div>
             <div className="flex-1 overflow-y-auto p-5">
               <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">Suggested section</p>
