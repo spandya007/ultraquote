@@ -1109,7 +1109,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   async function requestDraft(
     payload: { section?: string; sections?: string[] },
     busyLabel: string,
-    resultLabel: string
+    resultLabel: string,
+    intake: { tone?: string; length?: string; emphasis?: string } = { tone: "professional", length: "short" }
   ) {
     setDraftBusy(busyLabel);
     setDraftOpen(false);
@@ -1120,7 +1121,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         body: JSON.stringify({
           quoteId: quoteIdRef.current,
           ...payload,
-          intake: { tone: "professional", length: "short" },
+          intake,
         }),
       });
       const data = await res.json();
@@ -1140,6 +1141,56 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   }
   function runFullDraft() {
     requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal");
+  }
+
+  // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
+  const [guidedStep, setGuidedStep] = useState<null | "intake" | "outline">(null);
+  const [intakeTone, setIntakeTone] = useState("professional");
+  const [intakeLength, setIntakeLength] = useState<"short" | "standard" | "detailed">("standard");
+  const [intakeEmphasis, setIntakeEmphasis] = useState("");
+  const [outlineBusy, setOutlineBusy] = useState(false);
+  const [outline, setOutline] = useState<{ title: string; hint?: string }[]>([]);
+
+  const currentIntake = () => ({
+    tone: intakeTone,
+    length: intakeLength,
+    emphasis: intakeEmphasis.trim() || undefined,
+  });
+
+  async function generateOutline() {
+    setOutlineBusy(true);
+    try {
+      const res = await fetch("/api/ai/outline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: quoteIdRef.current, intake: currentIntake() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed");
+      setOutline(Array.isArray(data.sections) ? data.sections : []);
+      setGuidedStep("outline");
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setOutlineBusy(false);
+    }
+  }
+
+  function moveOutline(i: number, dir: -1 | 1) {
+    setOutline(o => {
+      const j = i + dir;
+      if (j < 0 || j >= o.length) return o;
+      const n = [...o];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+  }
+
+  function runGuidedDraft() {
+    const titles = outline.map(s => s.title.trim()).filter(Boolean);
+    if (titles.length === 0) { toastRef.current.error("Add at least one section"); return; }
+    setGuidedStep(null);
+    requestDraft({ sections: titles }, "Full proposal", "Full proposal", currentIntake());
   }
 
   async function acceptSectionDraft() {
@@ -1795,8 +1846,16 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); runFullDraft(); }}
+                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setGuidedStep("intake"); }}
                   className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  Guided draft…
+                  <span className="ml-auto text-[10px] font-normal text-violet-500">intake → outline</span>
+                </button>
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); runFullDraft(); }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 hover:bg-violet-100 border-b border-violet-200 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   Draft full proposal
@@ -2087,6 +2146,105 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                 className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 transition-colors"
               >
                 <Check className="w-4 h-4" /> Insert section
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided draft — Step 1: Intake */}
+      {guidedStep === "intake" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">Guided draft — Step 1: Style</span>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                The AI already has the client, services, and your Client Notes. Set the style,
+                and it&apos;ll propose a section outline you can edit before drafting.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Tone</label>
+                  <select value={intakeTone} onChange={(e) => setIntakeTone(e.target.value)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="professional">Professional</option>
+                    <option value="warm and consultative">Warm &amp; consultative</option>
+                    <option value="confident">Confident</option>
+                    <option value="concise">Concise</option>
+                    <option value="persuasive">Persuasive</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Length per section</label>
+                  <select value={intakeLength} onChange={(e) => setIntakeLength(e.target.value as "short" | "standard" | "detailed")}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="short">Short (1 paragraph)</option>
+                    <option value="standard">Standard (2–3)</option>
+                    <option value="detailed">Detailed</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Emphasis <span className="font-normal text-muted-foreground">(optional)</span></label>
+                <textarea value={intakeEmphasis} onChange={(e) => setIntakeEmphasis(e.target.value)} rows={2} maxLength={300}
+                  placeholder="Anything to stress — e.g. after-hours security, fast rollout, NDAA compliance, budget fit."
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button onClick={() => setGuidedStep(null)}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button onClick={generateOutline} disabled={outlineBusy}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                {outlineBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Building outline…</> : <>Continue → Outline</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided draft — Step 2: Outline */}
+      {guidedStep === "outline" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">Guided draft — Step 2: Outline</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Edit the sections — rename, reorder, add, or remove — then draft them all.
+                Each becomes a heading in the document.
+              </p>
+              {outline.map((s, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <input
+                    value={s.title}
+                    onChange={(e) => setOutline(o => o.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
+                    placeholder="Section title"
+                    title={s.hint}
+                    className="flex-1 min-w-0 rounded-md border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button onClick={() => moveOutline(i, -1)} disabled={i === 0} title="Move up"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"><ChevronDown className="w-4 h-4 rotate-180" /></button>
+                  <button onClick={() => moveOutline(i, 1)} disabled={i === outline.length - 1} title="Move down"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                  <button onClick={() => setOutline(o => o.filter((_, idx) => idx !== i))} title="Remove"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                </div>
+              ))}
+              <button onClick={() => setOutline(o => [...o, { title: "" }])}
+                className="text-sm font-medium text-violet-700 hover:text-violet-900">+ Add section</button>
+            </div>
+            <div className="flex items-center justify-between gap-2 px-5 py-3 border-t">
+              <button onClick={() => setGuidedStep("intake")}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">← Back</button>
+              <button onClick={runGuidedDraft} disabled={outline.filter(s => s.title.trim()).length === 0}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                <Sparkles className="w-4 h-4" /> Draft {outline.filter(s => s.title.trim()).length} sections
               </button>
             </div>
           </div>
