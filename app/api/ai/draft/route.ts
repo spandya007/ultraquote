@@ -31,6 +31,8 @@ interface Body {
   sections?: string[];     // full outline (Phase 2)
   intake?: Intake;
   referenceQuoteIds?: string[];
+  // Signing context detected from the current document (for the closing CTA).
+  signing?: { hasTerms?: boolean; hasSignature?: boolean };
 }
 
 const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {
@@ -134,9 +136,22 @@ export async function POST(request: NextRequest) {
           .map((s, i) => `${i + 1}. ${s}`)
           .join("\n")}`;
 
+  // Closing call-to-action: full-proposal drafts (or a single closing-type section)
+  // end by inviting the client to e-sign. If the document already contains terms to
+  // accept (multiple-choice / acceptance blocks → body.signing.hasTerms), the CTA
+  // also asks them to accept those.
+  const isClosing = sections.length > 1 || /next step|sign|accept|clos|conclu|proceed/i.test(sections[0]);
+  const cta = isClosing
+    ? `\n\nEnd ${sections.length > 1 ? "the final section" : "this section"} with a brief (1–2 sentence) call to action inviting the client to review and e-sign this proposal to move forward.${
+        body.signing?.hasTerms
+          ? " Also ask them to review and accept the options and terms indicated in the document before signing."
+          : ""
+      }`
+    : "";
+
   const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n# Instructions\n\nTone: ${tone}. ${length}${
     emphasis ? `\nEmphasize: ${emphasis}.` : ""
-  }\n\n${task}`;
+  }\n\n${task}${cta}`;
 
   try {
     const raw = await claudeGenerate({

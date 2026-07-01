@@ -1115,6 +1115,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     setDraftBusy(busyLabel);
     setDraftOpen(false);
     try {
+      // Detect signing/terms blocks already placed in the document so the closing
+      // CTA can invite e-signing (+ accepting terms when radio/acceptance blocks exist).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blocks = flattenBlocks(editorRef.current.document) as any[];
+      const signing = {
+        hasTerms:     blocks.some(b => b.type === "radioField" || b.type === "acceptanceField"),
+        hasSignature: blocks.some(b => b.type === "signatureField" || b.type === "initialsField"),
+      };
       const res = await fetch("/api/ai/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1122,6 +1130,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
           quoteId: quoteIdRef.current,
           ...payload,
           intake,
+          signing,
         }),
       });
       const data = await res.json();
