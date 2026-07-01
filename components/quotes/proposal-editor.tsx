@@ -282,6 +282,7 @@ const RadioFieldBlock = createReactBlockSpec(
 
 export interface EditorLineItem {
   description: string;
+  details?: string | null;
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_price: number | null;
@@ -433,10 +434,15 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 return (
                 <tr key={idx}>
                   <td style={td}>
-                    {i.description}
+                    <span style={{ fontWeight: 600 }}>{i.description}</span>
                     {i.quantity * (i.setup_price ?? 0) > 0 && (
                       <span style={{ display: "block", fontSize: 10, color: "#64748b", marginTop: 2 }}>
                         + {formatCurrency(i.quantity * (i.setup_price ?? 0))} setup (one-time)
+                      </span>
+                    )}
+                    {i.details && (
+                      <span style={{ display: "block", fontSize: 10, color: "#64748b", marginTop: 2, paddingLeft: 12, whiteSpace: "pre-wrap" }}>
+                        {i.details}
                       </span>
                     )}
                   </td>

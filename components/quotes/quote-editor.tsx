@@ -28,6 +28,7 @@ interface LineItem {
   product_id: string | null;
   pricing_tier_id: string | null;
   description: string;
+  details: string | null;
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_cost: number | null;
@@ -760,6 +761,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       product_id:      product.id,
       pricing_tier_id: tier?.id ?? null,
       description:     product.name,
+      details:         product.description ?? null,
       billing_period:  product.billing_period ?? null,
       quantity:        1,
       unit_cost:       tier?.unit_cost ?? product.unit_cost,
@@ -1204,7 +1206,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-muted/20">
                   <tr>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Description</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Item</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Billing</th>
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
@@ -1236,12 +1238,21 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                       const discIsAmount = (item.discount_amount ?? 0) > 0;
 
                       return (
-                        <tr key={item.id} className="hover:bg-muted/10 group">
+                        <tr key={item.id} className="hover:bg-muted/10 group [&>td]:align-top">
                           <td className="px-4 py-2">
                             <input
                               value={item.description}
                               onChange={(e) => updateLineItem(currentScenario.id, item.id, { description: e.target.value })}
-                              className="w-full bg-transparent border-none outline-none focus:ring-0 p-0"
+                              placeholder="Item name"
+                              className="w-full bg-transparent border-none outline-none focus:ring-0 p-0 font-semibold"
+                            />
+                            <textarea
+                              value={item.details ?? ""}
+                              onChange={(e) => updateLineItem(currentScenario.id, item.id, { details: e.target.value || null })}
+                              ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } }}
+                              placeholder="Add a description…"
+                              rows={1}
+                              className="mt-0.5 w-full resize-none overflow-hidden bg-transparent border-none outline-none focus:ring-0 p-0 pl-3 text-xs text-muted-foreground"
                             />
                           </td>
                           <td className="px-4 py-2">

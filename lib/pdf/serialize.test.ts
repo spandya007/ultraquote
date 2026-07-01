@@ -6,6 +6,7 @@ import type { SerializeLineItem, SerializeScenario } from "./types";
 function item(over: Partial<SerializeLineItem> = {}): SerializeLineItem {
   return {
     description: "Item",
+    details: null,
     billing_period: "Monthly",
     quantity: 1,
     unit_price: 0,

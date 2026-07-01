@@ -31,6 +31,7 @@ const file = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const MIGRATIONS: string[] = [
   "supabase/migrations/021_brand_voice_profile.sql",
   "supabase/migrations/022_add_client_notes.sql",
+  "supabase/migrations/023_add_line_item_details.sql",
 ];
 
 async function resetDb() {
