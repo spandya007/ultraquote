@@ -1087,6 +1087,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const [draftOpen, setDraftOpen] = useState(false);
   const [draftBusy, setDraftBusy] = useState<string | null>(null); // section name while generating
   const [sectionDraft, setSectionDraft] = useState<{ section: string; markdown: string } | null>(null);
+  const [customSection, setCustomSection] = useState("");
+
+  function runCustomSection() {
+    const s = customSection.trim();
+    if (!s) return;
+    setCustomSection("");
+    runSectionDraft(s);
+  }
 
   async function runSectionDraft(section: string) {
     setDraftBusy(section);
@@ -1761,6 +1769,27 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                     {s}
                   </button>
                 ))}
+                {/* Custom section — draft any heading the presets don't cover. */}
+                <div className="border-t border-violet-100 p-2">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={customSection}
+                      onChange={(e) => setCustomSection(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runCustomSection(); } }}
+                      placeholder="Custom section…"
+                      maxLength={80}
+                      className="flex-1 min-w-0 text-sm rounded-md border border-violet-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); runCustomSection(); }}
+                      disabled={!customSection.trim()}
+                      className="shrink-0 rounded-md bg-violet-600 text-white text-xs font-medium px-2.5 py-1.5 hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                    >
+                      Draft
+                    </button>
+                  </div>
+                </div>
                 <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-violet-100">
                   Grounded in this quote’s client &amp; pricing. You review before it’s inserted.
                 </p>
