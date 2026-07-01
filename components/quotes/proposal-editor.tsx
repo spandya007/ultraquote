@@ -1105,8 +1105,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     runSectionDraft(s);
   }
 
-  async function runSectionDraft(section: string) {
-    setDraftBusy(section);
+  // Shared draft request — one section, or the whole proposal (sections[]).
+  async function requestDraft(
+    payload: { section?: string; sections?: string[] },
+    busyLabel: string,
+    resultLabel: string
+  ) {
+    setDraftBusy(busyLabel);
     setDraftOpen(false);
     try {
       const res = await fetch("/api/ai/draft", {
@@ -1114,7 +1119,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quoteId: quoteIdRef.current,
-          section,
+          ...payload,
           intake: { tone: "professional", length: "short" },
         }),
       });
@@ -1122,12 +1127,19 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       if (!res.ok) throw new Error(data.error || "AI request failed");
       // Strip tables client-side too (idempotent with the route) so this is
       // independent of which side recompiled, and preview === what's inserted.
-      setSectionDraft({ section, markdown: stripMarkdownTables(data.markdown) });
+      setSectionDraft({ section: resultLabel, markdown: stripMarkdownTables(data.markdown) });
     } catch (e) {
       toastRef.current.error((e as Error).message);
     } finally {
       setDraftBusy(null);
     }
+  }
+
+  function runSectionDraft(section: string) {
+    requestDraft({ section }, section, section);
+  }
+  function runFullDraft() {
+    requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal");
   }
 
   async function acceptSectionDraft() {
@@ -1782,8 +1794,16 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
             <>
               <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); runFullDraft(); }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  Draft full proposal
+                  <span className="ml-auto text-[10px] font-normal text-violet-500">all sections</span>
+                </button>
                 <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
-                  <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Draft a section</p>
+                  <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Or draft one section</p>
                 </div>
                 {PROPOSAL_SECTIONS.map((s) => (
                   <button
