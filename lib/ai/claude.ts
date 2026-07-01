@@ -1,11 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { CLAUDE_MODEL } from "./prompts";
 
 // Thin wrapper around the Anthropic SDK for the heavy AI-drafting paths
 // (/api/ai/draft, /api/ai/outline). Claude handles the customer-facing proposal
 // prose; the cheaper inline ops (improve/expand/tone) stay on Gemini Flash in
 // lib/ai/gemini.ts. The SDK auto-retries 429/5xx with backoff (max_retries=2).
-
-export const CLAUDE_MODEL = "claude-opus-4-8";
+// Model ID lives in lib/ai/prompts.ts (CLAUDE_MODEL).
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {

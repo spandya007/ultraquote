@@ -4,21 +4,16 @@ import { requireWriteAccess } from "@/lib/access/guard";
 import { loadSerializeInput } from "@/lib/pdf/load";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
-import { getBrandProfile, brandSystemHeader } from "@/lib/ai/brand-profile";
+import { getBrandProfile } from "@/lib/ai/brand-profile";
+import {
+  brandSystemHeader, OUTLINE_SYSTEM_SUFFIX, OUTLINE_JSON_INSTRUCTION,
+  OUTLINE_DEFAULT_SECTIONS, outlineClientNotesBlock,
+} from "@/lib/ai/prompts";
 
 // Phase 2 of AI proposal drafting: propose an editable SECTION OUTLINE tailored
 // to this quote (services + client notes + brand), which the user reviews/edits
 // before the /api/ai/draft call writes each section. Same access + grounding as
-// /api/ai/draft. See docs/ai-proposal-drafting-design.md §3.
-
-const DEFAULT_SECTIONS = [
-  { title: "Executive Summary", hint: "Brief overview and value" },
-  { title: "Scope of Work", hint: "What's included" },
-  { title: "Why Us", hint: "Why this business" },
-  { title: "Timeline", hint: "How it rolls out" },
-  { title: "Investment", hint: "Points to the pricing table" },
-  { title: "Next Steps", hint: "How to proceed" },
-];
+// /api/ai/draft. All prompt wording lives in lib/ai/prompts.ts.
 
 interface Body {
   quoteId: string;
@@ -71,26 +66,20 @@ export async function POST(request: NextRequest) {
     .maybeSingle()) as { data: { tenant_id: string; client_notes: string | null } | null };
   const profile = await getBrandProfile(supabase, qRow?.tenant_id ?? "");
   const clientNotes = (qRow?.client_notes ?? "").trim();
-  const notesBlock = clientNotes
-    ? `\n\n# Client notes (internal — pain points/goals the outline should address)\n\n${clientNotes.slice(0, 4000)}`
-    : "";
+  const notesBlock = clientNotes ? outlineClientNotesBlock(clientNotes.slice(0, 4000)) : "";
 
   const emphasis = (body.intake?.emphasis ?? "").trim();
 
-  const system = `${brandSystemHeader(profile)}
-
-You are planning the SECTION OUTLINE for a client-facing proposal — not writing it yet. Propose the sections that best fit THIS deal, informed by the services, the client's situation, and any client notes. Prefer 4–7 sections with clear, client-facing titles. Return ONLY JSON.`;
+  const system = `${brandSystemHeader(profile)}\n\n${OUTLINE_SYSTEM_SUFFIX}`;
 
   const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}\n\n# Instructions\n${
     emphasis ? `Emphasize: ${emphasis}.\n` : ""
-  }Propose the proposal's section outline, ordered as it should appear. Return ONLY a JSON object:
-{"sections":[{"title":"Executive Summary","hint":"one-line purpose"}]}
-4 to 7 sections. No prose, no code fences.`;
+  }${OUTLINE_JSON_INSTRUCTION}`;
 
   try {
     const raw = await claudeGenerate({ system, prompt, maxTokens: 1024 });
     const sections = parseSections(raw);
-    return NextResponse.json({ sections: sections.length ? sections : DEFAULT_SECTIONS });
+    return NextResponse.json({ sections: sections.length ? sections : OUTLINE_DEFAULT_SECTIONS });
   } catch (err) {
     console.error("[ai/outline] failed:", err);
     return NextResponse.json({ error: claudeErrorMessage(err) }, { status: 502 });

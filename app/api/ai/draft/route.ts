@@ -6,15 +6,18 @@ import { blocksToMarkdown } from "@/lib/ai/blocks-to-markdown";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
-import { getBrandProfile, brandSystemHeader } from "@/lib/ai/brand-profile";
+import { getBrandProfile } from "@/lib/ai/brand-profile";
+import {
+  brandSystemHeader, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
+  DRAFT_REFERENCE_HEADER, draftReferenceExemplar, draftTask, draftClosingCta, draftInstructions,
+} from "@/lib/ai/prompts";
 import type { DocBlock } from "@/lib/pdf/types";
 
 // Heavy AI-drafting path: generate grounded proposal narrative from the quote's
-// own structured data (+ optional template / past-quote exemplars), via Claude.
-// Phase 1 uses `section` (one section, for the Insert-section menu); `sections`
-// (a full approved outline) is Phase 2. Access mirrors /api/ai/write: any quote
-// editor (auth + requireWriteAccess) — it writes only the Document narrative.
-// See docs/ai-proposal-drafting-design.md.
+// own structured data (+ optional past-quote exemplars), via Claude. Phase 1 uses
+// `section` (one section); `sections` (a full approved outline) is Phase 2. Access
+// mirrors /api/ai/write: any quote editor. All prompt wording lives in
+// lib/ai/prompts.ts. See docs/ai-proposal-drafting-design.md.
 
 const MAX_REFERENCES = 2;
 const REFERENCE_CHAR_CAP = 6000;
@@ -34,23 +37,6 @@ interface Body {
   // Signing context detected from the current document (for the closing CTA).
   signing?: { hasTerms?: boolean; hasSignature?: boolean };
 }
-
-const lengthGuidance: Record<NonNullable<Intake["length"]>, string> = {
-  short: "Write one short, terse paragraph for the section — concise and high-signal, no filler or wind-up.",
-  standard: "Aim for two to three focused paragraphs per section.",
-  detailed: "Write a thorough, comprehensive treatment of each section.",
-};
-
-// Static hard rules. The author role + voice are prepended dynamically from the
-// tenant's brand profile (brandSystemHeader) so nothing is hardcoded to "MSP".
-const RULES = `Hard rules:
-- Use ONLY the services, scope, and prices given in the Quote Data. Never invent line items, prices, dates, headcounts, SLAs, or commitments.
-- Refer to the pricing table rather than restating specific figures in prose.
-- Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
-- Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
-- Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
-- Write about the work and its value, not the reader. Do not address the client by name unless the brand voice explicitly asks you to.
-- If Client notes are provided, treat them as internal interview context: tailor the scope and framing to directly address the client's stated pain points, goals, and constraints. Never quote the notes verbatim or reveal that notes exist.`;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -87,21 +73,18 @@ export async function POST(request: NextRequest) {
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   const quoteContext = quoteContextMarkdown(input);
 
-  // Author role + voice from the tenant's brand profile (tenant → org → neutral
-  // fallback), so the system prompt is never hardcoded to "MSP".
+  // Author role + voice from the tenant's brand profile (tenant → org → neutral).
   const { data: qRow } = (await supabase
     .from("quotes")
     .select("tenant_id, client_notes")
     .eq("id", body.quoteId)
     .maybeSingle()) as { data: { tenant_id: string; client_notes: string | null } | null };
   const profile = await getBrandProfile(supabase, qRow?.tenant_id ?? "");
-  const system = `${brandSystemHeader(profile)}\n\n${RULES}`;
+  const system = `${brandSystemHeader(profile)}\n\n${DRAFT_RULES}`;
 
   // Internal interview notes (pain points/goals) — steer the draft; never quoted.
   const clientNotes = (qRow?.client_notes ?? "").trim();
-  const notesBlock = clientNotes
-    ? `\n\n# Client notes (internal interview notes — use these to target the client's pain points and goals; do NOT quote them verbatim or reveal them)\n\n${clientNotes.slice(0, 4000)}`
-    : "";
+  const notesBlock = clientNotes ? draftClientNotesBlock(clientNotes.slice(0, 4000)) : "";
 
   // Optional exemplars: past proposals (tenant-scoped via RLS), as style samples.
   let exemplars = "";
@@ -114,44 +97,23 @@ export async function POST(request: NextRequest) {
     const rendered = (refs ?? [])
       .map((r: { title: string | null; document_content: unknown }) => {
         const md = blocksToMarkdown(r.document_content as DocBlock[]).slice(0, REFERENCE_CHAR_CAP);
-        return md ? `### Example proposal: ${r.title ?? "Untitled"}\n${md}` : "";
+        return md ? draftReferenceExemplar(r.title ?? "Untitled", md) : "";
       })
       .filter(Boolean);
     if (rendered.length) {
-      exemplars =
-        "\n\n# Reference proposals (examples of STYLE and STRUCTURE only — do not copy their facts or pricing)\n\n" +
-        rendered.join("\n\n---\n\n");
+      exemplars = DRAFT_REFERENCE_HEADER + rendered.join("\n\n---\n\n");
     }
   }
 
   const intake = body.intake ?? {};
   const tone = intake.tone?.trim() || "professional";
-  const length = lengthGuidance[intake.length ?? "standard"];
+  const length = DRAFT_LENGTH_GUIDANCE[intake.length ?? "standard"];
   const emphasis = intake.emphasis?.trim();
 
-  const task =
-    sections.length === 1
-      ? `Draft the "${sections[0]}" section of this proposal. Return only that section's content (you may include a Markdown heading for it).`
-      : `Draft the full proposal narrative with these sections, in order, each under its own Markdown heading:\n${sections
-          .map((s, i) => `${i + 1}. ${s}`)
-          .join("\n")}`;
+  const task = draftTask(sections);
+  const cta = draftClosingCta(sections, !!body.signing?.hasTerms);
 
-  // Closing call-to-action: full-proposal drafts (or a single closing-type section)
-  // end by inviting the client to e-sign. If the document already contains terms to
-  // accept (multiple-choice / acceptance blocks → body.signing.hasTerms), the CTA
-  // also asks them to accept those.
-  const isClosing = sections.length > 1 || /next step|sign|accept|clos|conclu|proceed/i.test(sections[0]);
-  const cta = isClosing
-    ? `\n\nEnd ${sections.length > 1 ? "the final section" : "this section"} with a brief (1–2 sentence) call to action inviting the client to review and e-sign this proposal to move forward.${
-        body.signing?.hasTerms
-          ? " Also ask them to review and accept the options and terms indicated in the document before signing."
-          : ""
-      }`
-    : "";
-
-  const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n# Instructions\n\nTone: ${tone}. ${length}${
-    emphasis ? `\nEmphasize: ${emphasis}.` : ""
-  }\n\n${task}${cta}`;
+  const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n${draftInstructions(tone, length, emphasis)}\n\n${task}${cta}`;
 
   try {
     const raw = await claudeGenerate({

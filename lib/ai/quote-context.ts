@@ -1,5 +1,6 @@
 import type { SerializeInput, SerializeLineItem, SerializeScenario } from "@/lib/pdf/types";
 import { formatCurrency } from "@/lib/utils/format";
+import { SCENARIOS_GROUNDING_NOTE } from "@/lib/ai/prompts";
 
 // Renders a quote's STRUCTURED data (client, your company, scenarios + line items
 // + totals) as compact Markdown for grounding the AI draft. The model speaks to
@@ -62,7 +63,7 @@ export function quoteContextMarkdown(input: SerializeInput): string {
   const ordered = [...scenarios].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   if (ordered.length) {
     parts.push(
-      "## Scenarios & pricing\n_(Do not restate these numbers in prose — the proposal's pricing table shows them. Speak to the scope and value.)_\n\n" +
+      `## Scenarios & pricing\n${SCENARIOS_GROUNDING_NOTE}\n\n` +
         ordered.map(scenarioMarkdown).join("\n\n")
     );
   }

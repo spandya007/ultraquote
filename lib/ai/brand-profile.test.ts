@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { brandSystemHeader, type BrandProfile } from "./brand-profile";
+import { brandSystemHeader } from "./prompts";
+import type { BrandProfile } from "./brand-profile";
 
 const base: BrandProfile = { businessName: "Acme Co", businessType: null, about: null, brandVoice: null };
 

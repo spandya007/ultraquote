@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
 import { requireWriteAccess } from "@/lib/access/guard";
+import { getBrandProfile } from "@/lib/ai/brand-profile";
+import { GEMINI_MODEL, WRITE_EDIT_SYSTEM, WRITE_GENERATE_RULES, writeInstruction, brandSystemHeader } from "@/lib/ai/prompts";
 
 // AI writing assistant for the proposal Document. Calls Google Gemini Flash
 // server-side (key never reaches the browser) and returns generated/edited text.
+// Generate/continue use the tenant's brand profile (same voice as AI Draft);
+// all prompt wording lives in lib/ai/prompts.ts.
 
 type Mode = "improve" | "expand" | "shorten" | "grammar" | "tone" | "generate" | "continue";
 
@@ -15,28 +19,6 @@ interface Body {
   prompt?: string;        // user instruction (generate)
   tone?: string;          // tone target (tone mode)
   documentText?: string;  // current document plain text, for grounding
-}
-
-const MODEL = "gemini-2.5-flash";
-
-function instructionFor(b: Body): string {
-  switch (b.mode) {
-    case "improve":
-      return "Rewrite the following text to be clearer, more professional, and more persuasive for a business proposal. Keep the meaning and approximate length. Return only the rewritten text.";
-    case "expand":
-      return "Expand the following text into a richer, more detailed version suitable for a business proposal, adding relevant supporting detail without inventing specific facts, numbers, or commitments. Return only the expanded text.";
-    case "shorten":
-      return "Condense the following text to be more concise while preserving the key points. Return only the shortened text.";
-    case "grammar":
-      return "Correct any spelling, grammar, and punctuation errors in the following text. Do not change tone, meaning, or wording beyond what is needed. Return only the corrected text.";
-    case "tone":
-      return `Rewrite the following text in a ${b.tone || "professional"} tone, suitable for a business proposal. Keep the meaning. Return only the rewritten text.`;
-    case "continue":
-      return "Continue writing the proposal naturally from where the document leaves off. Write 1–2 cohesive paragraphs that follow logically. Return only the new text to append.";
-    case "generate":
-    default:
-      return `Write proposal content for the following request: "${b.prompt || ""}". Produce polished, professional prose suitable for a client-facing business proposal. Do not invent specific prices, dates, or commitments. Return only the generated text.`;
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -68,10 +50,12 @@ export async function POST(request: NextRequest) {
   // document grounding (which would tempt the model to write a whole proposal).
   const isSelectionEdit = (["improve", "expand", "shorten", "grammar", "tone"] as Mode[]).includes(body.mode);
 
-  // ── Grounding context (client + tenant + pricing) — generate/continue only ──
+  // ── Grounding context + brand profile — generate/continue only ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
   let context = "";
+  // Neutral fallback role (used if there's no quote to resolve a profile from).
+  let brandHeader = brandSystemHeader({ businessName: "your company", businessType: null, about: null, brandVoice: null });
   if (!isSelectionEdit && body.quoteId) {
     const { data: q } = await db
       .from("quotes")
@@ -87,6 +71,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (q) {
+      // Author role + voice from the tenant's brand profile (tenant → org → neutral).
+      brandHeader = brandSystemHeader(await getBrandProfile(supabase, q.tenant_id));
+
       const { data: tenant } = await db
         .from("tenants").select("name").eq("id", q.tenant_id).single();
 
@@ -115,24 +102,18 @@ export async function POST(request: NextRequest) {
   if (isSelectionEdit) {
     // Tightly scoped: transform ONLY the given text, add nothing.
     parts.push(
-      "You are a professional copy editor for business proposals.",
-      "Apply ONLY the requested transformation to the text between <text> and </text>.",
-      "Critical rules: do NOT add new sentences, sections, pricing, or commentary; do NOT continue the document; do NOT include any preamble, explanation, quotes, or markdown. Output ONLY the transformed version of the provided text.",
-      instructionFor(body),
+      ...WRITE_EDIT_SYSTEM,
+      writeInstruction(body.mode, { prompt: body.prompt, tone: body.tone }),
       `<text>\n${body.text}\n</text>`,
     );
   } else {
-    // Generative: full writer persona with deal grounding.
-    parts.push(
-      "You are an expert proposal writer for a Managed Service Provider (MSP).",
-      "Write in clear, professional, client-ready English. Never use markdown formatting, headings, or bullet symbols — return plain prose paragraphs separated by blank lines.",
-      "Do not fabricate specific prices, dates, SLAs, or commitments beyond what the context provides.",
-    );
+    // Generative: brand-profile writer persona + plain-prose rules + deal grounding.
+    parts.push(brandHeader, ...WRITE_GENERATE_RULES);
     if (context) parts.push(context);
     if (body.documentText) {
       parts.push(`Current document so far (for context only — do not repeat it):\n"""\n${body.documentText.slice(0, 8000)}\n"""`);
     }
-    parts.push(instructionFor(body));
+    parts.push(writeInstruction(body.mode, { prompt: body.prompt, tone: body.tone }));
   }
 
   const fullPrompt = parts.join("\n\n");
@@ -141,7 +122,7 @@ export async function POST(request: NextRequest) {
   // ── Call Gemini ────────────────────────────────────────────────────────────
   let resp: Response;
   try {
-    resp = await geminiGenerate(MODEL, apiKey, {
+    resp = await geminiGenerate(GEMINI_MODEL, apiKey, {
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
         temperature,
