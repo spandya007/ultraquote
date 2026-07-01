@@ -173,7 +173,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
   const labelSpan = hasDisc ? 5 : 4;
   const rows = s.line_items.map((i) => `
     <tr>
-      <td class="desc">${escapeHtml(i.description)}${lineSetup(i) > 0 ? `<span class="setup-note">+ ${fmtCurrency(lineSetup(i))} setup (one-time)</span>` : ""}</td>
+      <td class="desc"><span class="li-name">${escapeHtml(i.description)}</span>${lineSetup(i) > 0 ? `<span class="setup-note">+ ${fmtCurrency(lineSetup(i))} setup (one-time)</span>` : ""}${i.details ? `<span class="li-details">${nl2br(escapeHtml(i.details))}</span>` : ""}</td>
       <td class="bill">${i.billing_period ?? "—"}</td>
       <td class="num">${Math.round(i.quantity)}</td>
       <td class="num">${fmtCurrency(i.unit_price)}</td>
@@ -195,7 +195,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
         </th>
       </tr>
       <tr class="col-head">
-        <th style="${colHeadStyle}">Description</th><th style="${colHeadStyle}">Billing</th><th style="${colHeadStyle}">Qty</th><th style="${colHeadStyle}">Unit Price</th>${hasDisc ? `<th style="${colHeadStyle}">Discount</th>` : ""}<th style="${colHeadStyle}">Total</th>
+        <th style="${colHeadStyle}">Item</th><th style="${colHeadStyle}">Billing</th><th style="${colHeadStyle}">Qty</th><th style="${colHeadStyle}">Unit Price</th>${hasDisc ? `<th style="${colHeadStyle}">Discount</th>` : ""}<th style="${colHeadStyle}">Total</th>
       </tr>
     </thead>
     <tbody>
@@ -672,6 +672,8 @@ export function buildFullHtml(input: SerializeInput): string {
   .scenario-table tfoot .grand td { border-top: 2px solid #c4b5fd; font-weight: 700; }
   .scenario-table .empty { text-align: center; color: #94a3b8; }
   .scenario-table .savings { background: #f0fdf4 !important; color: #16a34a !important; font-weight: 700; }
+  .scenario-table .desc .li-name { font-weight: 600; }
+  .scenario-table .desc .li-details { display: block; font-size: 11px; color: #64748b; margin-top: 2px; padding-left: 12px; }
   .scenario-table .desc .setup-note { display: block; font-size: 11px; color: #64748b; margin-top: 2px; }
   .scenario-table tfoot .setup-incl { font-weight: 400; opacity: 0.75; }
 </style>

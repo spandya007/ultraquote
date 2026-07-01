@@ -232,6 +232,7 @@ export interface QuoteLineItem {
   product_id: string | null;
   pricing_tier_id: string | null;
   description: string;
+  details: string | null;                // long description, shown indented under the item name
   billing_period: BillingPeriod | null;
   quantity: number;
   unit_cost: number | null;

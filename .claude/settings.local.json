@@ -21,7 +21,25 @@
       "Bash(git commit -q -m 'Quote editor: '\\\\''Refresh prices from catalog'\\\\'' action *)",
       "Bash(echo \"exit: $?\")",
       "Bash(git commit -q -m 'Step 6: Help content for subscription, read-only grace, and member enable/disable \\(Team topic\\) *)",
-      "Bash(git commit -q -m 'Docs: mark subscription/access feature implemented \\(steps 1-6\\); note migration 012 in CLAUDE.md *)"
+      "Bash(git commit -q -m 'Docs: mark subscription/access feature implemented \\(steps 1-6\\); note migration 012 in CLAUDE.md *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git checkout *)",
+      "Bash(grep -nA8 \"create table public.platform_admins\" supabase/migrations/007_platform_admins_and_invites.sql)",
+      "Bash(grep -nA3 \"create table public.users\" supabase/schema.sql)",
+      "Bash(npx vitest *)",
+      "Bash(node scripts/test-db-reset.mjs)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git commit -m 'Add Organization test coverage; catch up RLS test DB to migration 020 *)",
+      "Bash(git commit -q -m 'Backlog: note org-level platform_enabled is not enforced in the access gate *)",
+      "Bash(gh pr create --base main --head feature/org-tests --title 'Add Organization test coverage; catch up RLS test DB to migration 020' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(npx playwright *)",
+      "Bash(supabase db *)",
+      "Read(//tmp/**)"
     ]
   }
 }

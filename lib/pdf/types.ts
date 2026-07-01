@@ -22,6 +22,7 @@ export interface SerializeTenant {
 
 export interface SerializeLineItem {
   description: string;
+  details: string | null;
   billing_period: "Monthly" | "One Time" | null;
   quantity: number;
   unit_price: number | null;
