@@ -773,8 +773,12 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       sort_order:      scenario.line_items.length,
     };
 
-    const { data } = await db.from("quote_line_items").insert(payload).select().single() as { data: LineItem | null };
-    if (!data) return;
+    const { data, error } = await db.from("quote_line_items").insert(payload).select().single() as { data: LineItem | null; error: { message?: string } | null };
+    if (error || !data) {
+      console.error("[add product] insert failed:", error);
+      toast.error(error?.message ? `Couldn't add item: ${error.message}` : "Couldn't add item");
+      return;
+    }
 
     setScenarios(prev => prev.map(s => {
       if (s.id !== activeScenario) return s;
