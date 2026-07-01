@@ -17,7 +17,7 @@ import {
 } from "@blocknote/xl-multi-column";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2 } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2, Keyboard } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
@@ -26,6 +26,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
+
+// Small keyboard-key chip for the editor hints bar.
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="px-1 py-px rounded border bg-background text-[10px] font-medium text-foreground/70 not-italic">
+      {children}
+    </kbd>
+  );
+}
 
 // ─── Custom: Page Break block ─────────────────────────────────────────────────
 
@@ -1438,6 +1447,22 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     scheduleSave();
   }
 
+  // ── Editor hints bar (dismissible, persisted; platform-aware modifier) ────
+  const [showHints, setShowHints] = useState(true);
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setShowHints(localStorage.getItem("quote.editorHints") !== "hidden");
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent));
+  }, []);
+  function toggleHints() {
+    setShowHints((v) => {
+      const next = !v;
+      localStorage.setItem("quote.editorHints", next ? "shown" : "hidden");
+      return next;
+    });
+  }
+  const mod = isMac ? "⌘" : "Ctrl";
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   const alignButtons: { alignment: TextAlignment; icon: React.ReactNode; label: string }[] = [
@@ -1878,6 +1903,17 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         </div>
         )}
 
+        <button
+          title={showHints ? "Hide editor tips" : "Show editor tips"}
+          onMouseDown={(e) => { e.preventDefault(); toggleHints(); }}
+          className={cn(
+            "ml-2 p-1.5 rounded hover:bg-muted transition-colors",
+            showHints ? "text-primary" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+        </button>
+
         <span className={cn(
           "text-xs transition-colors duration-300 ml-3 border-l pl-3 min-w-[58px] text-right",
           saveState === "saving" ? "text-muted-foreground" :
@@ -1928,6 +1964,29 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
             </ScenarioContext.Provider>
           </div>
       </div>
+
+      {/* Editor hints — block operations & shortcuts (dismissible). */}
+      {!readOnly && showHints && (
+        <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 border-t bg-muted/40 text-[11px] text-muted-foreground">
+          <Keyboard className="w-3 h-3 shrink-0" />
+          {[
+            <><Kbd>/</Kbd> insert block</>,
+            <>Select text, then <Kbd>{mod}</Kbd> <Kbd>B</Kbd>/<Kbd>I</Kbd>/<Kbd>U</Kbd> format</>,
+            <><span className="font-bold">⠿</span> drag or <Kbd>{mod}</Kbd> <Kbd>⇧</Kbd> <Kbd>↑↓</Kbd> move</>,
+            <>Click-drag across blocks to select several (then move together)</>,
+            <><Kbd>Tab</Kbd> / <Kbd>⇧Tab</Kbd> nest / un-nest</>,
+            <><Kbd>{mod}C</Kbd> / <Kbd>{mod}V</Kbd> copy-paste (also from Word/Docs)</>,
+            <><Kbd>{mod}Z</Kbd> / <Kbd>{mod}⇧Z</Kbd> undo / redo</>,
+          ].map((hint, i) => <span key={i} className="whitespace-nowrap">{hint}</span>)}
+          <button
+            title="Hide editor tips"
+            onMouseDown={(e) => { e.preventDefault(); toggleHints(); }}
+            className="ml-auto p-0.5 rounded hover:bg-muted-foreground/10 shrink-0"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
 
       {/* AI suggestion review */}
       {aiSuggestion && (
