@@ -1137,7 +1137,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       if (!res.ok) throw new Error(data.error || "AI request failed");
       // Strip tables client-side too (idempotent with the route) so this is
       // independent of which side recompiled, and preview === what's inserted.
-      setSectionDraft({ section: resultLabel, markdown: stripMarkdownTables(data.markdown) });
+      // Demote any top-level H1 heading to H2 (H1 is reserved for the doc title);
+      // ## and ### are left as-is, preserving hierarchy.
+      const md = stripMarkdownTables(data.markdown).replace(/^# /gm, "## ");
+      setSectionDraft({ section: resultLabel, markdown: md });
     } catch (e) {
       toastRef.current.error((e as Error).message);
     } finally {

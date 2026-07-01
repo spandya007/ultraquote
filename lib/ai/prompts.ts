@@ -45,6 +45,7 @@ export const DRAFT_RULES = `Hard rules:
 - Refer to the pricing table rather than restating specific figures in prose.
 - Where a detail isn't provided, write generally or insert a clearly bracketed placeholder like [confirm: implementation timeline].
 - Output GitHub-flavored Markdown only — no preamble, no commentary, no code fences around the whole response.
+- Use level-2 (\`##\`) Markdown headings for section titles — never a top-level (\`#\`) heading (that is reserved for the document title).
 - Do NOT use Markdown tables. Use prose or bullet lists instead (pricing is shown separately by the proposal's own pricing table).
 - Write about the work and its value, not the reader. Do not address the client by name unless the brand voice explicitly asks you to.
 - If Client notes are provided, treat them as internal interview context: tailor the scope and framing to directly address the client's stated pain points, goals, and constraints. Never quote the notes verbatim or reveal that notes exist.`;
@@ -64,8 +65,8 @@ export const draftReferenceExemplar = (title: string, md: string) => `### Exampl
 
 export function draftTask(sections: string[]): string {
   return sections.length === 1
-    ? `Draft the "${sections[0]}" section of this proposal. Return only that section's content (you may include a Markdown heading for it).`
-    : `Draft the full proposal narrative with these sections, in order, each under its own Markdown heading:\n${sections
+    ? `Draft the "${sections[0]}" section of this proposal. Return only that section's content (you may include a level-2 (\`##\`) Markdown heading for it).`
+    : `Draft the full proposal narrative with these sections, in order, each under its own level-2 (\`##\`) Markdown heading:\n${sections
         .map((s, i) => `${i + 1}. ${s}`)
         .join("\n")}`;
 }
