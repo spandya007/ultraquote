@@ -1107,7 +1107,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
 
   // Shared draft request — one section, or the whole proposal (sections[]).
   async function requestDraft(
-    payload: { section?: string; sections?: string[] },
+    payload: { section?: string; sections?: string[]; referenceQuoteIds?: string[] },
     busyLabel: string,
     resultLabel: string,
     intake: { tone?: string; length?: string; emphasis?: string } = { tone: "professional", length: "short" }
@@ -1160,6 +1160,32 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const [outlineBusy, setOutlineBusy] = useState(false);
   const [outline, setOutline] = useState<{ title: string; hint?: string }[]>([]);
 
+  // Optional style exemplars: pick up to 2 past proposals (tenant-scoped by RLS).
+  const [refQuotes, setRefQuotes] = useState<{ id: string; quote_number: string; title: string | null; client: string | null }[]>([]);
+  const [refSelected, setRefSelected] = useState<string[]>([]);
+  const [refLoading, setRefLoading] = useState(false);
+
+  useEffect(() => {
+    if (guidedStep !== "intake") return;
+    let cancelled = false;
+    setRefLoading(true);
+    (async () => {
+      const { data } = await supabaseRef.current
+        .from("quotes")
+        .select("id, quote_number, title, client:clients(company_name)")
+        .neq("id", quoteIdRef.current)
+        .order("updated_at", { ascending: false })
+        .limit(30);
+      if (cancelled) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setRefQuotes((data ?? []).map((q: any) => ({
+        id: q.id, quote_number: q.quote_number, title: q.title, client: q.client?.company_name ?? null,
+      })));
+      setRefLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [guidedStep]);
+
   const currentIntake = () => ({
     tone: intakeTone,
     length: intakeLength,
@@ -1199,7 +1225,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     const titles = outline.map(s => s.title.trim()).filter(Boolean);
     if (titles.length === 0) { toastRef.current.error("Add at least one section"); return; }
     setGuidedStep(null);
-    requestDraft({ sections: titles }, "Full proposal", "Full proposal", currentIntake());
+    requestDraft({ sections: titles, referenceQuoteIds: refSelected }, "Full proposal", "Full proposal", currentIntake());
   }
 
   async function acceptSectionDraft() {
@@ -1855,7 +1881,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setGuidedStep("intake"); }}
+                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setGuidedStep("intake"); }}
                   className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -2201,6 +2227,48 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                 <textarea value={intakeEmphasis} onChange={(e) => setIntakeEmphasis(e.target.value)} rows={2} maxLength={300}
                   placeholder="Anything to stress — e.g. after-hours security, fast rollout, NDAA compliance, budget fit."
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">
+                  Reference a past proposal <span className="font-normal text-muted-foreground">(optional — style example)</span>
+                </label>
+                {refLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading your proposals…</p>
+                ) : refQuotes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No other proposals to reference yet.</p>
+                ) : (
+                  <div className="max-h-32 overflow-y-auto rounded-md border divide-y">
+                    {refQuotes.map((q) => {
+                      const checked = refSelected.includes(q.id);
+                      const atMax = refSelected.length >= 2 && !checked;
+                      return (
+                        <label
+                          key={q.id}
+                          className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-muted/50",
+                            atMax ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atMax}
+                            onChange={() => setRefSelected((sel) => checked ? sel.filter((x) => x !== q.id) : [...sel, q.id])}
+                          />
+                          <span className="truncate">
+                            <span className="font-mono text-xs">{q.quote_number}</span>
+                            {q.title ? ` · ${q.title}` : ""}
+                            {q.client ? <span className="text-muted-foreground"> — {q.client}</span> : ""}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Pick up to 2. The AI uses them as examples of writing style and structure only — never their facts or pricing.
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
