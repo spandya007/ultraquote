@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, Check, Plus, Trash2, Star, FileText, List, Eye, X, Download, Loader2, Send, AlertTriangle, ChevronLeft, ChevronRight, RefreshCw, ClipboardList } from "lucide-react";
 import dynamic from "next/dynamic";
 
 // Lazy-load BlockNote to avoid SSR issues
@@ -86,6 +86,7 @@ interface Quote {
   include_header_footer: boolean;
   pdf_url: string | null;
   notes: string | null;
+  client_notes: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   document_content: any[] | null;
   client: {
@@ -252,7 +253,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
   }
   const [showMargins, setShowMargins] = useState(initialQuote.show_margins);
   const [includeHeaderFooter, setIncludeHeaderFooter] = useState(initialQuote.include_header_footer ?? true);
-  const [activeTab, setActiveTab] = useState<"lineitems" | "document">("lineitems");
+  const [activeTab, setActiveTab] = useState<"lineitems" | "document" | "clientnotes">("lineitems");
   // Collapsible right details panel (persisted) — frees horizontal room on laptops.
   const [rightOpen, setRightOpen] = useState(true);
   useEffect(() => {
@@ -269,7 +270,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
   // the BlockNote editor while it's hidden (display:none causes ProseMirror
   // to crash because node views can't resolve DOM positions with no layout).
   const [documentEverOpened, setDocumentEverOpened] = useState(false);
-  function switchTab(tab: "lineitems" | "document") {
+  function switchTab(tab: "lineitems" | "document" | "clientnotes") {
     if (tab === "document") setDocumentEverOpened(true);
     setActiveTab(tab);
   }
@@ -607,6 +608,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
         tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
         notes:                 quote.notes,
+        client_notes:          quote.client_notes,
         show_margins:          showMargins,
         include_header_footer: includeHeaderFooter,
       }).eq("id", quote.id);
@@ -623,7 +625,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
     return () => { if (quoteSaveTimer.current) clearTimeout(quoteSaveTimer.current); };
   // db/toast are stable enough; we intentionally key off the quote fields only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quote.title, quote.valid_until, quote.payment_terms, quote.notes, showMargins, includeHeaderFooter]);
+  }, [quote.title, quote.valid_until, quote.payment_terms, quote.notes, quote.client_notes, showMargins, includeHeaderFooter]);
 
   // ── Preview ────────────────────────────────────────────────────────────────
   // Flush both document + metadata saves first so the server-rendered preview
@@ -643,6 +645,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
         tax_rate:              taxRate, // sync snapshot to the company rate
         payment_terms:         quote.payment_terms,
         notes:                 quote.notes,
+        client_notes:          quote.client_notes,
         show_margins:          showMargins,
         include_header_footer: includeHeaderFooter,
       }).eq("id", quote.id),
@@ -1038,6 +1041,19 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
               <FileText className="w-4 h-4" />
               Document
             </button>
+            <button
+              title="Internal interview notes (pain points, goals, context) — feeds the AI draft, never shown to the client"
+              onClick={() => switchTab("clientnotes")}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors",
+                activeTab === "clientnotes"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ClipboardList className="w-4 h-4" />
+              Client Notes
+            </button>
           </div>
 
           {/* Document tab — mounted on first visit, then kept alive (CSS-hidden)
@@ -1060,6 +1076,41 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
               onPricingApplied={refreshScenarios}
               onSignatureFieldsChange={handleSigFieldsChange}
             />
+          </div>
+          )}
+
+          {/* Client Notes tab — internal interview notes; grounds the AI draft,
+              never rendered in the client-facing proposal/PDF. */}
+          {activeTab === "clientnotes" && (
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-3xl mx-auto space-y-3">
+              <div>
+                <h2 className="text-base font-semibold flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-muted-foreground" /> Client Notes
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Internal notes from talking to the client — pain points, goals, constraints, current
+                  setup, budget signals. The <strong>AI Draft</strong> uses these to target the client&apos;s
+                  specific situation. <strong>Never shown to the client</strong> and never included in the
+                  proposal or PDF.
+                </p>
+              </div>
+              <textarea
+                value={quote.client_notes ?? ""}
+                onChange={(e) => setQuote(q => ({ ...q, client_notes: e.target.value }))}
+                disabled={!canEdit}
+                rows={18}
+                placeholder={
+                  "e.g. Mike's biggest concern is after-hours break-ins at the loading dock — current cameras are\n" +
+                  "low-res and not recording reliably. Wants remote viewing on his phone. Needs NDAA-compliant gear\n" +
+                  "for an upcoming gov contract. Budget ~\$8k. Decision by end of month; competitor quoted analog."
+                }
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring resize-y disabled:opacity-60"
+              />
+              {!canEdit && (
+                <p className="text-xs text-muted-foreground">View only — you can&apos;t edit this quote.</p>
+              )}
+            </div>
           </div>
           )}
 

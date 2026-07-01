@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
+import { GEMINI_MODEL, extractPricingPrompt } from "@/lib/ai/prompts";
 
 // Extracts pricing line items from imported document tables (via Gemini JSON
-// mode) and classifies each against the tenant's product catalog.
+// mode) and classifies each against the tenant's product catalog. Prompt wording
+// lives in lib/ai/prompts.ts (extractPricingPrompt).
 
 export const runtime = "nodejs";
-
-const MODEL = "gemini-2.5-flash";
 
 interface IncomingTable { heading?: string; rows: string[][] }
 interface ExtractBody { tables: IncomingTable[] }
@@ -48,21 +48,11 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Ask Gemini to extract pricing line items grouped into scenarios ─────────
-  const prompt = [
-    "You are a data-extraction assistant for a Managed Service Provider's quoting tool.",
-    "Below are tables extracted from a proposal document (each with an optional preceding heading).",
-    "Identify ONLY the tables that contain pricing/line-item information (services or products with prices). IGNORE non-pricing tables (e.g. contact info, schedules, generic field/value tables).",
-    "For each pricing table, produce a scenario. Use the table's heading as the scenario name (or a concise sensible name).",
-    "For each row, output a line item with: description, billing_period ('Monthly' or 'One Time'), quantity (default 1 if absent), unit_price (a number; if only a line total and quantity are given, compute unit_price = total / quantity), and is_taxable (boolean, default false).",
-    "Infer billing_period from column headers/wording (monthly/MRR/recurring → 'Monthly'; setup/one-time/install/hardware → 'One Time'). Strip currency symbols and commas from numbers.",
-    'Return ONLY JSON of the form: {"scenarios":[{"name":"...","line_items":[{"description":"...","billing_period":"Monthly","quantity":1,"unit_price":0,"is_taxable":false}]}]}. If no pricing tables are found, return {"scenarios":[]}.',
-    "Tables:",
-    JSON.stringify(body.tables).slice(0, 12000),
-  ].join("\n\n");
+  const prompt = extractPricingPrompt(JSON.stringify(body.tables).slice(0, 12000));
 
   let resp: Response;
   try {
-    resp = await geminiGenerate(MODEL, apiKey, {
+    resp = await geminiGenerate(GEMINI_MODEL, apiKey, {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.1,

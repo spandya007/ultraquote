@@ -25,10 +25,13 @@ const adminUrl = (p: string) => `${LOCAL_SUPABASE_URL}/auth/v1/admin${p}`;
 // (avoids import.meta, which would flip this module into ESM and break loading).
 const file = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
-// schema.sql is the complete from-scratch schema, regenerated through migration
-// 020, so no deltas are applied here. Add 021+ as they land (and keep in sync
-// with scripts/test-db-reset.mjs) until the next schema.sql regeneration.
-const MIGRATIONS: string[] = [];
+// schema.sql is the complete from-scratch schema through migration 020; list
+// 021+ deltas here (keep in sync with scripts/test-db-reset.mjs) until the next
+// schema.sql regeneration.
+const MIGRATIONS: string[] = [
+  "supabase/migrations/021_brand_voice_profile.sql",
+  "supabase/migrations/022_add_client_notes.sql",
+];
 
 async function resetDb() {
   const client = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL ?? LOCAL_DB_URL });

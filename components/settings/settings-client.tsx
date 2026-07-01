@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, SlidersHorizontal, Upload, Trash2, Loader2, FolderTree } from "lucide-react";
+import { Building2, SlidersHorizontal, Upload, Trash2, Loader2, FolderTree, Megaphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
@@ -29,6 +29,9 @@ interface TenantSettings {
   quote_number_sequence: number;
   default_payment_terms: string;
   default_font: string | null;
+  business_type: string | null;
+  business_about: string | null;
+  brand_voice: string | null;
 }
 
 interface Props {
@@ -136,6 +139,12 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
   const [font,         setFont]         = useState(settings?.default_font ?? "sans");
   const [savingDefaults, setSavingDefaults] = useState(false);
 
+  // ── Proposal voice (AI brand profile) state ───────────────────────────────
+  const [bizType,  setBizType]  = useState(settings?.business_type  ?? "");
+  const [bizAbout, setBizAbout] = useState(settings?.business_about ?? "");
+  const [voice,    setVoice]    = useState(settings?.brand_voice    ?? "");
+  const [savingVoice, setSavingVoice] = useState(false);
+
   // ── Save handlers ─────────────────────────────────────────────────────────
 
   async function saveProfile() {
@@ -184,17 +193,30 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
     setPrefix(prefixClean);
   }
 
+  async function saveBrandVoice() {
+    setSavingVoice(true);
+    const { error } = await db.from("tenant_settings").upsert({
+      tenant_id:      tenantId,
+      business_type:  bizType.trim()  || null,
+      business_about: bizAbout.trim() || null,
+      brand_voice:    voice.trim()    || null,
+    }, { onConflict: "tenant_id" });
+    setSavingVoice(false);
+    if (error) toast.error("Failed to save proposal voice");
+    else toast.success("Proposal voice saved");
+  }
+
   // Platform-managed fields (Company Name / Contact Email) can change from the
   // /admin console in a different session, so poll the server to pick those up.
   // Skipped while the tab is hidden or a save/upload is in flight (avoid
   // refreshing mid-action). router.refresh() preserves typed-in field state.
   useEffect(() => {
     const id = setInterval(() => {
-      if (document.hidden || savingProfile || savingDefaults || uploadingLogo) return;
+      if (document.hidden || savingProfile || savingDefaults || savingVoice || uploadingLogo) return;
       router.refresh();
     }, 30_000);
     return () => clearInterval(id);
-  }, [router, savingProfile, savingDefaults, uploadingLogo]);
+  }, [router, savingProfile, savingDefaults, savingVoice, uploadingLogo]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -408,6 +430,66 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
             </button>
           </div>
         )}
+        </fieldset>
+      </SectionCard>
+
+      {/* ── Proposal Voice (AI brand profile) ── */}
+      <SectionCard icon={<Megaphone className="w-4 h-4" />} title="Proposal Voice">
+        <p className="text-sm text-muted-foreground -mt-1">
+          Shapes how the AI drafts proposal content — your business identity and tone.
+          Leave blank for a neutral professional voice.
+        </p>
+        <fieldset disabled={!isOwner} className="contents">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">What your business does</label>
+            <input
+              value={bizType}
+              onChange={e => setBizType(e.target.value)}
+              className={inputCls()}
+              maxLength={120}
+              placeholder="e.g. Commercial security camera & access-control installer"
+            />
+            <p className="text-xs text-muted-foreground">One line — used as the author&apos;s role in AI drafts (replaces a generic default).</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">About your business</label>
+            <textarea
+              value={bizAbout}
+              onChange={e => setBizAbout(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              className={cn(inputCls(), "resize-y")}
+              placeholder="Differentiators the AI can draw on — e.g. licensed & insured, 12 years in the Bay Area, NDAA-compliant gear, 5-year warranty, in-house techs."
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Brand voice &amp; writing style</label>
+            <textarea
+              value={voice}
+              onChange={e => setVoice(e.target.value)}
+              rows={3}
+              maxLength={500}
+              className={cn(inputCls(), "resize-y")}
+              placeholder="e.g. Warm and consultative; plain language, no jargon, no hype. One short paragraph per section. Don't address the client by name."
+            />
+            <p className="text-xs text-muted-foreground">
+              Guides the AI&apos;s tone <em>and</em> style. You can control things like:
+              formality (warm / formal / technical), length (one short paragraph vs. detailed),
+              terseness, jargon, and whether to address the client by name. Defaults when blank:
+              a neutral professional voice, one short paragraph per section, no client name.
+            </p>
+          </div>
+          {isOwner && (
+            <div className="flex justify-end">
+              <button
+                onClick={saveBrandVoice}
+                disabled={savingVoice}
+                className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {savingVoice ? "Saving…" : "Save Voice"}
+              </button>
+            </div>
+          )}
         </fieldset>
       </SectionCard>
 

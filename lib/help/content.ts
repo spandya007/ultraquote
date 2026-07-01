@@ -145,10 +145,44 @@ export const HELP_TOPICS: HelpTopic[] = [
         ],
       },
       {
-        heading: "Ask AI",
+        heading: "AI Draft — write proposal sections for you",
         blocks: [
-          p("The Ask AI button helps you write: improve, lengthen, shorten, fix grammar, change tone, generate from a prompt, or continue writing."),
-          p("AI suggestions are shown for review (original vs suggested) so you can Replace or Discard — nothing changes until you accept it."),
+          p("The ✦ AI Draft button (Document toolbar) writes proposal content grounded in this quote — your pricing scenarios, the client, your Proposal Voice (Settings), and your Client Notes. You don’t need a pricing table in the document for the AI to know your pricing; it reads the scenarios directly."),
+          p("Ways to draft:"),
+          ul([
+            "Guided draft — set the style (tone, length, optional emphasis, optionally a past proposal to match), review an AI-proposed section outline you can rename / reorder / add / remove, then draft it all.",
+            "Draft full proposal — one click drafts all the standard sections at once.",
+            "A single section, or Custom section — draft just one, or type any heading you like.",
+          ]),
+          p("Every draft is shown for review first — Insert or Discard — and inserted text is fully editable. Full-proposal drafts end with a call to action to e-sign; if you’ve added multiple-choice or acceptance blocks, it also asks the client to accept those options/terms."),
+          p("The AI only uses the services and prices on your quote — it never invents line items, prices, or dates, and leaves bracketed notes like “[confirm: timeline]” where a detail is unknown."),
+        ],
+      },
+      {
+        heading: "Ask AI (edit or generate text)",
+        blocks: [
+          p("Ask AI works on text you select: improve, make longer / shorter, fix grammar, or change tone — or generate from a prompt / continue writing. (AI Draft generates whole sections; Ask AI edits or extends what’s already there.)"),
+          p("Generated text uses the same Proposal Voice as AI Draft. Suggestions are shown for review (original vs suggested) so you can Replace or Discard — nothing changes until you accept."),
+        ],
+      },
+      {
+        heading: "Client Notes (internal)",
+        blocks: [
+          p("Each quote has a Client Notes tab (next to Pricing Scenarios and Document) for notes from talking to the client — pain points, goals, budget signals, timing. AI Draft reads these to target the proposal to the client’s situation."),
+          p("These notes are internal: they are never shown to the client and never appear in the proposal or PDF."),
+        ],
+      },
+      {
+        heading: "Moving & editing blocks",
+        blocks: [
+          p("The document is made of blocks (paragraphs, headings, lists, pricing tables, and so on). A tips bar at the bottom of the editor lists the shortcuts; the keyboard button in the toolbar shows or hides it."),
+          ul([
+            "Move a block — hover its left edge for the ⠿ handle and drag, or press Ctrl/⌘-Shift-↑ / ↓.",
+            "Move several at once — click-drag across blocks to select them, then move them together.",
+            "Nest / un-nest — Tab / Shift-Tab.",
+            "Copy / paste — Ctrl/⌘-C and Ctrl/⌘-V; you can also paste from Word, Google Docs, or a web page and it converts to blocks.",
+            "Undo / redo — Ctrl/⌘-Z and Ctrl/⌘-Shift-Z.",
+          ]),
         ],
       },
       {
@@ -385,6 +419,19 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [
           p("Settings → Quote Defaults → Proposal Font sets the typeface for your proposals — choose Sans-serif (Helvetica/Arial), Serif (Times New Roman), or Monospace (Courier). It’s a company-wide setting that applies to every quote."),
           p("The font shows everywhere the proposal is rendered: while editing the Document, in the Preview and downloaded PDF, and in the e-signature document. Reload an open quote after changing it. (The choice is limited to these three so it renders reliably in both the PDF and the signing document.)"),
+        ],
+      },
+      {
+        heading: "Proposal Voice (how AI writes)",
+        ownerOnly: true,
+        blocks: [
+          p("Settings → Proposal Voice controls who the AI writes as and how it sounds when you use AI Draft or Ask AI. Three fields:"),
+          ul([
+            "What your business does — one line (e.g. “Commercial security camera installer” or “Managed Service Provider”). This is the author’s role in every draft.",
+            "About your business — differentiators the AI can draw on (certifications, years in business, warranty, in-house techs…).",
+            "Brand voice & writing style — tone and style; you can control formality, length, terseness, jargon, and whether to address the client by name.",
+          ]),
+          p("Leave any field blank for a neutral professional default. To change your business type — say from a security-camera installer to an MSP — just update “What your business does” here and save."),
         ],
       },
       {

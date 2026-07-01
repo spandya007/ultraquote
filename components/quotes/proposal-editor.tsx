@@ -17,14 +17,24 @@ import {
 } from "@blocknote/xl-multi-column";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useTheme } from "next-themes";
-import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2 } from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2, Keyboard } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
+import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { createClient } from "@/lib/supabase/client";
 import { useTenantId } from "@/lib/supabase/use-tenant";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
+
+// Small keyboard-key chip for the editor hints bar.
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="px-1 py-px rounded border bg-background text-[10px] font-medium text-foreground/70 not-italic">
+      {children}
+    </kbd>
+  );
+}
 
 // ─── Custom: Page Break block ─────────────────────────────────────────────────
 
@@ -389,6 +399,12 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
           <table key={s.id} style={{
             width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 11,
             border: `1px solid ${c.border}`,
+            // This live-preview <table> is display-only. Make it transparent to
+            // pointer events so BlockNote's table-handles plugin never resolves
+            // it to this custom block (which has content:"none" / no rows) and
+            // crashes its mousemove handler reading content.rows. Nothing here is
+            // interactive (the scenario <select> is a sibling above the table).
+            pointerEvents: "none",
           }}>
             <thead>
               <tr>
@@ -814,11 +830,14 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       if (contentLoaded.current) return;
       contentLoaded.current = true;
       try {
+        // Self-heal any previously-saved malformed table block (would otherwise
+        // crash BlockNote's table mouse handler on hover — see sanitizeBlocks).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        editor.replaceBlocks(editor.document, initialContent as any);
-        // Ignore the onChange triggered by this programmatic load so we don't
-        // immediately re-save identical content back to Supabase.
-        skipNextChange.current = true;
+        const cleaned = sanitizeBlocks(initialContent as any[]);
+        editor.replaceBlocks(editor.document, cleaned as any);
+        // If nothing was dropped, ignore the echo onChange so we don't re-save
+        // identical content; if we DID clean a block, let it persist.
+        skipNextChange.current = cleaned.length === (initialContent as unknown[]).length;
       } catch (e) {
         console.error("[ProposalEditor] failed to load saved content:", e);
       }
@@ -982,13 +1001,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   // Build explicit ProseMirror paragraph nodes (NOT an HTML string). Inserting
   // HTML mid-paragraph made TipTap wrap the content in a blockquote; paragraph
   // nodes insert as clean, normal paragraphs.
-  function aiTextToNodes(t: string) {
-    const paras = t.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
-    if (paras.length === 0) return [{ type: "paragraph" }];
-    return paras.map(p => ({
-      type: "paragraph",
-      content: [{ type: "text", text: p.replace(/\s*\n\s*/g, " ") }],
-    }));
+  // Split AI output into clean paragraph strings (blank line = new paragraph;
+  // single newlines collapse to spaces).
+  function splitAiParas(t: string): string[] {
+    return t.split(/\n{2,}/).map(s => s.trim().replace(/\s*\n\s*/g, " ")).filter(Boolean);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function tt() { return (editorRef.current as any)._tiptapEditor; }
@@ -1044,9 +1060,23 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   function acceptSuggestion() {
     if (!aiSuggestion) return;
     const { from, to, suggested } = aiSuggestion;
-    // insertContentAt replaces [from,to] for selection edits, or inserts at the
-    // cursor when from === to (generate/continue).
-    tt().chain().focus().insertContentAt({ from, to }, aiTextToNodes(suggested)).run();
+    const ed = editorRef.current;
+    const paras = splitAiParas(suggested);
+    if (paras.length === 0) { setAiSuggestion(null); return; }
+
+    // First paragraph replaces the selected range INLINE (so phrase-level edits
+    // stay in place). Insert a text node, not a string, to avoid HTML parsing.
+    tt().chain().focus().insertContentAt({ from, to }, [{ type: "text", text: paras[0] }]).run();
+
+    // Remaining paragraphs become proper SIBLING blocks after the current block,
+    // via BlockNote's insertBlocks. Inserting raw paragraph nodes through
+    // ProseMirror nested each one as a child of the previous (the staircase bug).
+    if (paras.length > 1) {
+      const cur = ed.getTextCursorPosition().block;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ed.insertBlocks(paras.slice(1).map(p => ({ type: "paragraph", content: p })) as any, cur, "after");
+    }
+
     scheduleSave();
     setAiSuggestion(null);
     toastRef.current.success("Applied — use Undo to revert");
@@ -1056,18 +1086,204 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     setAiSuggestion(null);
   }
 
-  // Fill an empty document, otherwise insert after the cursor. Shared by Import
-  // and Apply-template.
+  // ── Draft a section with Claude (Insert-section menu) ─────────────────────
+  // Calls /api/ai/draft for ONE grounded section, then stages the Markdown for
+  // review (preview-before-apply) before converting to blocks + inserting.
+  const PROPOSAL_SECTIONS = [
+    "Executive Summary", "Scope of Work", "Why Us",
+    "Timeline", "Investment", "Next Steps",
+  ] as const;
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftBusy, setDraftBusy] = useState<string | null>(null); // section name while generating
+  const [sectionDraft, setSectionDraft] = useState<{ section: string; markdown: string } | null>(null);
+  const [customSection, setCustomSection] = useState("");
+
+  function runCustomSection() {
+    const s = customSection.trim();
+    if (!s) return;
+    setCustomSection("");
+    runSectionDraft(s);
+  }
+
+  // Shared draft request — one section, or the whole proposal (sections[]).
+  async function requestDraft(
+    payload: { section?: string; sections?: string[]; referenceQuoteIds?: string[] },
+    busyLabel: string,
+    resultLabel: string,
+    intake: { tone?: string; length?: string; emphasis?: string } = { tone: "professional", length: "short" }
+  ) {
+    setDraftBusy(busyLabel);
+    setDraftOpen(false);
+    try {
+      // Detect signing/terms blocks already placed in the document so the closing
+      // CTA can invite e-signing (+ accepting terms when radio/acceptance blocks exist).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blocks = flattenBlocks(editorRef.current.document) as any[];
+      const signing = {
+        hasTerms:     blocks.some(b => b.type === "radioField" || b.type === "acceptanceField"),
+        hasSignature: blocks.some(b => b.type === "signatureField" || b.type === "initialsField"),
+      };
+      const res = await fetch("/api/ai/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quoteId: quoteIdRef.current,
+          ...payload,
+          intake,
+          signing,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed");
+      // Strip tables client-side too (idempotent with the route) so this is
+      // independent of which side recompiled, and preview === what's inserted.
+      // Demote any top-level H1 heading to H2 (H1 is reserved for the doc title);
+      // ## and ### are left as-is, preserving hierarchy.
+      const md = stripMarkdownTables(data.markdown).replace(/^# /gm, "## ");
+      setSectionDraft({ section: resultLabel, markdown: md });
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setDraftBusy(null);
+    }
+  }
+
+  function runSectionDraft(section: string) {
+    requestDraft({ section }, section, section);
+  }
+  function runFullDraft() {
+    requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal");
+  }
+
+  // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
+  const [guidedStep, setGuidedStep] = useState<null | "intake" | "outline">(null);
+  const [intakeTone, setIntakeTone] = useState("professional");
+  const [intakeLength, setIntakeLength] = useState<"short" | "standard" | "detailed">("standard");
+  const [intakeEmphasis, setIntakeEmphasis] = useState("");
+  const [outlineBusy, setOutlineBusy] = useState(false);
+  const [outline, setOutline] = useState<{ title: string; hint?: string }[]>([]);
+
+  // Optional style exemplars: pick up to 2 past proposals (tenant-scoped by RLS).
+  const [refQuotes, setRefQuotes] = useState<{ id: string; quote_number: string; title: string | null; client: string | null }[]>([]);
+  const [refSelected, setRefSelected] = useState<string[]>([]);
+  const [refLoading, setRefLoading] = useState(false);
+
+  useEffect(() => {
+    if (guidedStep !== "intake") return;
+    let cancelled = false;
+    setRefLoading(true);
+    (async () => {
+      const { data } = await supabaseRef.current
+        .from("quotes")
+        .select("id, quote_number, title, client:clients(company_name)")
+        .neq("id", quoteIdRef.current)
+        .order("updated_at", { ascending: false })
+        .limit(30);
+      if (cancelled) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setRefQuotes((data ?? []).map((q: any) => ({
+        id: q.id, quote_number: q.quote_number, title: q.title, client: q.client?.company_name ?? null,
+      })));
+      setRefLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [guidedStep]);
+
+  const currentIntake = () => ({
+    tone: intakeTone,
+    length: intakeLength,
+    emphasis: intakeEmphasis.trim() || undefined,
+  });
+
+  async function generateOutline() {
+    setOutlineBusy(true);
+    try {
+      const res = await fetch("/api/ai/outline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: quoteIdRef.current, intake: currentIntake() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed");
+      setOutline(Array.isArray(data.sections) ? data.sections : []);
+      setGuidedStep("outline");
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setOutlineBusy(false);
+    }
+  }
+
+  function moveOutline(i: number, dir: -1 | 1) {
+    setOutline(o => {
+      const j = i + dir;
+      if (j < 0 || j >= o.length) return o;
+      const n = [...o];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+  }
+
+  function runGuidedDraft() {
+    const titles = outline.map(s => s.title.trim()).filter(Boolean);
+    if (titles.length === 0) { toastRef.current.error("Add at least one section"); return; }
+    setGuidedStep(null);
+    requestDraft({ sections: titles, referenceQuoteIds: refSelected }, "Full proposal", "Full proposal", currentIntake());
+  }
+
+  async function acceptSectionDraft() {
+    if (!sectionDraft) return;
+    try {
+      const blocks = await editorRef.current.tryParseMarkdownToBlocks(sectionDraft.markdown);
+      if (!blocks || blocks.length === 0) { toastRef.current.error("Nothing to insert"); return; }
+      insertBlocksIntoDoc(blocks);
+      toastRef.current.success("Section inserted — use Undo if needed");
+    } catch (e) {
+      toastRef.current.error((e as Error).message);
+    } finally {
+      setSectionDraft(null);
+    }
+  }
+
+  // Drop malformed table blocks before inserting. BlockNote 0.14's markdown
+  // parser (tryParseMarkdownToBlocks, used by AI Draft + .md Import) can emit a
+  // `table` block whose content has no valid `rows` array; the table extension's
+  // mouse handler then crashes reading `content.rows` of undefined. Keep
+  // well-formed tables, drop empty/malformed ones; recurse children.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function sanitizeBlocks(blocks: any[]): any[] {
+    if (!Array.isArray(blocks)) return [];
+    return blocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((b: any) => {
+        if (b?.type === "table") {
+          const rows = b?.content?.rows;
+          return Array.isArray(rows) && rows.length > 0;
+        }
+        return true;
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((b: any) =>
+        Array.isArray(b?.children) && b.children.length
+          ? { ...b, children: sanitizeBlocks(b.children) }
+          : b
+      );
+  }
+
+  // Fill an empty document, otherwise insert after the cursor. Shared by Import,
+  // Apply-template, and AI Draft.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function insertBlocksIntoDoc(blocks: any[]) {
     const ed = editorRef.current;
+    const safe = sanitizeBlocks(blocks);
+    if (safe.length === 0) { toastRef.current.error("Nothing to insert"); return; }
     const doc = ed.document;
     const docEmpty =
       doc.length === 1 && doc[0].type === "paragraph" &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (!doc[0].content || (Array.isArray(doc[0].content) && (doc[0].content as any).length === 0));
-    if (docEmpty) ed.replaceBlocks(ed.document, blocks);
-    else ed.insertBlocks(blocks, ed.getTextCursorPosition().block, "after");
+    if (docEmpty) ed.replaceBlocks(ed.document, safe);
+    else ed.insertBlocks(safe, ed.getTextCursorPosition().block, "after");
     scheduleSave();
   }
 
@@ -1331,6 +1547,22 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     editor.focus();
     scheduleSave();
   }
+
+  // ── Editor hints bar (dismissible, persisted; platform-aware modifier) ────
+  const [showHints, setShowHints] = useState(true);
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setShowHints(localStorage.getItem("quote.editorHints") !== "hidden");
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent));
+  }, []);
+  function toggleHints() {
+    setShowHints((v) => {
+      const next = !v;
+      localStorage.setItem("quote.editorHints", next ? "shown" : "hidden");
+      return next;
+    });
+  }
+  const mod = isMac ? "⌘" : "Ctrl";
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -1632,6 +1864,83 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
           })()}
         </div>
 
+        {/* Draft a section with AI (quote-only — needs the quote's scenarios/
+            client data to ground the content). Hidden in template mode. */}
+        {!isTemplate && (
+        <div className="relative">
+          <button
+            title="AI Draft — generate a proposal section (Executive Summary, Scope, etc.) grounded in this quote's client, pricing, and client notes"
+            onMouseDown={(e) => { e.preventDefault(); if (!draftBusy) setDraftOpen(o => !o); }}
+            disabled={!!draftBusy}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
+          >
+            {draftBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {draftBusy ? "Drafting…" : "AI Draft"}
+            {!draftBusy && <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {draftOpen && !draftBusy && (
+            <>
+              <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
+              <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setGuidedStep("intake"); }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  Guided draft…
+                  <span className="ml-auto text-[10px] font-normal text-violet-500">intake → outline</span>
+                </button>
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); runFullDraft(); }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 hover:bg-violet-100 border-b border-violet-200 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  Draft full proposal
+                  <span className="ml-auto text-[10px] font-normal text-violet-500">all sections</span>
+                </button>
+                <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
+                  <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Or draft one section</p>
+                </div>
+                {PROPOSAL_SECTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onMouseDown={(e) => { e.preventDefault(); runSectionDraft(s); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-violet-50 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+                {/* Custom section — draft any heading the presets don't cover. */}
+                <div className="border-t border-violet-100 p-2">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={customSection}
+                      onChange={(e) => setCustomSection(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runCustomSection(); } }}
+                      placeholder="Custom section…"
+                      maxLength={80}
+                      className="flex-1 min-w-0 text-sm rounded-md border border-violet-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); runCustomSection(); }}
+                      disabled={!customSection.trim()}
+                      className="shrink-0 rounded-md bg-violet-600 text-white text-xs font-medium px-2.5 py-1.5 hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                    >
+                      Draft
+                    </button>
+                  </div>
+                </div>
+                <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-violet-100">
+                  Grounded in this quote’s client &amp; pricing. You review before it’s inserted.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+        )}
+
         {/* Import .docx / .html / .md */}
         <div>
           <button
@@ -1711,6 +2020,17 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         </div>
         )}
 
+        <button
+          title={showHints ? "Hide editor tips" : "Show editor tips"}
+          onMouseDown={(e) => { e.preventDefault(); toggleHints(); }}
+          className={cn(
+            "ml-2 p-1.5 rounded hover:bg-muted transition-colors",
+            showHints ? "text-primary" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+        </button>
+
         <span className={cn(
           "text-xs transition-colors duration-300 ml-3 border-l pl-3 min-w-[58px] text-right",
           saveState === "saving" ? "text-muted-foreground" :
@@ -1762,6 +2082,29 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
           </div>
       </div>
 
+      {/* Editor hints — block operations & shortcuts (dismissible). */}
+      {!readOnly && showHints && (
+        <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 border-t bg-muted/40 text-[11px] text-muted-foreground">
+          <Keyboard className="w-3 h-3 shrink-0" />
+          {[
+            <><Kbd>/</Kbd> insert block</>,
+            <>Select text, then <Kbd>{mod}</Kbd> <Kbd>B</Kbd>/<Kbd>I</Kbd>/<Kbd>U</Kbd> format</>,
+            <><span className="font-bold">⠿</span> drag or <Kbd>{mod}</Kbd> <Kbd>⇧</Kbd> <Kbd>↑↓</Kbd> move</>,
+            <>Click-drag across blocks to select several (then move together)</>,
+            <><Kbd>Tab</Kbd> / <Kbd>⇧Tab</Kbd> nest / un-nest</>,
+            <><Kbd>{mod}C</Kbd> / <Kbd>{mod}V</Kbd> copy-paste (also from Word/Docs)</>,
+            <><Kbd>{mod}Z</Kbd> / <Kbd>{mod}⇧Z</Kbd> undo / redo</>,
+          ].map((hint, i) => <span key={i} className="whitespace-nowrap">{hint}</span>)}
+          <button
+            title="Hide editor tips"
+            onMouseDown={(e) => { e.preventDefault(); toggleHints(); }}
+            className="ml-auto p-0.5 rounded hover:bg-muted-foreground/10 shrink-0"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {/* AI suggestion review */}
       {aiSuggestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -1805,6 +2148,183 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               >
                 <Check className="w-4 h-4" />
                 {aiSuggestion.original ? "Replace" : "Insert"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drafted-section review (preview-before-apply) */}
+      {sectionDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">AI Draft: {sectionDraft.section}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">Suggested section</p>
+              <div className="rounded-md border border-violet-200 bg-violet-50/50 p-3 text-sm whitespace-pre-wrap">
+                {sectionDraft.markdown}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Markdown is converted to formatted blocks on insert. Bracketed
+                <code className="mx-1 px-1 rounded bg-muted">[confirm: …]</code>notes mark details to fill in.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button
+                onClick={() => setSectionDraft(null)}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                <X className="w-4 h-4" /> Discard
+              </button>
+              <button
+                onClick={acceptSectionDraft}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 transition-colors"
+              >
+                <Check className="w-4 h-4" /> Insert section
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided draft — Step 1: Intake */}
+      {guidedStep === "intake" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">Guided draft — Step 1: Style</span>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                The AI already has the client, services, and your Client Notes. Set the style,
+                and it&apos;ll propose a section outline you can edit before drafting.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Tone</label>
+                  <select value={intakeTone} onChange={(e) => setIntakeTone(e.target.value)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="professional">Professional</option>
+                    <option value="warm and consultative">Warm &amp; consultative</option>
+                    <option value="confident">Confident</option>
+                    <option value="concise">Concise</option>
+                    <option value="persuasive">Persuasive</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Length per section</label>
+                  <select value={intakeLength} onChange={(e) => setIntakeLength(e.target.value as "short" | "standard" | "detailed")}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="short">Short (1 paragraph)</option>
+                    <option value="standard">Standard (2–3)</option>
+                    <option value="detailed">Detailed</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Emphasis <span className="font-normal text-muted-foreground">(optional)</span></label>
+                <textarea value={intakeEmphasis} onChange={(e) => setIntakeEmphasis(e.target.value)} rows={2} maxLength={300}
+                  placeholder="Anything to stress — e.g. after-hours security, fast rollout, NDAA compliance, budget fit."
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">
+                  Reference a past proposal <span className="font-normal text-muted-foreground">(optional — style example)</span>
+                </label>
+                {refLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading your proposals…</p>
+                ) : refQuotes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No other proposals to reference yet.</p>
+                ) : (
+                  <div className="max-h-32 overflow-y-auto rounded-md border divide-y">
+                    {refQuotes.map((q) => {
+                      const checked = refSelected.includes(q.id);
+                      const atMax = refSelected.length >= 2 && !checked;
+                      return (
+                        <label
+                          key={q.id}
+                          className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-muted/50",
+                            atMax ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atMax}
+                            onChange={() => setRefSelected((sel) => checked ? sel.filter((x) => x !== q.id) : [...sel, q.id])}
+                          />
+                          <span className="truncate">
+                            <span className="font-mono text-xs">{q.quote_number}</span>
+                            {q.title ? ` · ${q.title}` : ""}
+                            {q.client ? <span className="text-muted-foreground"> — {q.client}</span> : ""}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Pick up to 2. The AI uses them as examples of writing style and structure only — never their facts or pricing.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t">
+              <button onClick={() => setGuidedStep(null)}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button onClick={generateOutline} disabled={outlineBusy}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                {outlineBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Building outline…</> : <>Continue → Outline</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided draft — Step 2: Outline */}
+      {guidedStep === "outline" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-2 px-5 py-3 border-b">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+              <span className="text-sm font-semibold">Guided draft — Step 2: Outline</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Edit the sections — rename, reorder, add, or remove — then draft them all.
+                Each becomes a heading in the document.
+              </p>
+              {outline.map((s, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <input
+                    value={s.title}
+                    onChange={(e) => setOutline(o => o.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
+                    placeholder="Section title"
+                    title={s.hint}
+                    className="flex-1 min-w-0 rounded-md border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button onClick={() => moveOutline(i, -1)} disabled={i === 0} title="Move up"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"><ChevronDown className="w-4 h-4 rotate-180" /></button>
+                  <button onClick={() => moveOutline(i, 1)} disabled={i === outline.length - 1} title="Move down"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                  <button onClick={() => setOutline(o => o.filter((_, idx) => idx !== i))} title="Remove"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                </div>
+              ))}
+              <button onClick={() => setOutline(o => [...o, { title: "" }])}
+                className="text-sm font-medium text-violet-700 hover:text-violet-900">+ Add section</button>
+            </div>
+            <div className="flex items-center justify-between gap-2 px-5 py-3 border-t">
+              <button onClick={() => setGuidedStep("intake")}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">← Back</button>
+              <button onClick={runGuidedDraft} disabled={outline.filter(s => s.title.trim()).length === 0}
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                <Sparkles className="w-4 h-4" /> Draft {outline.filter(s => s.title.trim()).length} sections
               </button>
             </div>
           </div>

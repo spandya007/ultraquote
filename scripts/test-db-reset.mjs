@@ -18,9 +18,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const url = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 const file = (p) => readFileSync(join(root, p), "utf8");
 
-// Delta migrations applied IN ORDER on top of schema.sql. schema.sql now folds in
-// everything through 020, so this is empty — add 021+ here as they land.
-const DELTA_MIGRATIONS = [];
+// Delta migrations applied IN ORDER on top of schema.sql. schema.sql folds in
+// everything through 020; list 021+ here as they land.
+const DELTA_MIGRATIONS = ["021_brand_voice_profile.sql", "022_add_client_notes.sql"];
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();

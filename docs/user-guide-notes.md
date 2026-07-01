@@ -482,3 +482,101 @@ minutes before, a "Still there?" prompt appears with a countdown — click
 **Stay signed in** to continue, or **Sign out now**. Activity in any open tab
 keeps you signed in everywhere; an inactivity sign-out closes all tabs. After an
 automatic sign-out you'll see a note on the login page and just sign in again.
+
+## Writing proposals with AI (AI Draft)
+
+The Document editor can write your proposal narrative for you, grounded in the
+quote you've already built. Open a quote → **Document** tab → **✦ AI Draft**
+(top-right of the editor toolbar).
+
+**What it uses (automatically):** the quote's **Pricing Scenarios** (services,
+quantities, billing, pricing), the **client**, your **Proposal Voice** (see
+below), and your **Client Notes** (see below). You do **not** need to add a
+pricing table to the document for the AI to know your pricing — it reads the
+scenarios directly. (You still add a pricing-table block where you want the
+priced breakdown to *appear* for the client.)
+
+**Ways to draft:**
+
+- **Guided draft…** — the recommended way for a full proposal. Step 1 sets the
+  **style** (tone, length per section, optional emphasis). Step 2 shows a
+  proposed **section outline tailored to this deal** — rename, reorder, add, or
+  remove sections — then **Draft** them all.
+- **Draft full proposal** — one click drafts all the standard sections
+  (Executive Summary → Scope of Work → Why Us → Timeline → Investment → Next
+  Steps) at once.
+- **A single section** — pick one from the list to draft just that section.
+- **Custom section…** — type any heading (e.g. "Implementation Plan",
+  "Maintenance & Support") and draft it.
+
+**Review before it's inserted:** every draft is shown in a preview window first —
+click **Insert** to add it, or **Discard**. Inserted content is normal editable
+text: change wording, headings, or delete anything afterward.
+
+**Grounding rules:** the AI only uses the services and prices on your quote — it
+never invents line items, prices, or dates. It refers the reader to the pricing
+table rather than restating figures, and where a detail isn't known it leaves a
+bracketed note like `[confirm: implementation timeline]` for you to fill in.
+
+**Closing call-to-action:** full-proposal drafts (and the Next Steps section)
+end by inviting the client to **e-sign** the proposal. If you've placed
+**multiple-choice** or **acceptance** blocks in the document (options/terms the
+client must accept — added via the `/` menu), the closing also asks them to
+review and accept those. Tip: place those blocks first, then draft (or re-draft
+the Next Steps section) so the closing reflects them.
+
+### AI Draft vs. Ask AI
+
+Two AI tools sit in the Document toolbar:
+
+- **✦ AI Draft** — *generates* a whole proposal section (or the full proposal)
+  from your quote data.
+- **✦ Ask AI** — *edits* text you've selected (Improve, Make longer/shorter, Fix
+  grammar, Change tone) or generates from a freeform prompt / continues writing.
+
+## Proposal Voice (how the AI sounds)
+
+**Settings → Proposal Voice** (owner only) controls who the AI writes as and how
+it sounds. Three fields:
+
+- **What your business does** — one line (e.g. "Commercial security camera &
+  access-control installer"). This is the author's role in every draft.
+- **About your business** — differentiators the AI can draw on (certifications,
+  years in business, warranty, in-house techs, etc.).
+- **Brand voice & writing style** — tone and style. You can control formality
+  (warm / formal / technical), length (one short paragraph vs. detailed),
+  terseness, jargon, and whether to address the client by name.
+
+Leave any field blank for a neutral professional default. If your workspace
+belongs to an Organization, an org-wide default can be set for you and your
+Proposal Voice overrides it.
+
+## Client Notes (interview notes that sharpen the AI)
+
+Each quote has a **Client Notes** tab (next to Pricing Scenarios and Document).
+Use it to jot down what you learned talking to the client — **pain points,
+goals, current setup, budget signals, decision timing**. AI Draft reads these to
+target the proposal to the client's specific situation (e.g. "after-hours
+break-ins at the loading dock; wants phone viewing; NDAA-compliant for a gov
+contract").
+
+**These notes are internal.** They are never shown to the client and never
+appear in the proposal or PDF — they only steer the AI.
+
+## Editing blocks in the Document
+
+The document is made of **blocks** (paragraphs, headings, lists, pricing tables,
+signature fields, etc.). A tips bar at the bottom of the editor lists these; the
+keyboard (⌨) button in the toolbar shows or hides it. Key moves:
+
+- **Insert:** type **`/`** to insert a block (heading, list, pricing table,
+  signature, page break, and more).
+- **Move a block:** hover the left edge for the **⠿ drag handle** and drag, or
+  put your cursor in the block and press **Ctrl/⌘-Shift-↑ / ↓**.
+- **Move several at once:** click-drag across multiple blocks to select them,
+  then drag the handle or use **Ctrl/⌘-Shift-↑ / ↓** — they move together (great
+  for relocating a heading and its paragraphs as one section).
+- **Nest / un-nest:** **Tab** / **Shift-Tab**.
+- **Copy / paste:** **Ctrl/⌘-C / V** — you can also paste from Word, Google Docs,
+  or a web page and it converts to blocks.
+- **Undo / redo:** **Ctrl/⌘-Z / Ctrl/⌘-Shift-Z**.
