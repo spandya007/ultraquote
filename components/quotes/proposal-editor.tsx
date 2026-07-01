@@ -417,7 +417,7 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
                 </th>
               </tr>
               <tr>
-                <th style={{ ...th, textAlign: "left" }}>Description</th>
+                <th style={{ ...th, textAlign: "left" }}>Item</th>
                 <th style={{ ...th, textAlign: "left" }}>Billing</th>
                 <th style={{ ...th, textAlign: "right" }}>Qty</th>
                 <th style={{ ...th, textAlign: "right" }}>Unit Price</th>

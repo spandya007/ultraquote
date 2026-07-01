@@ -195,7 +195,7 @@ function renderScenarioTable(s: SerializeScenario, taxRate: number, c: ScenarioC
         </th>
       </tr>
       <tr class="col-head">
-        <th style="${colHeadStyle}">Description</th><th style="${colHeadStyle}">Billing</th><th style="${colHeadStyle}">Qty</th><th style="${colHeadStyle}">Unit Price</th>${hasDisc ? `<th style="${colHeadStyle}">Discount</th>` : ""}<th style="${colHeadStyle}">Total</th>
+        <th style="${colHeadStyle}">Item</th><th style="${colHeadStyle}">Billing</th><th style="${colHeadStyle}">Qty</th><th style="${colHeadStyle}">Unit Price</th>${hasDisc ? `<th style="${colHeadStyle}">Discount</th>` : ""}<th style="${colHeadStyle}">Total</th>
       </tr>
     </thead>
     <tbody>
