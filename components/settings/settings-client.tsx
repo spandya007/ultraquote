@@ -437,7 +437,9 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
       <SectionCard icon={<Megaphone className="w-4 h-4" />} title="Proposal Voice">
         <p className="text-sm text-muted-foreground -mt-1">
           Shapes how the AI drafts proposal content — your business identity and tone.
-          Leave blank for a neutral professional voice.
+          Leave a field blank for a neutral professional voice — or, if your workspace is part
+          of an organization, blank fields inherit its default voice (per field; anything you
+          fill in here overrides the org default).
         </p>
         <fieldset disabled={!isOwner} className="contents">
           <div className="space-y-1">
@@ -475,8 +477,8 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
             <p className="text-xs text-muted-foreground">
               Guides the AI&apos;s tone <em>and</em> style. You can control things like:
               formality (warm / formal / technical), length (one short paragraph vs. detailed),
-              terseness, jargon, and whether to address the client by name. Defaults when blank:
-              a neutral professional voice, one short paragraph per section, no client name.
+              terseness, jargon, and whether to address the client by name. Defaults when blank
+              (and no organization default): a neutral professional voice, one short paragraph per section, no client name.
             </p>
           </div>
           {isOwner && (
