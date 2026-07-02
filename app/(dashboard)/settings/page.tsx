@@ -1,5 +1,6 @@
 import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { SettingsClient } from "@/components/settings/settings-client";
 import { TeamCard } from "@/components/settings/team-card";
 import { ChangePasswordCard } from "@/components/settings/change-password-card";
@@ -37,6 +38,25 @@ export default async function SettingsPage({
     db.from("tenant_settings").select("*").eq("tenant_id", tenantId).single(),
   ]);
 
+  // Org-default Proposal Voice (for the "inherited when blank" preview). organizations
+  // is RLS-locked (service-role only), so read via the admin client, scoped to the
+  // tenant's own org. Null when the workspace isn't in an org.
+  let orgVoiceDefaults: { businessType: string | null; businessAbout: string | null; brandVoice: string | null } | null = null;
+  if (tenant?.organization_id) {
+    const { data: org } = await createAdminClient()
+      .from("organizations")
+      .select("default_business_type, default_business_about, default_brand_voice")
+      .eq("id", tenant.organization_id)
+      .maybeSingle();
+    if (org) {
+      orgVoiceDefaults = {
+        businessType:  org.default_business_type ?? null,
+        businessAbout: org.default_business_about ?? null,
+        brandVoice:    org.default_brand_voice ?? null,
+      };
+    }
+  }
+
   // Owner-only "what's in your workspace" summary (keyed to the owner's own tenant).
   const dossier = isOwner ? await getTenantDossier(tenantId) : null;
 
@@ -63,6 +83,7 @@ export default async function SettingsPage({
         tenant={tenant}
         settings={settings}
         isOwner={isOwner}
+        orgVoiceDefaults={orgVoiceDefaults}
       />
       <AppearanceCard />
       {isOwner && tenant && (
