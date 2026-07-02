@@ -40,6 +40,8 @@ interface Props {
   settings: TenantSettings | null;
   /** Members see settings view-only; only the tenant owner can change them. */
   isOwner: boolean;
+  /** Org-default Proposal Voice, shown as "inherited when blank" placeholders. Null if not in an org. */
+  orgVoiceDefaults?: { businessType: string | null; businessAbout: string | null; brandVoice: string | null } | null;
 }
 
 function inputCls(error?: boolean) {
@@ -61,7 +63,11 @@ function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: 
   );
 }
 
-export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
+export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDefaults }: Props) {
+  // Blank Proposal Voice fields inherit the org default — show it as a preview
+  // placeholder so the tenant can see what they'd inherit before overriding.
+  const inheritPlaceholder = (orgVal: string | null | undefined, example: string) =>
+    orgVal?.trim() ? `Inherited from your organization: ${orgVal.trim()}` : example;
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -449,7 +455,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
               onChange={e => setBizType(e.target.value)}
               className={inputCls()}
               maxLength={120}
-              placeholder="e.g. Commercial security camera & access-control installer"
+              placeholder={inheritPlaceholder(orgVoiceDefaults?.businessType, "e.g. Commercial security camera & access-control installer")}
             />
             <p className="text-xs text-muted-foreground">One line — used as the author&apos;s role in AI drafts (replaces a generic default).</p>
           </div>
@@ -461,7 +467,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
               rows={3}
               maxLength={1000}
               className={cn(inputCls(), "resize-y")}
-              placeholder="Differentiators the AI can draw on — e.g. licensed & insured, 12 years in the Bay Area, NDAA-compliant gear, 5-year warranty, in-house techs."
+              placeholder={inheritPlaceholder(orgVoiceDefaults?.businessAbout, "Differentiators the AI can draw on — e.g. licensed & insured, 12 years in the Bay Area, NDAA-compliant gear, 5-year warranty, in-house techs.")}
             />
           </div>
           <div className="space-y-1">
@@ -472,7 +478,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner }: Props) {
               rows={3}
               maxLength={500}
               className={cn(inputCls(), "resize-y")}
-              placeholder="e.g. Warm and consultative; plain language, no jargon, no hype. One short paragraph per section. Don't address the client by name."
+              placeholder={inheritPlaceholder(orgVoiceDefaults?.brandVoice, "e.g. Warm and consultative; plain language, no jargon, no hype. One short paragraph per section. Don't address the client by name.")}
             />
             <p className="text-xs text-muted-foreground">
               Guides the AI&apos;s tone <em>and</em> style. You can control things like:
