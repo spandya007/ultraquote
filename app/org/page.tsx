@@ -42,7 +42,7 @@ export default async function OrgPage() {
   const admin = createAdminClient();
   const { orgId } = orgAdmin;
 
-  const [tenantsRes, usersRes, quotesRes, invitesRes, orgAdminsRes] = await Promise.all([
+  const [tenantsRes, usersRes, quotesRes, invitesRes, orgAdminsRes, orgRes] = await Promise.all([
     admin
       .from("tenants")
       .select("id, name, created_at, subscription_end, subscription_term, platform_enabled")
@@ -56,6 +56,11 @@ export default async function OrgPage() {
       .eq("org_id", orgId)
       .order("created_at", { ascending: false }),
     admin.from("organization_admins").select("user_id, created_at").eq("org_id", orgId),
+    admin
+      .from("organizations")
+      .select("default_business_type, default_business_about, default_brand_voice")
+      .eq("id", orgId)
+      .maybeSingle(),
   ]);
 
   const tenants = tenantsRes.data ?? [];
@@ -96,12 +101,19 @@ export default async function OrgPage() {
     (i) => i.status !== "accepted"
   );
 
+  const voice = {
+    businessType:  orgRes.data?.default_business_type ?? "",
+    businessAbout: orgRes.data?.default_business_about ?? "",
+    brandVoice:    orgRes.data?.default_brand_voice ?? "",
+  };
+
   return (
     <OrgClient
       workspaces={workspaces}
       admins={adminRows}
       pendingInvites={pendingInvites}
       orgId={orgId}
+      voice={voice}
     />
   );
 }

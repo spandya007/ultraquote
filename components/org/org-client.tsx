@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2, Users, FileText, CheckCircle, XCircle, Clock, AlertCircle,
-  Loader2, Plus, Ban, Play, Search,
+  Loader2, Plus, Ban, Play, Search, Megaphone,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
@@ -43,16 +43,44 @@ export function OrgClient({
   workspaces,
   admins,
   pendingInvites,
+  voice,
 }: {
   workspaces: OrgWorkspaceRow[];
   admins: OrgAdminRow[];
   pendingInvites: OrgAdminInviteRow[];
   orgId: string;
+  voice: { businessType: string; businessAbout: string; brandVoice: string };
 }) {
   const router = useRouter();
   const toast = useToast();
 
   const [actionId, setActionId] = useState<string | null>(null);
+
+  // Org-default Proposal Voice (applies to all workspaces unless they set their own)
+  const [bizType, setBizType] = useState(voice.businessType);
+  const [bizAbout, setBizAbout] = useState(voice.businessAbout);
+  const [brandVoice, setBrandVoice] = useState(voice.brandVoice);
+  const [savingVoice, setSavingVoice] = useState(false);
+
+  async function saveVoice() {
+    setSavingVoice(true);
+    try {
+      const res = await fetch("/api/org/voice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessType: bizType, businessAbout: bizAbout, brandVoice }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Save failed");
+      }
+      toast.success("Org default voice saved");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingVoice(false);
+    }
+  }
 
   // Invite-new-workspace form
   const [showNew, setShowNew] = useState(false);
@@ -263,6 +291,61 @@ export function OrgClient({
           <p className="px-4 py-3 text-xs text-muted-foreground border-t">
             Org Admins are invited by your Platform Admin.
           </p>
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Megaphone className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-semibold">Proposal Voice — org default</h2>
+        </div>
+        <div className="rounded-lg border bg-card p-5 space-y-4">
+          <p className="text-sm text-muted-foreground -mt-1">
+            Sets the default AI writing voice for <strong>every workspace in your organization</strong>.
+            A workspace that fills in its own Proposal Voice (its Settings) overrides this. Leave blank for a neutral professional voice.
+          </p>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">What the business does</label>
+            <input
+              value={bizType}
+              onChange={(e) => setBizType(e.target.value)}
+              maxLength={120}
+              className={inputCls}
+              placeholder="e.g. Commercial security camera & access-control installer"
+            />
+            <p className="text-xs text-muted-foreground">One line — used as the author&apos;s role in AI drafts.</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">About the business</label>
+            <textarea
+              value={bizAbout}
+              onChange={(e) => setBizAbout(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              className={cn(inputCls, "resize-y")}
+              placeholder="Differentiators the AI can draw on — e.g. licensed & insured, 12 years in the Bay Area, NDAA-compliant gear, in-house techs."
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Brand voice &amp; writing style</label>
+            <textarea
+              value={brandVoice}
+              onChange={(e) => setBrandVoice(e.target.value)}
+              rows={3}
+              maxLength={500}
+              className={cn(inputCls, "resize-y")}
+              placeholder="e.g. Warm and consultative; plain language, no jargon. One short paragraph per section. Don't address the client by name."
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={saveVoice}
+              disabled={savingVoice}
+              className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {savingVoice ? "Saving…" : "Save org default"}
+            </button>
+          </div>
         </div>
       </section>
     </div>
