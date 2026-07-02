@@ -302,7 +302,9 @@ export function OrgClient({
         <div className="rounded-lg border bg-card p-5 space-y-4">
           <p className="text-sm text-muted-foreground -mt-1">
             Sets the default AI writing voice for <strong>every workspace in your organization</strong>.
-            A workspace that fills in its own Proposal Voice (its Settings) overrides this. Leave blank for a neutral professional voice.
+            Inheritance is per field: a workspace uses your default for any field it leaves blank, and
+            overrides it on any field it fills in (its own Settings → Proposal Voice). Leave a field blank
+            here for a neutral professional voice.
           </p>
           <div className="space-y-1">
             <label className="text-sm font-medium">What the business does</label>
