@@ -1232,7 +1232,6 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
   const [guidedStep, setGuidedStep] = useState<null | "intake" | "outline">(null);
   const [intakeTone, setIntakeTone] = useState("professional");
-  const [intakeLength, setIntakeLength] = useState<"short" | "standard" | "detailed">("standard");
   const [intakeEmphasis, setIntakeEmphasis] = useState("");
   const [outlineBusy, setOutlineBusy] = useState(false);
   const [outline, setOutline] = useState<{ title: string; hint?: string }[]>([]);
@@ -1265,7 +1264,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
 
   const currentIntake = () => ({
     tone: intakeTone,
-    length: intakeLength,
+    length: quickLength, // single Length control lives in the AI Draft menu
     emphasis: intakeEmphasis.trim() || undefined,
   });
 
@@ -1958,7 +1957,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
               <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
                 <div className="px-3 pt-2.5 pb-2 border-b border-violet-200">
-                  <p className="text-[10px] font-semibold text-violet-700 uppercase tracking-widest mb-1.5">Length · quick drafts</p>
+                  <p className="text-[10px] font-semibold text-violet-700 uppercase tracking-widest mb-1.5">Length · all drafts</p>
                   <div className="flex gap-1">
                     {(["short", "standard", "detailed"] as const).map((v) => (
                       <button
@@ -1977,7 +1976,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   </div>
                 </div>
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setIntakeLength(quickLength); setGuidedStep("intake"); }}
+                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setGuidedStep("intake"); }}
                   className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -2296,27 +2295,19 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                 The AI already has the client, services, and your Client Notes. Set the style,
                 and it&apos;ll propose a section outline you can edit before drafting.
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Tone</label>
-                  <select value={intakeTone} onChange={(e) => setIntakeTone(e.target.value)}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="professional">Professional</option>
-                    <option value="warm and consultative">Warm &amp; consultative</option>
-                    <option value="confident">Confident</option>
-                    <option value="concise">Concise</option>
-                    <option value="persuasive">Persuasive</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Length per section</label>
-                  <select value={intakeLength} onChange={(e) => setIntakeLength(e.target.value as "short" | "standard" | "detailed")}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    <option value="short">Short (1 paragraph)</option>
-                    <option value="standard">Standard (2–3)</option>
-                    <option value="detailed">Detailed</option>
-                  </select>
-                </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Tone</label>
+                <select value={intakeTone} onChange={(e) => setIntakeTone(e.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                  <option value="professional">Professional</option>
+                  <option value="warm and consultative">Warm &amp; consultative</option>
+                  <option value="confident">Confident</option>
+                  <option value="concise">Concise</option>
+                  <option value="persuasive">Persuasive</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Length is set in the AI Draft menu — currently <strong className="font-medium capitalize">{quickLength}</strong>.
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Emphasis <span className="font-normal text-muted-foreground">(optional)</span></label>
