@@ -134,6 +134,43 @@ feats.forEach((f, i) => {
 });
 
 // =========================================================================
+// 4b. SPOTLIGHT — AI DRAFT (the flagship feature)
+// =========================================================================
+s = pres.addSlide();
+s.background = { color: ICE };
+eyebrow(s, "Featured · AI proposal drafting", 0.9, 0.55);
+s.addText("Let AI draft the whole proposal — in your voice.", { x: 0.9, y: 0.9, w: 11.5, h: 0.8, fontFace: HF, bold: true, color: NAVY, fontSize: 30, margin: 0 });
+s.addText("Grounded in your quote's own services, pricing, and client — the AI never invents numbers, and you review every word before it's inserted.", { x: 0.9, y: 1.72, w: 11.4, h: 0.6, fontFace: BF, color: MUTED, fontSize: 15, margin: 0 });
+
+const flow = [
+  ["1 · Intake", "Set the style — tone, length, emphasis. Optionally reference a past proposal to match."],
+  ["2 · Outline", "AI proposes a section outline tailored to the deal. Rename, reorder, add, or remove."],
+  ["3 · Draft", "It writes every section in your brand voice, ending with an e-sign call to action."],
+];
+let ax = 0.9;
+flow.forEach((f, i) => {
+  s.addShape(pres.shapes.RECTANGLE, { x: ax, y: 2.75, w: 3.7, h: 1.9, fill: { color: WHITE }, line: { color: LINE, width: 1 }, shadow: shadow() });
+  s.addShape(pres.shapes.RECTANGLE, { x: ax, y: 2.75, w: 3.7, h: 0.09, fill: { color: TEAL } });
+  s.addText(f[0], { x: ax + 0.28, y: 3.0, w: 3.2, h: 0.4, fontFace: HF, bold: true, color: BRAND_DK, fontSize: 17, margin: 0 });
+  s.addText(f[1], { x: ax + 0.28, y: 3.5, w: 3.25, h: 1.05, fontFace: BF, color: MUTED, fontSize: 12.5, margin: 0 });
+  if (i < 2) s.addText("→", { x: ax + 3.7, y: 3.45, w: 0.42, h: 0.5, align: "center", valign: "middle", fontFace: BF, bold: true, color: TEAL, fontSize: 22, margin: 0 });
+  ax += 4.05;
+});
+
+const caps = [
+  "Writes as your business — your Proposal Voice",
+  "Uses your private Client Notes to target pain points",
+  "Reads pricing scenarios directly — no re-keying",
+  "Preview & edit before anything is inserted",
+];
+caps.forEach((c, i) => {
+  const col = i % 2, row = Math.floor(i / 2);
+  const x = 0.9 + col * 5.95, y = 5.05 + row * 0.52;
+  s.addText([{ text: "✓  ", options: { color: OK, bold: true } }, { text: c, options: { color: "1E293B" } }], { x, y, w: 5.8, h: 0.45, fontFace: BF, fontSize: 13.5, margin: 0 });
+});
+s.addText("Plus inline “Ask AI” to improve, expand, shorten, or re-tone any selection.", { x: 0.9, y: 6.25, w: 11.4, h: 0.4, fontFace: BF, italic: true, color: BRAND_DK, fontSize: 13, margin: 0 });
+
+// =========================================================================
 // 5. HOW IT WORKS
 // =========================================================================
 s = pres.addSlide();
