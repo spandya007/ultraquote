@@ -1104,9 +1104,9 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const [sectionDraft, setSectionDraft] = useState<{ section: string; markdown: string } | null>(null);
   const [customSection, setCustomSection] = useState("");
 
-  // Length for the QUICK draft paths (Draft full proposal + single/custom section).
-  // The Guided flow has its own Step-1 picker (pre-seeded from this). Persisted so
-  // the choice sticks across drafts/sessions; default stays terse ("short").
+  // Length for ALL AI Draft paths (the full-proposal flow + single/custom section) —
+  // the single Length control lives in the AI Draft menu. Persisted so the choice
+  // sticks across drafts/sessions; default stays terse ("short").
   const [quickLength, setQuickLength] = useState<"short" | "standard" | "detailed">("short");
   useEffect(() => {
     const v = typeof window !== "undefined" ? localStorage.getItem("quote.aiDraftLength") : null;
@@ -1225,11 +1225,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   function runSectionDraft(section: string) {
     requestDraft({ section }, section, section, { tone: "professional", length: quickLength });
   }
-  function runFullDraft() {
-    requestMultiDraft([...PROPOSAL_SECTIONS], { tone: "professional", length: quickLength });
-  }
 
-  // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
+  // ── Draft proposal: Intake → Outline → Draft ──────────────────────────────
   const [guidedStep, setGuidedStep] = useState<null | "intake" | "outline">(null);
   const [intakeTone, setIntakeTone] = useState("professional");
   const [intakeEmphasis, setIntakeEmphasis] = useState("");
@@ -1980,16 +1977,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  Guided draft…
-                  <span className="ml-auto text-[10px] font-normal text-violet-500">intake → outline</span>
-                </button>
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); runFullDraft(); }}
-                  className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 hover:bg-violet-100 border-b border-violet-200 transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   Draft full proposal
-                  <span className="ml-auto text-[10px] font-normal text-violet-500">all sections</span>
+                  <span className="ml-auto text-[10px] font-normal text-violet-500">style → outline → draft</span>
                 </button>
                 <div className="px-4 py-2 bg-violet-100 border-b border-violet-200">
                   <p className="text-xs font-semibold text-violet-700 uppercase tracking-widest">Or draft one section</p>
@@ -2282,13 +2271,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         </div>
       )}
 
-      {/* Guided draft — Step 1: Intake */}
+      {/* Draft proposal — Step 1: Intake */}
       {guidedStep === "intake" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg flex flex-col">
             <div className="flex items-center gap-2 px-5 py-3 border-b">
               <Sparkles className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-semibold">Guided draft — Step 1: Style</span>
+              <span className="text-sm font-semibold">Draft proposal — Step 1: Style</span>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -2370,13 +2359,13 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         </div>
       )}
 
-      {/* Guided draft — Step 2: Outline */}
+      {/* Draft proposal — Step 2: Outline */}
       {guidedStep === "outline" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl border shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
             <div className="flex items-center gap-2 px-5 py-3 border-b">
               <Sparkles className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-semibold">Guided draft — Step 2: Outline</span>
+              <span className="text-sm font-semibold">Draft proposal — Step 2: Outline</span>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-2">
               <p className="text-sm text-muted-foreground">
