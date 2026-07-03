@@ -21,7 +21,7 @@ const BF = "Calibri";    // body font
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";        // 13.3 x 7.5
 pres.author = "UltraQuote";
-pres.title = "UltraQuote — Proposals & Quoting for MSPs";
+pres.title = "UltraQuote — Proposals & Quoting Software";
 const W = 13.3, H = 7.5;
 
 const shadow = () => ({ type: "outer", color: "0F172A", blur: 9, offset: 3, angle: 135, opacity: 0.12 });
@@ -52,7 +52,7 @@ s.addText([
   { text: "Proposals your clients\n", options: { color: WHITE } },
   { text: "sign in minutes.", options: { color: "60A5FA" } },
 ], { x: 0.9, y: 2.7, w: 11, h: 2.0, fontFace: HF, bold: true, fontSize: 50, lineSpacingMultiple: 1.0, margin: 0 });
-s.addText("The all-in-one platform for any team that sends quotes — build multi-option quotes, write polished proposals with AI, and collect legally-binding e-signatures, without leaving the app.", { x: 0.95, y: 4.9, w: 9.8, h: 1.0, fontFace: BF, color: "CBD5E1", fontSize: 16, margin: 0 });
+s.addText("The all-in-one platform for any team that sends quotes — build multi-option quotes, let AI draft polished proposals in your brand voice, and collect legally-binding e-signatures — for one team or a whole organization.", { x: 0.95, y: 4.9, w: 9.8, h: 1.0, fontFace: BF, color: "CBD5E1", fontSize: 16, margin: 0 });
 s.addText("hello@ultraquote.io   ·   app.ultraquote.io", { x: 0.95, y: 6.6, w: 9, h: 0.4, fontFace: BF, color: "64748B", fontSize: 13, margin: 0 });
 
 // =========================================================================
@@ -91,7 +91,7 @@ s.addText("UltraQuote replaces the spreadsheet, the Word template, and the signi
 
 const pillars = [
   ["Build", "Multi-option quotes from your product catalog with tiers, setup fees, discounts, tax & margins — calculated instantly."],
-  ["Write", "A rich proposal editor with your branding, AI writing assistance, two-column layouts, and embedded live pricing."],
+  ["Write", "AI drafts the whole proposal from your quote, in your brand voice — in a rich editor with your branding, two-column layouts, and live pricing."],
   ["Sign & Win", "Send for e-signature, track status live from sent → viewed → signed, and watch your pipeline on a real dashboard."],
 ];
 let qx = 0.9;
@@ -115,11 +115,11 @@ s.addText("Everything you need to quote like a pro.", { x: 0.9, y: 0.9, w: 11.5,
 const feats = [
   ["Product catalog & tiers", "Import via CSV; price with multiple tiers, setup fees & billing periods."],
   ["Multi-option scenarios", "Present Good / Better / Best side-by-side; star a recommended pick."],
-  ["AI writing assistant", "Google Gemini drafts, expands, re-tones & extracts pricing from docs."],
+  ["AI proposal drafting", "Draft a full proposal from your quote in your brand voice; edit the outline. Plus inline Ask AI."],
   ["Built-in e-signature", "Client + counter-sign roles, initials, checkboxes — status flips live."],
   ["Your brand", "Logo, accent theme, proposal font, and custom domain. Clients see you."],
   ["Templates & import", "Reusable templates; import from Word or Markdown in one click."],
-  ["Teams & roles", "Owner/member roles, quote ownership, and live presence indicators."],
+  ["Teams, roles & orgs", "Owner/member roles, quote ownership, presence — and multi-workspace Organizations."],
   ["Real-time dashboard", "Pipeline value, win rate, expiring quotes, recurring revenue at a glance."],
   ["Secure by design", "Multi-tenant isolation, 2FA, password policy & idle auto-logout."],
 ];
@@ -143,7 +143,7 @@ s.addText("Four steps from inquiry to signed contract.", { x: 0.9, y: 1.05, w: 1
 
 const steps = [
   ["Build the quote", "Pull products from your catalog, add scenarios, and apply per-line discounts."],
-  ["Write the proposal", "Draft with AI, drop in live pricing tables, and brand the document."],
+  ["Write the proposal", "Let AI draft it in your brand voice; drop in live pricing; brand it."],
   ["Send for signature", "Preview the PDF, then send. Client signs online; you counter-sign."],
   ["Track & win", "Watch status flip in real time and manage pipeline on the dashboard."],
 ];

@@ -98,14 +98,14 @@ export function BetaClient() {
           <div className="logo"><span className="mark">UQ</span> UltraQuote</div>
           <span className="pill">● You&apos;re invited — private beta</span>
           <h1>Send proposals your clients sign in minutes.</h1>
-          <p>The all-in-one platform to build quotes, write polished proposals, and collect e-signatures — in one place.</p>
+          <p>The all-in-one platform to build quotes, draft polished proposals with AI, and collect e-signatures — for one team or a whole organization.</p>
         </div>
 
         <div className="body">
           <p className="lead">
             Quoting today means juggling a spreadsheet, a Word template, and a separate signing tool — slow, error-prone,
             and easy to lose track of. <strong>UltraQuote replaces all three</strong> with a single branded workflow:
-            build a multi-option quote, write the proposal (with an AI assistant), send it for a legally-binding
+            build a multi-option quote, let AI draft the proposal in your brand voice, send it for a legally-binding
             signature, and watch it move from sent → viewed → signed in real time.
           </p>
 
@@ -118,7 +118,7 @@ export function BetaClient() {
             <div className="ben">
               <div className="ic">✍️</div>
               <h3>Proposals that win</h3>
-              <p>A branded document editor with AI writing help and live pricing tables — not just a flat PDF.</p>
+              <p>AI drafts the whole proposal from your quote — in your brand voice — in a branded editor with live pricing tables. Not a flat PDF.</p>
             </div>
             <div className="ben">
               <div className="ic">🔏</div>
