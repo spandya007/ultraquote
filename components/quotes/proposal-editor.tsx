@@ -1104,6 +1104,19 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const [sectionDraft, setSectionDraft] = useState<{ section: string; markdown: string } | null>(null);
   const [customSection, setCustomSection] = useState("");
 
+  // Length for the QUICK draft paths (Draft full proposal + single/custom section).
+  // The Guided flow has its own Step-1 picker (pre-seeded from this). Persisted so
+  // the choice sticks across drafts/sessions; default stays terse ("short").
+  const [quickLength, setQuickLength] = useState<"short" | "standard" | "detailed">("short");
+  useEffect(() => {
+    const v = typeof window !== "undefined" ? localStorage.getItem("quote.aiDraftLength") : null;
+    if (v === "short" || v === "standard" || v === "detailed") setQuickLength(v);
+  }, []);
+  const chooseLength = (v: "short" | "standard" | "detailed") => {
+    setQuickLength(v);
+    try { localStorage.setItem("quote.aiDraftLength", v); } catch { /* ignore */ }
+  };
+
   function runCustomSection() {
     const s = customSection.trim();
     if (!s) return;
@@ -1155,10 +1168,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   }
 
   function runSectionDraft(section: string) {
-    requestDraft({ section }, section, section);
+    requestDraft({ section }, section, section, { tone: "professional", length: quickLength });
   }
   function runFullDraft() {
-    requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal");
+    requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal", { tone: "professional", length: quickLength });
   }
 
   // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
@@ -1889,8 +1902,27 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
             <>
               <div className="fixed inset-0 z-10" onMouseDown={() => setDraftOpen(false)} />
               <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-violet-200 bg-white shadow-xl overflow-hidden">
+                <div className="px-3 pt-2.5 pb-2 border-b border-violet-200">
+                  <p className="text-[10px] font-semibold text-violet-700 uppercase tracking-widest mb-1.5">Length · quick drafts</p>
+                  <div className="flex gap-1">
+                    {(["short", "standard", "detailed"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); chooseLength(v); }}
+                        title={v === "short" ? "One terse paragraph per section" : v === "standard" ? "Two to three paragraphs per section" : "Thorough, detailed treatment"}
+                        className={cn(
+                          "flex-1 rounded px-1.5 py-1 text-[11px] font-medium capitalize transition-colors",
+                          quickLength === v ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setGuidedStep("intake"); }}
+                  onMouseDown={(e) => { e.preventDefault(); setDraftOpen(false); setRefSelected([]); setIntakeLength(quickLength); setGuidedStep("intake"); }}
                   className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border-b border-violet-200 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
