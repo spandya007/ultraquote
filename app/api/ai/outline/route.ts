@@ -15,6 +15,8 @@ import {
 // before the /api/ai/draft call writes each section. Same access + grounding as
 // /api/ai/draft. All prompt wording lives in lib/ai/prompts.ts.
 
+export const maxDuration = 26; // headroom for the Claude call (Netlify default 10s)
+
 interface Body {
   quoteId: string;
   intake?: { tone?: string; length?: string; emphasis?: string };

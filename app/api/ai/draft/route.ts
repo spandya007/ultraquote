@@ -19,6 +19,11 @@ import type { DocBlock } from "@/lib/pdf/types";
 // mirrors /api/ai/write: any quote editor. All prompt wording lives in
 // lib/ai/prompts.ts. See docs/ai-proposal-drafting-design.md.
 
+// Give the serverless function headroom for the Claude call (Netlify default is
+// 10s; 26s is the max for a synchronous function). The client also drafts
+// multi-section proposals ONE section at a time so no single request runs long.
+export const maxDuration = 26;
+
 const MAX_REFERENCES = 2;
 const REFERENCE_CHAR_CAP = 6000;
 
@@ -36,6 +41,9 @@ interface Body {
   referenceQuoteIds?: string[];
   // Signing context detected from the current document (for the closing CTA).
   signing?: { hasTerms?: boolean; hasSignature?: boolean };
+  // Force the closing e-sign CTA even for a single section (the client drafts a
+  // full proposal section-by-section and sets this on the LAST section).
+  forceClosingCta?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -111,7 +119,7 @@ export async function POST(request: NextRequest) {
   const emphasis = intake.emphasis?.trim();
 
   const task = draftTask(sections);
-  const cta = draftClosingCta(sections, !!body.signing?.hasTerms);
+  const cta = draftClosingCta(sections, !!body.signing?.hasTerms, !!body.forceClosingCta);
 
   const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n${draftInstructions(tone, length, emphasis)}\n\n${task}${cta}`;
 

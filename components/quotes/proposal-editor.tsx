@@ -1124,9 +1124,45 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     runSectionDraft(s);
   }
 
-  // Shared draft request — one section, or the whole proposal (sections[]).
+  // Signing/terms blocks already in the doc → drive the closing CTA (e-sign +
+  // accept terms when radio/acceptance blocks exist).
+  function docSigning() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blocks = flattenBlocks(editorRef.current.document) as any[];
+    return {
+      hasTerms:     blocks.some(b => b.type === "radioField" || b.type === "acceptanceField"),
+      hasSignature: blocks.some(b => b.type === "signatureField" || b.type === "initialsField"),
+    };
+  }
+
+  // One POST to /api/ai/draft → cleaned Markdown. Robustly handles a NON-JSON
+  // response (e.g. a Netlify gateway/timeout HTML page) so the user gets a useful
+  // message instead of "Unexpected token '<'".
+  async function fetchSectionDraft(body: Record<string, unknown>): Promise<string> {
+    const res = await fetch("/api/ai/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quoteId: quoteIdRef.current, ...body }),
+    });
+    const raw = await res.text();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any;
+    try { data = JSON.parse(raw); }
+    catch {
+      throw new Error(
+        res.status === 504 || res.status === 502 || /tim(e|ed)\s?out|gateway/i.test(raw)
+          ? "The AI took too long and timed out. Try a shorter Length, or draft one section at a time."
+          : "The AI service returned an unexpected response. Please try again."
+      );
+    }
+    if (!res.ok) throw new Error(data.error || "AI request failed");
+    // Strip Markdown tables + demote H1→H2 (H1 is the doc title); preview === insert.
+    return stripMarkdownTables(String(data.markdown ?? "")).replace(/^# /gm, "## ");
+  }
+
+  // Draft a SINGLE section (Insert-section menu / custom section).
   async function requestDraft(
-    payload: { section?: string; sections?: string[]; referenceQuoteIds?: string[] },
+    payload: { section?: string; referenceQuoteIds?: string[] },
     busyLabel: string,
     resultLabel: string,
     intake: { tone?: string; length?: string; emphasis?: string } = { tone: "professional", length: "short" }
@@ -1134,34 +1170,53 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     setDraftBusy(busyLabel);
     setDraftOpen(false);
     try {
-      // Detect signing/terms blocks already placed in the document so the closing
-      // CTA can invite e-signing (+ accepting terms when radio/acceptance blocks exist).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const blocks = flattenBlocks(editorRef.current.document) as any[];
-      const signing = {
-        hasTerms:     blocks.some(b => b.type === "radioField" || b.type === "acceptanceField"),
-        hasSignature: blocks.some(b => b.type === "signatureField" || b.type === "initialsField"),
-      };
-      const res = await fetch("/api/ai/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quoteId: quoteIdRef.current,
-          ...payload,
-          intake,
-          signing,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "AI request failed");
-      // Strip tables client-side too (idempotent with the route) so this is
-      // independent of which side recompiled, and preview === what's inserted.
-      // Demote any top-level H1 heading to H2 (H1 is reserved for the doc title);
-      // ## and ### are left as-is, preserving hierarchy.
-      const md = stripMarkdownTables(data.markdown).replace(/^# /gm, "## ");
+      const md = await fetchSectionDraft({ ...payload, intake, signing: docSigning() });
+      if (!md) { toastRef.current.error("The AI returned an empty draft. Please try again."); return; }
       setSectionDraft({ section: resultLabel, markdown: md });
     } catch (e) {
       toastRef.current.error((e as Error).message);
+    } finally {
+      setDraftBusy(null);
+    }
+  }
+
+  // Draft a MULTI-section proposal ONE SECTION AT A TIME. A single all-sections
+  // call (maxTokens 8192, Claude Opus) overran Netlify's function timeout → HTML
+  // error page → "Unexpected token '<'". Per-section calls each stay well under
+  // the limit; sections are assembled in order and the LAST gets the e-sign CTA.
+  async function requestMultiDraft(
+    sections: string[],
+    intake: { tone?: string; length?: string; emphasis?: string },
+    referenceQuoteIds?: string[]
+  ) {
+    const list = sections.map(s => s.trim()).filter(Boolean);
+    if (list.length === 0) return;
+    setDraftOpen(false);
+    const signing = docSigning();
+    const parts: string[] = [];
+    try {
+      for (let i = 0; i < list.length; i++) {
+        setDraftBusy(`Section ${i + 1} of ${list.length}: ${list[i]}`);
+        const md = await fetchSectionDraft({
+          section: list[i],
+          intake,
+          signing,
+          referenceQuoteIds,
+          forceClosingCta: i === list.length - 1,
+        });
+        if (md) parts.push(md);
+      }
+      const combined = parts.join("\n\n");
+      if (!combined) { toastRef.current.error("The AI returned an empty draft. Please try again."); return; }
+      setSectionDraft({ section: "Full proposal", markdown: combined });
+    } catch (e) {
+      // A mid-way failure (e.g. timeout) still shows what completed, so it's not a total loss.
+      if (parts.length) {
+        setSectionDraft({ section: `Full proposal (first ${parts.length} of ${list.length})`, markdown: parts.join("\n\n") });
+        toastRef.current.warning(`${(e as Error).message} — showing the ${parts.length} section(s) drafted so far.`);
+      } else {
+        toastRef.current.error((e as Error).message);
+      }
     } finally {
       setDraftBusy(null);
     }
@@ -1171,7 +1226,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     requestDraft({ section }, section, section, { tone: "professional", length: quickLength });
   }
   function runFullDraft() {
-    requestDraft({ sections: [...PROPOSAL_SECTIONS] }, "Full proposal", "Full proposal", { tone: "professional", length: quickLength });
+    requestMultiDraft([...PROPOSAL_SECTIONS], { tone: "professional", length: quickLength });
   }
 
   // ── Guided draft: Intake → Outline → Draft ────────────────────────────────
@@ -1247,7 +1302,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     const titles = outline.map(s => s.title.trim()).filter(Boolean);
     if (titles.length === 0) { toastRef.current.error("Add at least one section"); return; }
     setGuidedStep(null);
-    requestDraft({ sections: titles, referenceQuoteIds: refSelected }, "Full proposal", "Full proposal", currentIntake());
+    requestMultiDraft(titles, currentIntake(), refSelected.length ? refSelected : undefined);
   }
 
   async function acceptSectionDraft() {

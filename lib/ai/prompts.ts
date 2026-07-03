@@ -72,8 +72,8 @@ export function draftTask(sections: string[]): string {
 }
 
 const DRAFT_CLOSING_RE = /next step|sign|accept|clos|conclu|proceed/i;
-export function draftClosingCta(sections: string[], hasTerms: boolean): string {
-  const isClosing = sections.length > 1 || DRAFT_CLOSING_RE.test(sections[0]);
+export function draftClosingCta(sections: string[], hasTerms: boolean, force = false): string {
+  const isClosing = force || sections.length > 1 || DRAFT_CLOSING_RE.test(sections[0]);
   if (!isClosing) return "";
   return `\n\nEnd ${sections.length > 1 ? "the final section" : "this section"} with a brief (1–2 sentence) call to action inviting the client to review and e-sign this proposal to move forward.${
     hasTerms ? " Also ask them to review and accept the options and terms indicated in the document before signing." : ""
