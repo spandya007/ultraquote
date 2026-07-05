@@ -274,6 +274,69 @@ Anthropic / Google pricing pages before relying on them for billing.
 
 ---
 
+## 13. AI-cost control: subscription vs pay-per-use (design brainstorm, 2026-07-04)
+Status: **thinking / not built.** Captures the discussion on how to cap AI-Draft cost without breaking margin,
+and how that interacts with the two revenue models. Supersedes the simpler "cap at ~27–30 calls/quote" framing
+in §12.3 (which is still directionally right, but see the reframe below).
+
+### 13.1 The core tension: cost accrues on *effort*, revenue on *outcomes*
+AI-Draft cost is spent when someone **drafts**; revenue arrives when a doc is **signed**. Those are different
+events, related by a ratio (the win rate). §12's "~4 full drafts/quote" budget was computed as *cost per **signed**
+quote*, but AI is spent on every **drafted** quote — signed or not:
+
+> **AI cost per signed doc = (avg AI cost per drafted quote) × (drafts per sign)**
+
+At a 30% win rate that's ~3.3 drafted quotes per signed one. Even at ~$0.30 AI per quote, that's ~$1.00 of AI
+**per signed doc** — over the $0.90 total-cost budget before DocuSeal. So the §12 allowance is generous for a
+cost-per-signed view and **risky for the cost-per-drafted reality**.
+**Implication:** the per-quote "included" AI budget should probably be *tighter* — closer to **~1 full draft
+included (~$0.13)**, extra drafts as a deliberate/limited action — so quotes that never sign stay cheap.
+
+### 13.2 Per-quote is the primitive that dissolves the subscription-vs-pay-per-use conflict
+- **Subscription** — billing unit is the **tenant** → a monthly *tenant* allowance is natural.
+- **Pay-per-use** — billing unit is the **quote / signed doc** → a *per-quote* budget is natural (ties AI cost to
+  the thing you charge for).
+
+They're not in conflict — they meter against **different billing units**. The unlock:
+> Make **per-quote the universal floor** (plan-agnostic, tenant-structure-agnostic), and layer a **per-tenant
+> monthly allowance ONLY for subscription plans.** Pay-per-use just uses the per-quote floor.
+
+Per-quote does **not** depend on how tenants are structured — which is exactly what the pay-per-use onboarding needs.
+
+### 13.3 The "generic tenant" idea for pay-per-use — one caution
+A *truly shared* tenant holding many independent pay-per-use customers **breaks data isolation**: RLS is
+tenant-scoped and reads are tenant-wide, so those customers would see each other's quotes/clients/products. That's a
+security problem, not just a metering one. Two cleaner shapes:
+1. **Auto-provisioned tenant per signup (recommended)** — "generic" = a *default/templated* tenant created instantly
+   per pay-per-use customer (self-serve, no admin invite). Preserves isolation; per-tenant metering still works if
+   wanted. Low-friction onboarding without the shared-data trap.
+2. **If a tenant truly must be shared** (e.g. a reseller pooling clients) — metering must be **per-user + per-quote**,
+   never per-tenant. Per-quote already covers it; add per-user only for that case.
+Either way: **per-quote is safe; don't make per-tenant load-bearing** under a shared tenant.
+
+### 13.4 Recommended sequencing (measure → then enforce)
+The `ai_usage` ledger (migration 024) already records every draft with `quote_id`, so:
+
+**Phase 1 — now (plan-agnostic safety ceiling + measure):**
+- A **per-quote hard cap** as a *runaway/abuse* guard (NOT a margin knob) — generous, e.g. **~5 full drafts
+  (~35 draft calls) per quote**. Stops stuck loops / bad actors; works under any tenant model or plan.
+- **Measure:** join `ai_usage` (draft calls) to quote **status** → real **draft:sign ratio** and
+  **AI-cost-per-signed-doc**. Set the margin limit from data, not a guess. (An admin/measurement view.)
+
+**Phase 2 — after Stripe/plans + pay-per-use onboarding exist:**
+- Plan-based allowances: **per-tenant monthly** for subscription tiers; **per-quote budget + a new-user trial cap**
+  for pay-per-use (to bound never-signs cost). Tune the per-quote "included" budget (likely ~1 full draft) from
+  Phase-1 data.
+
+### 13.5 Open decisions
+1. Per-quote **safety ceiling now + measure** vs a tight margin cap today? (Rec: ceiling + measure.)
+2. Pay-per-use onboarding: **auto-provisioned tenant per customer** (rec) vs a shared "generic tenant" (forces
+   per-user metering + isolation rethink)?
+3. Build the **measurement view** (AI-cost-per-signed-doc, draft:sign ratio) first, to make limits data-driven?
+4. Eventual per-quote "included" budget: **1 full draft** (tight, margin-safe) vs more (better UX, higher cost)?
+
+---
+
 ## Appendix: how this maps to what exists today
 - ✅ Reuse: access resolver + grace/expired/suspended (migration 012), per-user kill switch, owner Team
   management, the DocuSeal `completed` webhook (metering hook), toast/banner system, Settings page.
