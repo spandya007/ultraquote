@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, FileText, Copy, Loader2, Eye, Trash2, ShieldAlert } from "lucide-react";
+import { Plus, Search, FileText, Copy, Loader2, Eye, Trash2, ShieldAlert, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
@@ -97,6 +97,26 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
   const [armSecs, setArmSecs] = useState(0);
   const armed = armSecs > 0;
 
+  // "Show AI usage" toggle (off by default, persisted). When on, lazily loads
+  // per-quote AI CALL COUNTS (Draft + Ask AI) for all users — counts only, no cost.
+  const [showAiUsage, setShowAiUsage] = useState(false);
+  const [aiUsage, setAiUsage] = useState<Record<string, { draft: number; askAi: number }>>({});
+  const [aiUsageLoaded, setAiUsageLoaded] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("quotes.showAiUsage") === "1") setShowAiUsage(true);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("quotes.showAiUsage", showAiUsage ? "1" : "0");
+    if (showAiUsage && !aiUsageLoaded) {
+      fetch("/api/ai-usage/by-quote")
+        .then((r) => (r.ok ? r.json() : { usage: {} }))
+        .then((d) => setAiUsage(d.usage ?? {}))
+        .catch(() => {})
+        .finally(() => setAiUsageLoaded(true));
+    }
+  }, [showAiUsage, aiUsageLoaded]);
+
   useEffect(() => {
     if (armSecs <= 0) return;
     const t = setTimeout(() => setArmSecs((s) => s - 1), 1000);
@@ -189,6 +209,19 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAiUsage((v) => !v)}
+            title="Show how many AI Draft and Ask AI calls each quote has used"
+            className={cn(
+              "flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+              showAiUsage
+                ? "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-300"
+                : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            {showAiUsage ? "Hide AI usage" : "Show AI usage"}
+          </button>
           {isOwner && (
             <button
               onClick={() => setArmSecs(armed ? 0 : 30)}
@@ -297,6 +330,12 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                 <SortHeader label="Valid Until" col="valid_until" sort={sort} onSort={toggle} />
                 <SortHeader label="Created by" col="created_by" sort={sort} onSort={toggle} title="Only the creator (and the tenant owner) can edit a quote — everyone else sees it read-only" />
                 <SortHeader label="Created" col="created" sort={sort} onSort={toggle} />
+                {showAiUsage && (
+                  <>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="AI Draft calls (outline + sections) charged to this quote">AI Draft</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="Ask AI calls charged to this quote">Ask AI</th>
+                  </>
+                )}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -346,6 +385,12 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                     {q.creator?.full_name || q.creator?.email || "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(q.created_at)}</td>
+                  {showAiUsage && (
+                    <>
+                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{!aiUsageLoaded ? "…" : (aiUsage[q.id]?.draft ?? 0)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{!aiUsageLoaded ? "…" : (aiUsage[q.id]?.askAi ?? 0)}</td>
+                    </>
+                  )}
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-2">
                       <button
