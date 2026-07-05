@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminClient, type AdminTenantRow } from "@/components/admin/admin-client";
 import { BetaSignupsCard, type BetaSignupRow } from "@/components/admin/beta-signups-card";
+import { AiUsageCard, type AiUsageSummary } from "@/components/admin/ai-usage-card";
 import { OrganizationsSection, type OrgRow } from "@/components/admin/organizations-section";
 import type { TenantInvite, User } from "@/types";
 
@@ -17,7 +18,12 @@ interface TenantRowDb {
 export default async function AdminPage() {
   const admin = createAdminClient();
 
-  const [tenantsRes, usersRes, quotesRes, invitesRes, betaRes, orgsRes, orgAdminsRes] = await Promise.all([
+  // AI usage window (aggregated in JS below). ai_usage: missing table (migration
+  // 024 not yet applied) degrades gracefully to [].
+  const AI_USAGE_WINDOW_DAYS = 30;
+  const aiUsageSince = new Date(Date.now() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const [tenantsRes, usersRes, quotesRes, invitesRes, betaRes, orgsRes, orgAdminsRes, aiUsageRes] = await Promise.all([
     admin.from("tenants").select(
       "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason, organization_id, created_by_org_admin_user"
     ).order("created_at"),
@@ -32,6 +38,11 @@ export default async function AdminPage() {
     // Organizations (migration 019 — `?? []` if not yet run).
     admin.from("organizations").select("id, name, slug, platform_enabled, created_at").order("created_at"),
     admin.from("organization_admins").select("org_id, user_id"),
+    admin
+      .from("ai_usage")
+      .select("tenant_id, kind, model, input_tokens, output_tokens, cache_read_input_tokens, cost_usd")
+      .gte("created_at", aiUsageSince)
+      .limit(50000),
   ]);
 
   const betaSignups = (betaRes.data ?? []) as BetaSignupRow[];
@@ -123,9 +134,43 @@ export default async function AdminPage() {
     .filter((t) => !t.organization_id)
     .map((t) => ({ id: t.id, name: t.name }));
 
+  // ── AI usage summary (last N days), aggregated from the ai_usage ledger ─────
+  const tenantNameById = new Map(tenants.map((t) => [t.id, t.name]));
+  const usageRows = (aiUsageRes.data ?? []) as {
+    tenant_id: string; kind: string; model: string;
+    input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cost_usd: number | string;
+  }[];
+  const acc = { calls: 0, cost: 0, inTok: 0, outTok: 0, cacheRead: 0 };
+  const byModel = new Map<string, { calls: number; cost: number }>();
+  const byKind = new Map<string, { calls: number; cost: number }>();
+  const byTenant = new Map<string, { calls: number; cost: number }>();
+  for (const r of usageRows) {
+    const cost = Number(r.cost_usd) || 0;
+    acc.calls++; acc.cost += cost;
+    acc.inTok += r.input_tokens || 0; acc.outTok += r.output_tokens || 0; acc.cacheRead += r.cache_read_input_tokens || 0;
+    const m = byModel.get(r.model) ?? { calls: 0, cost: 0 }; m.calls++; m.cost += cost; byModel.set(r.model, m);
+    const k = byKind.get(r.kind) ?? { calls: 0, cost: 0 }; k.calls++; k.cost += cost; byKind.set(r.kind, k);
+    const t = byTenant.get(r.tenant_id) ?? { calls: 0, cost: 0 }; t.calls++; t.cost += cost; byTenant.set(r.tenant_id, t);
+  }
+  const aiUsage: AiUsageSummary = {
+    windowDays: AI_USAGE_WINDOW_DAYS,
+    totalCalls: acc.calls,
+    totalCostUsd: acc.cost,
+    totalInputTokens: acc.inTok,
+    totalOutputTokens: acc.outTok,
+    totalCacheReadTokens: acc.cacheRead,
+    byModel: [...byModel.entries()].map(([model, v]) => ({ model, calls: v.calls, costUsd: v.cost })).sort((a, b) => b.costUsd - a.costUsd),
+    byKind: [...byKind.entries()].map(([kind, v]) => ({ kind, calls: v.calls, costUsd: v.cost })).sort((a, b) => b.costUsd - a.costUsd),
+    topTenants: [...byTenant.entries()]
+      .map(([tenantId, v]) => ({ tenantId, name: tenantNameById.get(tenantId) ?? "—", calls: v.calls, costUsd: v.cost }))
+      .sort((a, b) => b.costUsd - a.costUsd)
+      .slice(0, 10),
+  };
+
   return (
     <div className="space-y-8">
       <AdminClient tenants={rows} />
+      <AiUsageCard summary={aiUsage} />
       <OrganizationsSection orgs={orgRows} standaloneWorkspaces={standaloneWorkspaces} />
       <BetaSignupsCard signups={betaSignups} />
     </div>
