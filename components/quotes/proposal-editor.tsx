@@ -1196,7 +1196,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
     const parts: string[] = [];
     try {
       for (let i = 0; i < list.length; i++) {
-        setDraftBusy(`Section ${i + 1} of ${list.length}: ${list[i]}`);
+        setDraftBusy(`${i + 1}/${list.length}`);
         const md = await fetchSectionDraft({
           section: list[i],
           intake,
@@ -1945,7 +1945,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
           >
             {draftBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {draftBusy ? "Drafting…" : "AI Draft"}
+            {draftBusy ? (/^\d+\/\d+$/.test(draftBusy) ? `Drafting ${draftBusy}…` : "Drafting…") : "AI Draft"}
             {!draftBusy && <ChevronDown className="w-3 h-3" />}
           </button>
 
