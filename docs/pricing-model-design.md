@@ -257,6 +257,21 @@ Target **~90% gross margin**. Worked example at a **$9 / quote** price point:
 - Net: **Draft is more valuable than Ask.** Budget and any future limits center on **Claude draft calls**; Ask AI
   stays generous. (Prompt caching further reduces Claude input cost on rich prompts — see the AI usage/caching work.)
 
+### 12.4 Reference: current per-token rates (source of truth: `lib/ai/cost.ts`)
+Rates are **hard-coded** in `lib/ai/cost.ts` (`RATES` map) and applied at call time; `ai_usage.cost_usd` is a
+**snapshot** (tokens are the durable truth). Update that file + redeploy when Anthropic / Google pricing changes.
+
+| Model | Input $/1M | Output $/1M | Cache write $/1M | Cache read $/1M |
+|---|---|---|---|---|
+| Claude Opus 4.8 (`claude-opus-4-8`)  | $5.00 | $25.00 | $6.25 (1.25× input) | $0.50 (0.10× input) |
+| Gemini 2.5-flash (`gemini-2.5-flash`) | $0.30 | $2.50  | — (not used)        | — (not used) |
+
+Token buckets on each **Claude** call (Anthropic prompt caching): `input_tokens` = fresh input (1×);
+`cache_creation_input_tokens` = cache **write** (1.25×, one-time to store the prefix);
+`cache_read_input_tokens` = cache **read** (0.10×, each reuse). **Gemini** has no cache columns.
+Formula: `cost_usd = Σ(tokens × per-token rate) / 1,000,000`. Rates as of 2026-07-04 — re-verify against
+Anthropic / Google pricing pages before relying on them for billing.
+
 ---
 
 ## Appendix: how this maps to what exists today
