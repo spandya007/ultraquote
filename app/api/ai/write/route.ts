@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
 import { requireWriteAccess } from "@/lib/access/guard";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
+import { logAiUsage } from "@/lib/ai/usage";
 import { GEMINI_MODEL, WRITE_EDIT_SYSTEM, WRITE_GENERATE_RULES, writeInstruction, brandSystemHeader } from "@/lib/ai/prompts";
 
 // AI writing assistant for the proposal Document. Calls Google Gemini Flash
@@ -53,6 +54,13 @@ export async function POST(request: NextRequest) {
   // ── Grounding context + brand profile — generate/continue only ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
+  // Resolve the tenant once for the usage ledger — works for every mode (the
+  // selection-edit modes don't otherwise load the quote).
+  let tenantId: string | null = null;
+  if (body.quoteId) {
+    const { data: qMeta } = await db.from("quotes").select("tenant_id").eq("id", body.quoteId).maybeSingle();
+    tenantId = qMeta?.tenant_id ?? null;
+  }
   let context = "";
   // Neutral fallback role (used if there's no quote to resolve a profile from).
   let brandHeader = brandSystemHeader({ businessName: "your company", businessType: null, about: null, brandVoice: null });
@@ -152,6 +160,18 @@ export async function POST(request: NextRequest) {
   if (!textOut) {
     return NextResponse.json({ error: "AI returned no text (possibly blocked). Try rephrasing." }, { status: 502 });
   }
+
+  await logAiUsage({
+    tenantId,
+    userId: user.id,
+    quoteId: body.quoteId,
+    kind: "write",
+    model: GEMINI_MODEL,
+    usage: {
+      input_tokens: data?.usageMetadata?.promptTokenCount ?? 0,
+      output_tokens: data?.usageMetadata?.candidatesTokenCount ?? 0,
+    },
+  });
 
   return NextResponse.json({ text: textOut });
 }

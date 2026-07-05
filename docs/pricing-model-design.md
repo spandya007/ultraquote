@@ -222,6 +222,43 @@ an "API access" line, but NOT in v1.
 
 ---
 
+## 12. AI feature cost tracking & margin budget (added 2026-07-04)
+
+### 12.1 What is tracked
+Every AI call is recorded in the **`ai_usage` ledger** (migration 024) — tagged by tenant, quote, kind, model,
+tokens, and a cost snapshot. The two metered AI features are tracked **separately**:
+- **AI Draft** — Anthropic **Claude** (`claude-opus-4-8`): `draft_outline` + `draft_section` / `draft_full` calls.
+- **Ask AI** — Google **Gemini** (`gemini-2.5-flash`): `write` calls.
+- **Extract pricing** (Gemini) is **NOT** currently attributed to a quote (`quote_id` is null). Those calls are
+  few (owner-only, occasional) and small, so they're excluded from per-quote tracking for now.
+
+Per-quote counts are surfaced on the Quotes list (the "Show AI usage" toggle — counts only, no cost, for all
+users), and platform-wide cost/usage in `/admin`.
+
+### 12.2 Cost model & margin budget
+Reference cost: **~$0.018 (1.8¢) per Claude call**.
+
+A **full AI Draft = 1 outline call + 6 section calls = 7 Claude calls** ≈ **7 × $0.018 ≈ $0.13 per full draft**.
+
+Target **~90% gross margin**. Worked example at a **$9 / quote** price point:
+- Allowed total cost per quote = **$0.90** (10% of $9).
+- Allocation:
+  - **DocuSeal** (e-signature): ~**$0.20**
+  - **Other fixed costs**, amortized (hosting, PDF service, Gemini / Ask AI, etc.): ~**$0.20**
+  - **Claude AI-Draft budget** = $0.90 − $0.20 − $0.20 = **~$0.50 per quote**
+- Claude budget ÷ per-call cost = **$0.50 ÷ $0.018 ≈ 27–30 Claude calls per quote** ≈ **~4 full drafts per quote**.
+
+### 12.3 Policy implications
+- **AI Draft (Claude) is the metered / valuable resource.** Cap it at **~27–30 Claude calls per quote** (≈ 4 full
+  drafts) to hold the margin. The planned rate-limit / quota enforcement (see the abuse-prevention design) meters
+  this against the `ai_usage` ledger.
+- **Ask AI (Gemini) is intentionally unlimited to start** — it's cheap (~$0.30 / $2.50 per 1M tokens in/out;
+  fractions of a cent per call), so no cap initially.
+- Net: **Draft is more valuable than Ask.** Budget and any future limits center on **Claude draft calls**; Ask AI
+  stays generous. (Prompt caching further reduces Claude input cost on rich prompts — see the AI usage/caching work.)
+
+---
+
 ## Appendix: how this maps to what exists today
 - ✅ Reuse: access resolver + grace/expired/suspended (migration 012), per-user kill switch, owner Team
   management, the DocuSeal `completed` webhook (metering hook), toast/banner system, Settings page.
