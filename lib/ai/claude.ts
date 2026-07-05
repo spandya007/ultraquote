@@ -18,24 +18,62 @@ export function hasClaudeKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-/** Single-shot generation: system + one user message → concatenated text. */
+export interface ClaudeUsage {
+  input_tokens: number;                 // fresh (uncached) input
+  output_tokens: number;
+  cache_creation_input_tokens: number;  // prompt-cache WRITE
+  cache_read_input_tokens: number;      // prompt-cache READ
+}
+
+// Single-shot generation. `cachedPrefix` is the large, STABLE part of the user
+// message (e.g. quote data + notes + reference exemplars) that repeats across
+// several calls — it (and the system prompt) are marked with cache_control so the
+// 2nd..Nth call within ~5 min read it at ~10% of input cost. `prompt` is the
+// small, varying part (instructions/task). Set cache:false for one-off calls
+// (e.g. the outline), where a cache write would just add cost with no read.
 export async function claudeGenerate(opts: {
   system: string;
+  cachedPrefix?: string;
   prompt: string;
   maxTokens?: number;
-}): Promise<string> {
+  cache?: boolean;
+}): Promise<{ text: string; usage: ClaudeUsage }> {
+  const useCache = opts.cache !== false;
+  const ephemeral = { type: "ephemeral" as const };
+
+  const system: Anthropic.TextBlockParam[] = [
+    { type: "text", text: opts.system, ...(useCache ? { cache_control: ephemeral } : {}) },
+  ];
+
+  const content: Anthropic.TextBlockParam[] = [];
+  if (opts.cachedPrefix) {
+    content.push({ type: "text", text: opts.cachedPrefix, ...(useCache ? { cache_control: ephemeral } : {}) });
+  }
+  content.push({ type: "text", text: opts.prompt });
+
   const message = await getClient().messages.create({
     model: CLAUDE_MODEL,
     max_tokens: opts.maxTokens ?? 4096,
-    system: opts.system,
-    messages: [{ role: "user", content: opts.prompt }],
+    system,
+    messages: [{ role: "user", content }],
   });
 
-  return message.content
+  const text = message.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("")
     .trim();
+
+  const u = message.usage;
+  return {
+    text,
+    usage: {
+      input_tokens: u.input_tokens ?? 0,
+      output_tokens: u.output_tokens ?? 0,
+      cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
+      cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
+    },
+  };
 }
 
 /** Friendly, user-facing message for a failed Claude request. */

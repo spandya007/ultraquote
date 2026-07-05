@@ -7,8 +7,9 @@ import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
+import { logAiUsage } from "@/lib/ai/usage";
 import {
-  brandSystemHeader, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
+  brandSystemHeader, CLAUDE_MODEL, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
   DRAFT_REFERENCE_HEADER, draftReferenceExemplar, draftTask, draftClosingCta, draftInstructions,
 } from "@/lib/ai/prompts";
 import type { DocBlock } from "@/lib/pdf/types";
@@ -121,13 +122,27 @@ export async function POST(request: NextRequest) {
   const task = draftTask(sections);
   const cta = draftClosingCta(sections, !!body.signing?.hasTerms, !!body.forceClosingCta);
 
-  const prompt = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}\n\n${draftInstructions(tone, length, emphasis)}\n\n${task}${cta}`;
+  // Split for prompt caching: the quote-data/notes/references prefix is IDENTICAL
+  // across a full proposal's per-section calls → cached; the instructions/task/CTA
+  // suffix varies per section → fresh. (Leads with "\n\n" to preserve layout.)
+  const cachedPrefix = `# Quote Data\n\n${quoteContext}${notesBlock}${exemplars}`;
+  const varyingPrompt = `\n\n${draftInstructions(tone, length, emphasis)}\n\n${task}${cta}`;
 
   try {
-    const raw = await claudeGenerate({
+    const { text: raw, usage } = await claudeGenerate({
       system,
-      prompt,
+      cachedPrefix,
+      prompt: varyingPrompt,
       maxTokens: sections.length > 1 ? 8192 : 4096,
+      cache: true,
+    });
+    await logAiUsage({
+      tenantId: qRow?.tenant_id,
+      userId: user.id,
+      quoteId: body.quoteId,
+      kind: sections.length > 1 ? "draft_full" : "draft_section",
+      model: CLAUDE_MODEL,
+      usage,
     });
     const markdown = stripMarkdownTables(raw);
     if (!markdown) {

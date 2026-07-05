@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { geminiGenerate, geminiErrorMessage } from "@/lib/ai/gemini";
+import { logAiUsage } from "@/lib/ai/usage";
 import { GEMINI_MODEL, extractPricingPrompt } from "@/lib/ai/prompts";
 
 // Extracts pricing line items from imported document tables (via Gemini JSON
@@ -70,6 +71,17 @@ export async function POST(request: NextRequest) {
   }
 
   const data = await resp.json();
+  await logAiUsage({
+    tenantId,
+    userId: user.id,
+    quoteId: null,
+    kind: "extract_pricing",
+    model: GEMINI_MODEL,
+    usage: {
+      input_tokens: data?.usageMetadata?.promptTokenCount ?? 0,
+      output_tokens: data?.usageMetadata?.candidatesTokenCount ?? 0,
+    },
+  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = (data?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p?.text ?? "").join("").trim();
   let parsed: { scenarios: AiScenario[] };

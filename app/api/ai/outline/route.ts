@@ -5,8 +5,9 @@ import { loadSerializeInput } from "@/lib/pdf/load";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
+import { logAiUsage } from "@/lib/ai/usage";
 import {
-  brandSystemHeader, OUTLINE_SYSTEM_SUFFIX, OUTLINE_JSON_INSTRUCTION,
+  brandSystemHeader, CLAUDE_MODEL, OUTLINE_SYSTEM_SUFFIX, OUTLINE_JSON_INSTRUCTION,
   OUTLINE_DEFAULT_SECTIONS, outlineClientNotesBlock,
 } from "@/lib/ai/prompts";
 
@@ -79,7 +80,16 @@ export async function POST(request: NextRequest) {
   }${OUTLINE_JSON_INSTRUCTION}`;
 
   try {
-    const raw = await claudeGenerate({ system, prompt, maxTokens: 1024 });
+    // One-off call → no prompt caching (a cache write with no later read just adds cost).
+    const { text: raw, usage } = await claudeGenerate({ system, prompt, maxTokens: 1024, cache: false });
+    await logAiUsage({
+      tenantId: qRow?.tenant_id,
+      userId: user.id,
+      quoteId: body.quoteId,
+      kind: "draft_outline",
+      model: CLAUDE_MODEL,
+      usage,
+    });
     const sections = parseSections(raw);
     return NextResponse.json({ sections: sections.length ? sections : OUTLINE_DEFAULT_SECTIONS });
   } catch (err) {
