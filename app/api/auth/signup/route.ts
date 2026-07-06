@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validatePassword } from "@/lib/auth/password";
+import { sendMail } from "@/lib/email/mailer";
 
-// Self-serve signup (pay-per-use). Creates the Auth user + sends the confirmation
-// email, then auto-provisions a STANDALONE tenant (owner = the new user) via
-// provision_tenant. No admin, no org. Email verification hard-gates access
-// (requires "Confirm email" ON in Supabase Auth). See
-// docs/self-serve-onboarding-design.md.
+// Self-serve signup (pay-per-use). Creates the Auth user (unconfirmed) + a STANDALONE
+// tenant (owner = the new user), and emails a confirmation link via the app's own
+// SMTP (Zoho) — NOT Supabase's automatic signup email, so delivery doesn't depend on
+// Supabase email config. The link lands on /auth/confirm (scanner-safe verifyOtp).
+// Email verification hard-gates access. See docs/self-serve-onboarding-design.md.
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 export async function POST(request: Request) {
   let body: { fullName?: string; company?: string; email?: string; password?: string; website?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
@@ -30,18 +34,19 @@ export async function POST(request: Request) {
   if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 
   const origin = new URL(request.url).origin;
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  // Create the auth user (unconfirmed) + send the confirmation email. No tenant_id
-  // in metadata → the handle_new_auth_user trigger no-ops; provision_tenant makes
-  // the public.users row itself. (See design §5.)
-  const { data, error } = await supabase.auth.signUp({
+  // Create the user (unconfirmed) + generate the confirmation token WITHOUT sending
+  // an email. No tenant_id in metadata → handle_new_auth_user no-ops; provision_tenant
+  // creates the public.users row (design §5).
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "signup",
     email,
     password,
-    options: { data: { full_name: fullName }, emailRedirectTo: `${origin}/auth/confirm` },
+    options: { data: { full_name: fullName }, redirectTo: `${origin}/auth/confirm` },
   });
-  if (error) {
-    const dup = /already|registered|exists/i.test(error.message);
+  if (error || !data?.user?.id) {
+    const dup = /already|registered|exists/i.test(error?.message ?? "");
     return NextResponse.json(
       { error: dup
           ? "An account with this email already exists — try signing in or resetting your password."
@@ -49,31 +54,41 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-
-  // Supabase obfuscates an existing (confirmed) email by returning a user with an
-  // empty identities array and NO error. Don't provision a duplicate; return a
-  // generic success so we don't leak which emails are registered.
-  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-    return NextResponse.json({ ok: true });
+  const userId = data.user.id;
+  const tokenHash = data.properties?.hashed_token;
+  const confirmUrl = tokenHash
+    ? `${origin}/auth/confirm?token_hash=${tokenHash}&type=signup`
+    : data.properties?.action_link;
+  if (!confirmUrl) {
+    await admin.auth.admin.deleteUser(userId).catch(() => {});
+    return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });
   }
-  const userId = data.user?.id;
-  if (!userId) return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });
 
   // Provision a STANDALONE tenant (organization_id = NULL) with this user as owner.
-  const admin = createAdminClient();
   const { error: provErr } = await admin.rpc("provision_tenant", {
-    p_name: company,
-    p_email: email,
-    p_owner_id: userId,
-    p_owner_email: email,
-    p_owner_name: fullName,
+    p_name: company, p_email: email, p_owner_id: userId, p_owner_email: email, p_owner_name: fullName,
   });
   if (provErr) {
     console.error("[signup] provision_tenant failed:", provErr);
-    // Remove the orphan auth user so the person can retry cleanly.
     await admin.auth.admin.deleteUser(userId).catch(() => {});
     return NextResponse.json({ error: "Could not set up your workspace. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  // Send the confirmation email via the app's SMTP.
+  const { sent } = await sendMail({
+    to: email,
+    subject: "Confirm your UltraQuote account",
+    text:
+      `Welcome to UltraQuote, ${fullName}!\n\n` +
+      `Confirm your email to activate your workspace:\n${confirmUrl}\n\n` +
+      `If you didn't sign up, you can ignore this email.`,
+    html:
+      `<p>Welcome to UltraQuote, ${esc(fullName)}!</p>` +
+      `<p>Confirm your email to activate your workspace:</p>` +
+      `<p><a href="${confirmUrl}">Confirm my account</a></p>` +
+      `<p style="color:#64748b;font-size:12px">If you didn't sign up, you can ignore this email.</p>`,
+  });
+  if (!sent) console.warn("[signup] confirmation email not sent — SMTP not configured?");
+
+  return NextResponse.json({ ok: true, emailed: sent });
 }
