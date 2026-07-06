@@ -43,8 +43,10 @@ export async function middleware(request: NextRequest) {
   // Public marketing/landing pages — reachable without a session (shared via
   // email/SMS/social to drive beta signups).
   const isMarketingRoute = pathname === "/beta" || pathname.startsWith("/beta/");
+  // Self-serve signup (creates a standalone tenant) — public, no session.
+  const isSignupRoute = pathname === "/signup";
   const isPublicRoute =
-    isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute || isMarketingRoute;
+    isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute || isMarketingRoute || isSignupRoute;
 
   if (!user && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone();
