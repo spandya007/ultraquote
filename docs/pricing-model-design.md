@@ -15,42 +15,40 @@ later phase (see §11). This is a working draft to iterate on; bracketed items a
   subscription window and adds plan/seat/doc-cap awareness.
 - Self-serve where possible (Stripe Checkout + Customer Portal) so onboarding/upgrades don't need admin.
 
-## 2. Tier definitions (v1 — default list prices, admin-editable per §5a)
+## 2. Tier definitions (v2 — default list prices, admin-editable per §5a)
 
-| | **Pay-per-use** | **Starter** | **Team** | **Team Ultra** |
-|---|---|---|---|---|
-| Base price | $0/mo + **$9 / completed doc** | **$29 / mo** | **$79 / mo** | **$159 / mo** |
-| Included seats | 1 (owner) | 1 | 5 | 10 |
-| Additional seats | — | **+$10/seat (+5 docs/seat), up to 3 total** | **+$10/seat (+5 docs/seat), up to 10 total** | — (at cap) |
-| Included docs/mo | pay per doc | 10 | 50 | 100 |
-| Overage (docs beyond included) | n/a (per-doc) | **$3 / completed doc** | **$3 / completed doc** | **$3 / completed doc** |
-| Quotes (create/send/preview/PDF) | Unlimited | Unlimited | Unlimited | Unlimited |
-| Templates, catalog, AI, dark mode, etc. | All | All | All | All |
-| Annual option | — | [~2 months free] | [~2 months free] | [~2 months free] |
+Source: **`docs/UltraQuote Pricing v2.xlsx`** (2026-07-07). v2 simplifies v1: **five fixed tiers**, **no
+seat add-ons** (users are fixed per tier), and a new **AI Drafts per doc** allowance. The What-If cost
+model is `docs/pricing-cost-model.html`.
+
+| | **Pay-per-use** | **Starter** | **Standard** | **Pro** | **Ultra** |
+|---|---|---|---|---|---|
+| Price | **$9 / completed doc** | **$30 / mo** | **$50 / mo** | **$80 / mo** | **$150 / mo** |
+| Users | 1 | 1 | 2 | 5 | 10 |
+| Included signed docs / mo | n/a (per doc) | 5 | 10 | 25 | 50 |
+| Overage (docs beyond included) | n/a | **$3 / doc** | **$3 / doc** | **$3 / doc** | **$3 / doc** |
+| **AI Drafts per doc** | **1** | **2** | **3** | **4** | **5** |
+| Quotes (create/send/preview/PDF), templates, catalog, AI, etc. | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited |
 
 > ⚠️ Dollar amounts are **default list prices, NOT hardcoded** — admin-editable, and each tenant can
 > carry a discount. See §5a.
 
-**Seat add-ons (Starter & Team):** +$10/seat/month, each added seat also adds +5 included docs/month.
-This reproduces a smooth ladder from one base plan instead of many SKUs (Stripe handles it via
-subscription seat *quantity*). E.g. Starter: 1u/10d = $29 · 2u/15d = $39 · 3u/20d = $49. Caps: Starter
-≤ 3 users, Team ≤ 10 users.
-
-**Flat $3 overage, every tier.** One transparent number ("$3 per completed document beyond your plan's
-monthly included docs, on any plan"). Always cheaper than Pay-per-use ($9) so subscribing always wins;
-above each tier's effective in-plan rate (Starter $2.90, Team $1.58, Ultra $1.59) so heavy users are
-nudged to upgrade rather than ride overage. No hard doc cap — overage replaces it (friendlier, never
-blocks mid-deal).
-
-**Ladder is flaw-free (checked):** Team + 5 add-on seats = $129 / 10 users / 75 docs; Team Ultra =
-$159 / 10 users / 100 docs. For ≤75 docs the add-on route is cheaper (users pick it); past ~75 docs,
-overage on the add-on route ($129 + 25×$3 = $204) exceeds Team Ultra ($159) → clean crossover, no
-configuration beats a higher plan on the same dimensions.
+**What's new in v2:**
+- **AI Drafts per doc** (1 → 5 up the ladder) is the **AI-cost-control lever** — it bounds Claude spend
+  *per signed doc* and tiers it by plan. This is the concrete answer to the §12 / §13 AI-cost thread.
+- **No seat add-ons** — users are fixed per tier (simpler than v1's +$10/seat ladder). Need more users →
+  move up a tier.
+- **Flat $3 doc overage** on every subscription tier — always cheaper than Pay-per-use's $9, so
+  subscribing wins; no hard doc cap, so overage never blocks mid-deal.
 
 Notes:
-- **Quotes are always unlimited** on every tier — only *completed documents* meter (DocuSeal cost +
-  delivered value live there).
-- Pay-per-use is the no-commitment / post-beta path. Breakeven vs Starter ≈ 3.2 docs/mo → nudge at 4.
+- **Quotes are always unlimited** on every tier — only **completed (signed) documents** meter (DocuSeal
+  cost + delivered value live there).
+- Pay-per-use is the no-commitment / **self-serve** path (`docs/self-serve-onboarding-design.md`);
+  breakeven vs Starter ≈ 3.3 docs/mo → nudge to Starter at ~4.
+
+> **v1 (superseded):** Pay-per-use $9/doc · Starter $29 (10 docs) · Team $79 (50) · Team Ultra $159 (100),
+> with +$10/seat add-ons. Kept in git history.
 
 ## 3. What is metered: "completed documents"
 - A **completed document** = a quote whose signing round fully completes. The DocuSeal webhook
@@ -249,9 +247,10 @@ Target **~90% gross margin**. Worked example at a **$9 / quote** price point:
 - Claude budget ÷ per-call cost = **$0.50 ÷ $0.018 ≈ 27–30 Claude calls per quote** ≈ **~4 full drafts per quote**.
 
 ### 12.3 Policy implications
-- **AI Draft (Claude) is the metered / valuable resource.** Cap it at **~27–30 Claude calls per quote** (≈ 4 full
-  drafts) to hold the margin. The planned rate-limit / quota enforcement (see the abuse-prevention design) meters
-  this against the `ai_usage` ledger.
+- **AI Draft (Claude) is the metered / valuable resource.** v2 (§2) makes the allowance explicit: **AI drafts
+  per doc**, tiered **1 → 5** by plan (≈ 7 Claude `draft_*` calls per full draft). The planned rate-limit / quota
+  enforcement meters `draft_*` calls in the `ai_usage` ledger against the plan's drafts-per-doc allowance.
+  *(The earlier flat "~27–30 calls/quote" was a first cut; v2's per-doc, per-plan allowance supersedes it.)*
 - **Ask AI (Gemini) is intentionally unlimited to start** — it's cheap (~$0.30 / $2.50 per 1M tokens in/out;
   fractions of a cent per call), so no cap initially.
 - Net: **Draft is more valuable than Ask.** Budget and any future limits center on **Claude draft calls**; Ask AI
@@ -334,6 +333,17 @@ The `ai_usage` ledger (migration 024) already records every draft with `quote_id
    per-user metering + isolation rethink)?
 3. Build the **measurement view** (AI-cost-per-signed-doc, draft:sign ratio) first, to make limits data-driven?
 4. Eventual per-quote "included" budget: **1 full draft** (tight, margin-safe) vs more (better UX, higher cost)?
+
+### 13.6 v2 resolution (2026-07-07)
+Pricing **v2 (§2) adopts "AI drafts per doc" (1 → 5 by tier)** as the AI-cost-control mechanism — exactly the
+"per-quote / per-doc floor, layered by plan" conclusion of §13.2. Status of the §13.5 decisions:
+- **#2 (onboarding) — RESOLVED & SHIPPED:** self-serve = one **auto-provisioned tenant per customer** (not a
+  shared tenant, not an Org). See `docs/self-serve-onboarding-design.md` (PR #21, live).
+- **#4 (per-doc included budget) — RESOLVED:** the plan's **AI drafts per doc** is the included budget (tight
+  for Pay-per-use at 1; generous for Ultra at 5).
+- **#1 / #3 — still open:** build the **enforcement** (meter `draft_*` calls vs the plan's drafts-per-doc; on
+  exceed → hard block or paid extra drafts — a decision) and a **measurement view** (AI-cost-per-signed-doc,
+  draft:sign ratio). The draft:sign multiplier (real drafts > drafts on signed docs) is tunable in the What-If model.
 
 ---
 
