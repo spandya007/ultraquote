@@ -27,15 +27,17 @@ model is `docs/pricing-cost-model.html`.
 | Users | 1 | 1 | 2 | 5 | 10 |
 | Included signed docs / mo | n/a (per doc) | 5 | 10 | 25 | 50 |
 | Overage (docs beyond included) | n/a | **$3 / doc** | **$3 / doc** | **$3 / doc** | **$3 / doc** |
-| **AI Drafts per doc** | **1** | **2** | **3** | **4** | **5** |
 | Quotes (create/send/preview/PDF), templates, catalog, AI, etc. | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited |
+| AI fair-use (all tiers) | **25 AI calls / quote** hard cap (~$0.45) | 25 | 25 | 25 | 25 |
 
 > ⚠️ Dollar amounts are **default list prices, NOT hardcoded** — admin-editable, and each tenant can
 > carry a discount. See §5a.
 
 **What's new in v2:**
-- **AI Drafts per doc** (1 → 5 up the ladder) is the **AI-cost-control lever** — it bounds Claude spend
-  *per signed doc* and tiers it by plan. This is the concrete answer to the §12 / §13 AI-cost thread.
+- **AI is NOT a selling point / tier differentiator.** It's a **flat fair-use ceiling** of **25 AI
+  (`draft_*`) calls per quote** on every tier (~$0.45; ≈ 3.5 full drafts, since 1 full draft = 7 calls).
+  Metered from the `ai_usage` ledger; **hard-block** the quote's AI at the cap (edit manually or duplicate
+  to reset). This is the concrete answer to the §12 / §13 AI-cost thread — see §12.3.
 - **No seat add-ons** — users are fixed per tier (simpler than v1's +$10/seat ladder). Need more users →
   move up a tier.
 - **Flat $3 doc overage** on every subscription tier — always cheaper than Pay-per-use's $9, so
@@ -43,7 +45,7 @@ model is `docs/pricing-cost-model.html`.
 
 Notes:
 - **Quotes are always unlimited** on every tier — only **completed (signed) documents** meter (DocuSeal
-  cost + delivered value live there).
+  cost + delivered value live there). AI drafting is capped per quote (above), not per plan.
 - Pay-per-use is the no-commitment / **self-serve** path (`docs/self-serve-onboarding-design.md`);
   breakeven vs Starter ≈ 3.3 docs/mo → nudge to Starter at ~4.
 
@@ -247,10 +249,18 @@ Target **~90% gross margin**. Worked example at a **$9 / quote** price point:
 - Claude budget ÷ per-call cost = **$0.50 ÷ $0.018 ≈ 27–30 Claude calls per quote** ≈ **~4 full drafts per quote**.
 
 ### 12.3 Policy implications
-- **AI Draft (Claude) is the metered / valuable resource.** v2 (§2) makes the allowance explicit: **AI drafts
-  per doc**, tiered **1 → 5** by plan (≈ 7 Claude `draft_*` calls per full draft). The planned rate-limit / quota
-  enforcement meters `draft_*` calls in the `ai_usage` ledger against the plan's drafts-per-doc allowance.
-  *(The earlier flat "~27–30 calls/quote" was a first cut; v2's per-doc, per-plan allowance supersedes it.)*
+- **AI Draft (Claude) is metered / capped by API CALLS, not "drafts."** A "draft" isn't a fixed unit (a full
+  proposal = **7** `draft_*` calls; a single-section re-draft = 1; the outline = 1), so we meter **`draft_*`
+  calls per quote** from the `ai_usage` ledger, with a **flat hard cap of 25 calls per quote** (~$0.45; ≈ 3.5
+  full drafts), **the same on every tier** — AI is NOT a tier differentiator. At the cap → **hard-block** that
+  quote's AI (the user edits manually or duplicates the quote to reset).
+  *(Supersedes both the earlier "drafts-per-doc, 1–5 by tier" and the first-cut "~27–30 calls/quote.")*
+- **Draft/Sent ratio (margin knob).** The 25-call cap is per **drafted** quote, but revenue is per **sent /
+  billed** doc, so **AI cost per billed doc = (avg calls per drafted quote) × ~$0.018 × Draft/Sent ratio**, where
+  the ratio = drafted quotes per sent doc (**ideal 1**; realistic **1.5–2**, because drafts also run on quotes
+  that never sign). It's a tunable input in the What-If model (`docs/pricing-cost-model.html`). Per-quote
+  enforcement bounds each quote's cost; if mass quote-creation ever shows abuse, add a **per-tenant monthly call
+  cap** on top.
 - **Ask AI (Gemini) is intentionally unlimited to start** — it's cheap (~$0.30 / $2.50 per 1M tokens in/out;
   fractions of a cent per call), so no cap initially.
 - Net: **Draft is more valuable than Ask.** Budget and any future limits center on **Claude draft calls**; Ask AI
@@ -335,15 +345,20 @@ The `ai_usage` ledger (migration 024) already records every draft with `quote_id
 4. Eventual per-quote "included" budget: **1 full draft** (tight, margin-safe) vs more (better UX, higher cost)?
 
 ### 13.6 v2 resolution (2026-07-07)
-Pricing **v2 (§2) adopts "AI drafts per doc" (1 → 5 by tier)** as the AI-cost-control mechanism — exactly the
-"per-quote / per-doc floor, layered by plan" conclusion of §13.2. Status of the §13.5 decisions:
+The AI-cost-control decision landed as a **flat, per-quote API-call cap** — *not* the intermediate tiered "AI
+drafts per doc (1→5)": **25 `draft_*` calls per quote, hard-blocked, the same on every tier** (§12.3). That's the
+"per-quote floor, plan-agnostic" conclusion of §13.1/§13.2 made precise. Status of the §13.5 decisions:
 - **#2 (onboarding) — RESOLVED & SHIPPED:** self-serve = one **auto-provisioned tenant per customer** (not a
   shared tenant, not an Org). See `docs/self-serve-onboarding-design.md` (PR #21, live).
-- **#4 (per-doc included budget) — RESOLVED:** the plan's **AI drafts per doc** is the included budget (tight
-  for Pay-per-use at 1; generous for Ultra at 5).
-- **#1 / #3 — still open:** build the **enforcement** (meter `draft_*` calls vs the plan's drafts-per-doc; on
-  exceed → hard block or paid extra drafts — a decision) and a **measurement view** (AI-cost-per-signed-doc,
-  draft:sign ratio). The draft:sign multiplier (real drafts > drafts on signed docs) is tunable in the What-If model.
+- **#4 (per-quote budget) — RESOLVED:** **25 calls/quote (~$0.45)**, flat, hard-block at cap. AI is a fair-use
+  ceiling, **not** a selling point / tier differentiator.
+- **Block-vs-overage — DECIDED:** **hard-block** the quote's AI at the cap (edit manually / duplicate to reset);
+  revisit paid extras only if data shows demand.
+- **Draft/Sent ratio — ADDED as a margin knob** (§12.3): drafted quotes per sent doc (ideal 1, realistic 1.5–2),
+  tunable in the What-If model (`docs/pricing-cost-model.html`).
+- **#1 / #3 — still to BUILD:** the enforcement (a 25-`draft_*`-calls-per-quote guard in `/api/ai/draft` + outline,
+  counting the ledger) and a **measurement view** (AI-cost-per-signed-doc + actual draft:sent ratio) to replace
+  the guessed inputs with real data.
 
 ---
 
