@@ -1,6 +1,24 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeCostUsd, type TokenUsage } from "./cost";
 
+// Count Claude `draft_*` calls (draft_section / draft_full / draft_outline) already
+// logged for a quote — the basis for the per-quote AI hard cap. Service-role (the
+// ai_usage RLS is owner-read only). Missing table (024 not run) → 0 so drafting
+// isn't blocked before the ledger exists.
+export async function countDraftCallsForQuote(quoteId: string): Promise<number> {
+  try {
+    const { count, error } = await createAdminClient()
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("quote_id", quoteId)
+      .like("kind", "draft%");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 // Append one row to the ai_usage ledger, via the service-role client (RLS lets
 // only owners READ; writes are service-role only). BEST-EFFORT: a logging failure
 // must never break the user's request — callers should not await this in a way

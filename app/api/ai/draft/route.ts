@@ -7,7 +7,8 @@ import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
-import { logAiUsage } from "@/lib/ai/usage";
+import { logAiUsage, countDraftCallsForQuote } from "@/lib/ai/usage";
+import { maxDraftCallsPerQuote } from "@/lib/ai/limits";
 import {
   brandSystemHeader, CLAUDE_MODEL, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
   DRAFT_REFERENCE_HEADER, draftReferenceExemplar, draftTask, draftClosingCta, draftInstructions,
@@ -75,6 +76,16 @@ export async function POST(request: NextRequest) {
   const sections = body.sections?.length ? body.sections : body.section ? [body.section] : null;
   if (!sections) {
     return NextResponse.json({ error: "section or sections is required" }, { status: 400 });
+  }
+
+  // Per-quote AI hard cap: block once this quote has used its allowance of Claude
+  // draft calls (a full proposal is ~7 calls). Checked before doing any work.
+  const limit = maxDraftCallsPerQuote();
+  if ((await countDraftCallsForQuote(body.quoteId)) >= limit) {
+    return NextResponse.json(
+      { error: `This quote has reached its AI limit (${limit} AI actions). Edit the sections manually, or duplicate the quote to start fresh.` },
+      { status: 429 }
+    );
   }
 
   // Grounding: the quote's own structured data (client/services/totals).
