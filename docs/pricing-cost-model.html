@@ -118,7 +118,7 @@
           <th title="Number of paying workspaces (tenants) on this tier">Workspaces</th>
           <th title="Average seats/users per workspace — drives AI drafting cost & seat add-on revenue">Users / ws</th>
           <th title="Average completed (signed) documents per workspace per month — drives DocuSeal cost & doc-overage revenue">Docs / ws</th>
-          <th title="AI drafts per SIGNED doc (v2 plan allowance) — drives Claude cost">AI Drafts / doc</th>
+          <th title="Avg AI (Claude draft_*) calls per DRAFTED quote — drives Claude cost. Hard cap 25/quote (~$0.45), flat across tiers.">AI calls / quote</th>
           <th title="Monthly base price under the CURRENT scenario">Price (cur)</th>
           <th title="Monthly base price under the PROPOSED scenario">Price (prop)</th>
           <th class="right">MRR</th>
@@ -149,8 +149,8 @@
 
   <div class="grid cols-4" style="margin-bottom:14px">
     <div class="kpi"><label>DocuSeal — $ / completed doc</label><input type="number" id="c_doc" value="0.20" step="0.01"></div>
-    <div class="kpi"><label title="1 AI draft = 1 full proposal ≈ 7 Claude calls ≈ $0.13 (pricing §12; less with caching). The old $0.50 was a pre-caching over-estimate.">Claude — $ / AI draft</label><input type="number" id="c_draft" value="0.15" step="0.01"></div>
-    <div class="kpi"><label title="Drafts also run on quotes that never sign, so real Claude cost > drafts on signed docs. 1 = signed only; 2–3 = typical.">Draft:sign multiplier</label><input type="number" id="c_draftmult" value="1.5" step="0.1"></div>
+    <div class="kpi"><label title="Metered per API call (ledger). ~$0.018/call (§12.2; 1 full draft = 7 calls ≈ $0.13). Hard cap 25 calls/quote ≈ $0.45.">Claude — $ / AI call</label><input type="number" id="c_call" value="0.018" step="0.001"></div>
+    <div class="kpi"><label title="Drafted quotes per SENT (billed) doc. Ideal = 1 (every drafted quote sends); realistic 1.5–2 (drafts also run on quotes that never sign). The 25-call cap applies per DRAFTED quote.">Draft/Sent ratio</label><input type="number" id="c_draftmult" value="1" step="0.1"></div>
     <div class="kpi"><label>Gemini — $ / user / mo</label><input type="number" id="c_gemini" value="0.10" step="0.01"></div>
   </div>
 
@@ -168,34 +168,36 @@
     <strong>How costs are modeled.</strong> Supabase, Railway, Netlify and the DocuSeal seat fee are <em>flat platform costs</em> — one instance serves all tenants, so they are counted once, not per tenant. What scales with growth lives in the variable inputs: DocuSeal per-doc, Claude per-draft, Gemini per-user, and bandwidth over the included allowance. Adjust the two bandwidth knobs above to bound the egress you were unsure about.
   </div>
 
-  <p class="foot">Sources (July 2026): Supabase Pro $25/mo + $0.09/GB egress · Railway Pro $20/mo · Netlify Pro $20/mo flat · DocuSeal Pro $20/mo + $0.20/completed doc · Claude Opus 4.8 $5/$25 per M tok (~$0.13 per full draft = 7 calls, §12; less with caching) · Gemini 2.5 Flash $0.30/$2.50 per M tok. All figures editable above.</p>
+  <p class="foot">Sources (July 2026): Supabase Pro $25/mo + $0.09/GB egress · Railway Pro $20/mo · Netlify Pro $20/mo flat · DocuSeal Pro $20/mo + $0.20/completed doc · Claude Opus 4.8 $5/$25 per M tok (~$0.018 per draft_* call, §12.2; 1 full draft = 7 calls ≈ $0.13; less with caching) · Gemini 2.5 Flash $0.30/$2.50 per M tok. AI is hard-capped at <strong>25 calls / quote (~$0.45)</strong>, flat across tiers; the Draft/Sent ratio scales per-quote cost to per-billed-doc cost. All figures editable above.</p>
 </div>
 
 <script>
 // ---------- default state ----------
-// v2 pricing (docs/UltraQuote Pricing v2.xlsx). `drafts` = AI drafts PER DOC
-// (v2's key dimension), NOT per user. ws/users/docs are editable projections;
-// docs default to each tier's included allowance (assume full usage). Claude cost
-// = ws × docs × draftsPerDoc × $/draft × draft:sign multiplier.
+// v2 pricing (docs/UltraQuote Pricing v2.xlsx). AI is metered by API CALLS, hard-
+// capped at 25 draft_* calls per QUOTE (≈3.5 full drafts; 1 full draft = 7 calls),
+// FLAT across all tiers (not a selling point). `calls` = avg AI calls per DRAFTED
+// quote (edit for realistic usage; ≤ 25). ws/users/docs are editable projections;
+// docs default to each tier's included (billed) docs. Claude cost =
+// ws × docs × Draft/Sent ratio × calls-per-drafted-quote × $/call.
 const tiers = [
   {key:'ppu',   name:'Pay-per-use', color:'#64748b',
-    ws:10, users:1,  docs:3,  drafts:1,
+    ws:10, users:1,  docs:3,  calls:14,
     priceCur:0,   priceProp:0,
     incSeats:1, incDocs:9999, perDoc:9 },        // per-doc billed ($9/signed doc)
   {key:'start', name:'Starter',     color:'#2563eb',
-    ws:20, users:1,  docs:5,  drafts:2,
+    ws:20, users:1,  docs:5,  calls:14,
     priceCur:30,  priceProp:30,
     incSeats:1, incDocs:5,  perDoc:0 },
   {key:'std',   name:'Standard',    color:'#0ea5a4',
-    ws:12, users:2,  docs:10, drafts:3,
+    ws:12, users:2,  docs:10, calls:14,
     priceCur:50,  priceProp:50,
     incSeats:2, incDocs:10, perDoc:0 },
   {key:'pro',   name:'Pro',         color:'#7c3aed',
-    ws:6,  users:5,  docs:25, drafts:4,
+    ws:6,  users:5,  docs:25, calls:14,
     priceCur:80,  priceProp:80,
     incSeats:5, incDocs:25, perDoc:0 },
   {key:'ultra', name:'Ultra',       color:'#d97706',
-    ws:3,  users:10, docs:50, drafts:5,
+    ws:3,  users:10, docs:50, calls:14,
     priceCur:150, priceProp:150,
     incSeats:10, incDocs:50, perDoc:0 },
 ];
@@ -218,7 +220,7 @@ function buildTierRows(){
     const cell=(field,step='1',w='88px')=>`<td><input type="number" data-i="${i}" data-f="${field}" value="${t[field]}" step="${step}" style="width:${w}"></td>`;
     tr.innerHTML =
       `<td class="tier-name"><span class="tier-tag" style="background:${t.color}"></span>${t.name}</td>`+
-      cell('ws')+cell('users','0.5')+cell('docs','1')+cell('drafts','1')+
+      cell('ws')+cell('users','0.5')+cell('docs','1')+cell('calls','1')+
       cell('priceCur','1')+cell('priceProp','1')+
       `<td class="right" data-out="mrr-${i}"></td>`+
       `<td class="right" data-out="var-${i}"></td>`+
@@ -263,14 +265,14 @@ function tierRevenue(t,useProp){
   const docOverage = Math.max(0, t.docs - t.incDocs) * rev.docOverage;
   const perDocRev = t.docs * t.perDoc;                 // pay-per-use path
   const ratio = Math.max(0.1, ai.ratio);
-  const aiSurcharge = ai.fee * (t.ws * t.docs * t.drafts / ratio);  // billed per AI-drafted quote
+  const aiSurcharge = ai.fee * (t.ws * t.docs * t.calls / ratio);  // billed per AI-drafted quote
   return t.ws * (price + seatAddon + docOverage + perDocRev) + aiSurcharge;
 }
 function tierVariable(t){
   const docCost   = t.ws * t.docs * num('c_doc');
   // v2: AI drafts are metered PER DOC. Multiply by the draft:sign ratio because
   // drafts also run on quotes that never sign (real AI cost > drafts on signed docs).
-  const claudeCost= t.ws * t.docs * t.drafts * num('c_draft') * num('c_draftmult');
+  const claudeCost= t.ws * t.docs * t.calls * num('c_call') * num('c_draftmult');
   const geminiCost= t.ws * t.users * num('c_gemini');
   return docCost + claudeCost + geminiCost;
 }
@@ -302,10 +304,10 @@ function compute(){
 
   // AI Draft surcharge readout
   const ratio = Math.max(0.1, ai.ratio);
-  const totalDrafts = tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts,0);
+  const totalDrafts = tiers.reduce((s,t)=>s+t.ws*t.docs*t.calls,0);
   const aiQuotes = totalDrafts/ratio;
   const surchargeRev = ai.fee * aiQuotes;
-  const claudeCost = tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts*num('c_draft')*num('c_draftmult'),0);
+  const claudeCost = tiers.reduce((s,t)=>s+t.ws*t.docs*t.calls*num('c_call')*num('c_draftmult'),0);
   const aiNet = surchargeRev - claudeCost;
   $('surchargeHint').innerHTML = `Billed AI quotes: <strong>${Math.round(aiQuotes).toLocaleString()}/mo</strong> (${totalDrafts.toLocaleString()} draft runs ÷ ${ratio}) · surcharge revenue <strong>${fmt2(surchargeRev)}</strong> · Claude cost <strong>${fmt2(claudeCost)}</strong> · <strong class="${aiNet>=0?'pos':'neg'}">net ${aiNet>=0?'+':''}${fmt2(aiNet)}/mo</strong> — AI Draft ${aiNet>=0?'now pays for itself':'still runs at a loss'} at ${fmt2(ai.fee)}/quote.`;
 
@@ -360,7 +362,7 @@ function compute(){
   const segs=[
     {lab:'Fixed platform',val:fixed,col:'#334155'},
     {lab:'DocuSeal/doc',val:tiers.reduce((s,t)=>s+t.ws*t.docs*num('c_doc'),0),col:'#0ea5a4'},
-    {lab:'Claude',val:tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts*num('c_draft')*num('c_draftmult'),0),col:'#2563eb'},
+    {lab:'Claude',val:tiers.reduce((s,t)=>s+t.ws*t.docs*t.calls*num('c_call')*num('c_draftmult'),0),col:'#2563eb'},
     {lab:'Gemini',val:tiers.reduce((s,t)=>s+t.ws*t.users*num('c_gemini'),0),col:'#7c3aed'},
     {lab:'Bandwidth',val:bwCost,col:'#d97706'},
   ];
@@ -378,7 +380,7 @@ document.querySelectorAll('#scenSeg button').forEach(b=>b.addEventListener('clic
   document.querySelectorAll('#scenSeg button').forEach(x=>x.classList.toggle('on',x===b));
   compute();
 }));
-['c_supabase','c_railway','c_netlify','c_docuseal_base','c_doc','c_draft','c_gemini','bw_peruser','bw_included','bw_rate']
+['c_supabase','c_railway','c_netlify','c_docuseal_base','c_doc','c_call','c_draftmult','c_gemini','bw_peruser','bw_included','bw_rate']
   .forEach(id=>$(id).addEventListener('input',compute));
 $('s_fee').addEventListener('input',e=>{ai.fee=parseFloat(e.target.value)||0;compute();});
 $('s_ratio').addEventListener('input',e=>{ai.ratio=parseFloat(e.target.value)||0;compute();});
