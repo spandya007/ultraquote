@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UltraQuote — Pricing & Cost What-If Model</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --primary:#2563eb; --primary-soft:#eff6ff; --teal:#0ea5a4;
+    --good:#16a34a; --good-soft:#f0fdf4; --bad:#dc2626; --bad-soft:#fef2f2;
+    --warn:#d97706; --warn-soft:#fffbeb; --amber-line:#fcd34d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:28px 0 12px;font-weight:700}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+  .grid{display:grid;gap:14px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.cols-3,.cols-4{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.cols-3,.cols-4{grid-template-columns:1fr}}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:600}
+  input[type=number]{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;
+       background:#fff;color:var(--ink);text-align:right}
+  input[type=number]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--line)}
+  tbody td input{width:88px}
+  .tier-name{font-weight:700}
+  .tier-tag{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media(max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi .k{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .kpi .v{font-size:26px;font-weight:750;margin-top:6px;letter-spacing:-.5px}
+  .kpi .h{font-size:12px;color:var(--muted);margin-top:2px}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:2px}
+  @media(max-width:820px){.compare{grid-template-columns:1fr}}
+  .compare .box{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff}
+  .compare .box.active{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .compare .box.delta{background:var(--primary-soft);border-color:#bfdbfe}
+  .compare .lab{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .compare .big{font-size:24px;font-weight:750;margin-top:6px}
+  .compare .row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:8px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer;color:var(--muted)}
+  .seg button.on{background:var(--primary);color:#fff}
+  .note{background:var(--warn-soft);border:1px solid var(--amber-line);border-radius:10px;padding:12px 14px;color:#7c5406;font-size:13px}
+  .foot{color:var(--muted);font-size:12px;margin-top:8px}
+  .split{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  details{margin-top:10px}
+  summary{cursor:pointer;font-weight:600;color:var(--primary)}
+  .mini{font-size:12px;color:var(--muted)}
+  .costbar{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin-top:6px}
+  .costbar span{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;min-width:0;overflow:hidden}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .right{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <h1>UltraQuote — Pricing &amp; Cost What-If Model</h1>
+      <p class="sub">v2 pricing (Pay-per-use / Starter / Standard / Pro / Ultra). Project workspaces &amp; usage per tier, tune every cost &amp; price input, and see monthly profit &amp; margin. Edit "Price (prop)" to compare a what-if against v2 side by side.</p>
+    </div>
+    <div>
+      <div class="mini" style="margin-bottom:4px;text-align:right">Active pricing scenario</div>
+      <div class="seg" id="scenSeg">
+        <button data-scen="current" class="on">Current</button>
+        <button data-scen="proposed">Proposed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- Scenario compare -->
+  <h2>Scenario comparison &nbsp;<span class="mini" style="text-transform:none;font-weight:400">— gross profit under each price column, everything else held constant</span></h2>
+  <div class="compare" id="compare"></div>
+
+  <!-- AI Draft surcharge lever -->
+  <h2>AI Draft surcharge &nbsp;<span class="mini" style="text-transform:none;font-weight:400">— new lever: a flat fee per AI-drafted quote, added on top of every tier's base price</span></h2>
+  <div class="card" style="border-color:#bfdbfe;background:var(--primary-soft)">
+    <div class="grid cols-3">
+      <div><label>$ / AI-drafted quote</label><input type="number" id="s_fee" value="2" step="0.5"></div>
+      <div><label title="A quote may be re-drafted a few times; you bill the surcharge once per quote but pay Claude for every run">Avg draft runs per billed quote</label><input type="number" id="s_ratio" value="1.5" step="0.1"></div>
+      <div style="display:flex;align-items:flex-end"><span class="mini">Set fee to <strong>0</strong> to model the base-price-only scenario, or set proposed base = current to isolate the surcharge's effect.</span></div>
+    </div>
+    <div class="foot" id="surchargeHint"></div>
+  </div>
+
+  <!-- Cost breakdown bar -->
+  <h2>Monthly cost breakdown</h2>
+  <div class="card">
+    <div class="costbar" id="costbar"></div>
+    <div class="legend" id="costlegend"></div>
+  </div>
+
+  <!-- Tiers -->
+  <h2>Tiers — projected users &amp; usage</h2>
+  <div class="card scroll">
+    <table id="tierTable">
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th title="Number of paying workspaces (tenants) on this tier">Workspaces</th>
+          <th title="Average seats/users per workspace — drives AI drafting cost & seat add-on revenue">Users / ws</th>
+          <th title="Average completed (signed) documents per workspace per month — drives DocuSeal cost & doc-overage revenue">Docs / ws</th>
+          <th title="AI drafts per SIGNED doc (v2 plan allowance) — drives Claude cost">AI Drafts / doc</th>
+          <th title="Monthly base price under the CURRENT scenario">Price (cur)</th>
+          <th title="Monthly base price under the PROPOSED scenario">Price (prop)</th>
+          <th class="right">MRR</th>
+          <th class="right">Variable cost</th>
+          <th class="right">Contribution</th>
+        </tr>
+      </thead>
+      <tbody id="tierBody"></tbody>
+      <tfoot id="tierFoot"></tfoot>
+    </table>
+    <div class="foot">MRR = base + seat add-ons + doc overage (or per-doc billing for Pay-per-use). Contribution = MRR − tier's direct variable cost (DocuSeal per-doc + Claude + Gemini). Shared platform fees &amp; bandwidth are subtracted once below.</div>
+  </div>
+
+  <details>
+    <summary>Plan revenue parameters (included seats/docs, add-on &amp; overage rates)</summary>
+    <div class="card" style="margin-top:10px" id="planParams"></div>
+  </details>
+
+  <!-- Cost rates -->
+  <h2>Cost rates &nbsp;<span class="mini" style="text-transform:none;font-weight:400">— editable; defaults from July 2026 pricing</span></h2>
+
+  <div class="grid cols-4" style="margin-bottom:14px">
+    <div class="kpi"><label>Supabase base ($/mo, flat)</label><input type="number" id="c_supabase" value="25" step="1"></div>
+    <div class="kpi"><label>Railway base ($/mo, flat)</label><input type="number" id="c_railway" value="20" step="1"></div>
+    <div class="kpi"><label>Netlify base ($/mo, flat)</label><input type="number" id="c_netlify" value="20" step="1"></div>
+    <div class="kpi"><label>DocuSeal base ($/mo, flat)</label><input type="number" id="c_docuseal_base" value="20" step="1"></div>
+  </div>
+
+  <div class="grid cols-4" style="margin-bottom:14px">
+    <div class="kpi"><label>DocuSeal — $ / completed doc</label><input type="number" id="c_doc" value="0.20" step="0.01"></div>
+    <div class="kpi"><label title="1 AI draft = 1 full proposal ≈ 7 Claude calls ≈ $0.13 (pricing §12; less with caching). The old $0.50 was a pre-caching over-estimate.">Claude — $ / AI draft</label><input type="number" id="c_draft" value="0.15" step="0.01"></div>
+    <div class="kpi"><label title="Drafts also run on quotes that never sign, so real Claude cost > drafts on signed docs. 1 = signed only; 2–3 = typical.">Draft:sign multiplier</label><input type="number" id="c_draftmult" value="1.5" step="0.1"></div>
+    <div class="kpi"><label>Gemini — $ / user / mo</label><input type="number" id="c_gemini" value="0.10" step="0.01"></div>
+  </div>
+
+  <div class="card">
+    <div class="split" style="margin-bottom:12px"><strong>Bandwidth &amp; egress</strong><span class="mini">Supabase + Netlify + Railway egress grows with total users; flat until the included allowance is used up.</span></div>
+    <div class="grid cols-3">
+      <div><label>GB egress / user / mo</label><input type="number" id="bw_peruser" value="2" step="0.5"></div>
+      <div><label>Included GB before overage (base plans)</label><input type="number" id="bw_included" value="400" step="10"></div>
+      <div><label>Blended $ / GB overage</label><input type="number" id="bw_rate" value="0.11" step="0.01"></div>
+    </div>
+    <div class="foot" id="bwHint"></div>
+  </div>
+
+  <div class="note" style="margin-top:22px">
+    <strong>How costs are modeled.</strong> Supabase, Railway, Netlify and the DocuSeal seat fee are <em>flat platform costs</em> — one instance serves all tenants, so they are counted once, not per tenant. What scales with growth lives in the variable inputs: DocuSeal per-doc, Claude per-draft, Gemini per-user, and bandwidth over the included allowance. Adjust the two bandwidth knobs above to bound the egress you were unsure about.
+  </div>
+
+  <p class="foot">Sources (July 2026): Supabase Pro $25/mo + $0.09/GB egress · Railway Pro $20/mo · Netlify Pro $20/mo flat · DocuSeal Pro $20/mo + $0.20/completed doc · Claude Opus 4.8 $5/$25 per M tok (~$0.13 per full draft = 7 calls, §12; less with caching) · Gemini 2.5 Flash $0.30/$2.50 per M tok. All figures editable above.</p>
+</div>
+
+<script>
+// ---------- default state ----------
+// v2 pricing (docs/UltraQuote Pricing v2.xlsx). `drafts` = AI drafts PER DOC
+// (v2's key dimension), NOT per user. ws/users/docs are editable projections;
+// docs default to each tier's included allowance (assume full usage). Claude cost
+// = ws × docs × draftsPerDoc × $/draft × draft:sign multiplier.
+const tiers = [
+  {key:'ppu',   name:'Pay-per-use', color:'#64748b',
+    ws:10, users:1,  docs:3,  drafts:1,
+    priceCur:0,   priceProp:0,
+    incSeats:1, incDocs:9999, perDoc:9 },        // per-doc billed ($9/signed doc)
+  {key:'start', name:'Starter',     color:'#2563eb',
+    ws:20, users:1,  docs:5,  drafts:2,
+    priceCur:30,  priceProp:30,
+    incSeats:1, incDocs:5,  perDoc:0 },
+  {key:'std',   name:'Standard',    color:'#0ea5a4',
+    ws:12, users:2,  docs:10, drafts:3,
+    priceCur:50,  priceProp:50,
+    incSeats:2, incDocs:10, perDoc:0 },
+  {key:'pro',   name:'Pro',         color:'#7c3aed',
+    ws:6,  users:5,  docs:25, drafts:4,
+    priceCur:80,  priceProp:80,
+    incSeats:5, incDocs:25, perDoc:0 },
+  {key:'ultra', name:'Ultra',       color:'#d97706',
+    ws:3,  users:10, docs:50, drafts:5,
+    priceCur:150, priceProp:150,
+    incSeats:10, incDocs:50, perDoc:0 },
+];
+// revenue params (editable in <details>)
+const rev = { seatAddon:10, docOverage:3 };
+// AI Draft surcharge lever (editable in its own card)
+const ai = { fee:2, ratio:1.5 };   // $/AI-drafted quote, avg draft runs per billed quote
+
+let scenario = 'current';                 // 'current' | 'proposed'
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value)||0;
+const fmt = n => (n<0?'-':'')+'$'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmt2 = n => '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// ---------- build tier rows ----------
+function buildTierRows(){
+  const tb = $('tierBody'); tb.innerHTML='';
+  tiers.forEach((t,i)=>{
+    const tr=document.createElement('tr');
+    const cell=(field,step='1',w='88px')=>`<td><input type="number" data-i="${i}" data-f="${field}" value="${t[field]}" step="${step}" style="width:${w}"></td>`;
+    tr.innerHTML =
+      `<td class="tier-name"><span class="tier-tag" style="background:${t.color}"></span>${t.name}</td>`+
+      cell('ws')+cell('users','0.5')+cell('docs','1')+cell('drafts','1')+
+      cell('priceCur','1')+cell('priceProp','1')+
+      `<td class="right" data-out="mrr-${i}"></td>`+
+      `<td class="right" data-out="var-${i}"></td>`+
+      `<td class="right" data-out="con-${i}"></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+    tiers[e.target.dataset.i][e.target.dataset.f]=parseFloat(e.target.value)||0; compute();
+  }));
+}
+
+// ---------- plan params panel ----------
+function buildPlanParams(){
+  const p=$('planParams');
+  p.innerHTML =
+    `<div class="grid cols-4">
+      <div><label>Seat add-on ($/extra seat/mo)</label><input type="number" id="p_seat" value="${rev.seatAddon}" step="1"></div>
+      <div><label>Doc overage ($/doc over included)</label><input type="number" id="p_over" value="${rev.docOverage}" step="0.5"></div>
+      <div><label>Pay-per-use ($/completed doc)</label><input type="number" id="p_ppu" value="${tiers[0].perDoc}" step="0.5"></div>
+    </div>
+    <div class="scroll" style="margin-top:14px"><table><thead><tr><th>Tier</th><th>Included seats</th><th>Included docs/mo</th></tr></thead><tbody id="incBody"></tbody></table></div>`;
+  const ib=$('incBody');
+  tiers.forEach((t,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="tier-name"><span class="tier-tag" style="background:${t.color}"></span>${t.name}</td>`+
+      `<td><input type="number" data-i="${i}" data-f="incSeats" value="${t.incSeats}" step="1" style="width:88px"></td>`+
+      `<td><input type="number" data-i="${i}" data-f="incDocs" value="${t.incDocs}" step="1" style="width:88px"></td>`;
+    ib.appendChild(tr);
+  });
+  p.querySelectorAll('input[data-i]').forEach(inp=>inp.addEventListener('input',e=>{
+    tiers[e.target.dataset.i][e.target.dataset.f]=parseFloat(e.target.value)||0; compute();
+  }));
+  $('p_seat').addEventListener('input',e=>{rev.seatAddon=parseFloat(e.target.value)||0;compute();});
+  $('p_over').addEventListener('input',e=>{rev.docOverage=parseFloat(e.target.value)||0;compute();});
+  $('p_ppu').addEventListener('input',e=>{tiers[0].perDoc=parseFloat(e.target.value)||0;compute();});
+}
+
+// ---------- core computation ----------
+function tierRevenue(t,useProp){
+  const price = useProp ? t.priceProp : t.priceCur;
+  const seatAddon = Math.max(0, t.users - t.incSeats) * rev.seatAddon;
+  const docOverage = Math.max(0, t.docs - t.incDocs) * rev.docOverage;
+  const perDocRev = t.docs * t.perDoc;                 // pay-per-use path
+  const ratio = Math.max(0.1, ai.ratio);
+  const aiSurcharge = ai.fee * (t.ws * t.docs * t.drafts / ratio);  // billed per AI-drafted quote
+  return t.ws * (price + seatAddon + docOverage + perDocRev) + aiSurcharge;
+}
+function tierVariable(t){
+  const docCost   = t.ws * t.docs * num('c_doc');
+  // v2: AI drafts are metered PER DOC. Multiply by the draft:sign ratio because
+  // drafts also run on quotes that never sign (real AI cost > drafts on signed docs).
+  const claudeCost= t.ws * t.docs * t.drafts * num('c_draft') * num('c_draftmult');
+  const geminiCost= t.ws * t.users * num('c_gemini');
+  return docCost + claudeCost + geminiCost;
+}
+
+function compute(){
+  const useProp = scenario==='proposed';
+
+  // totals
+  let revCur=0, revProp=0, variable=0, totalUsers=0, totalDocs=0;
+  tiers.forEach((t,i)=>{
+    const rc=tierRevenue(t,false), rp=tierRevenue(t,true), v=tierVariable(t);
+    revCur+=rc; revProp+=rp; variable+=v;
+    totalUsers += t.ws*t.users; totalDocs += t.ws*t.docs;
+    // per-row output uses active scenario
+    const mrr = useProp?rp:rc;
+    const cell=n=>document.querySelector(`[data-out="${n}-${i}"]`);
+    cell('mrr').textContent = fmt(mrr);
+    cell('var').textContent = fmt(v);
+    const con = mrr - v;
+    const c = cell('con'); c.textContent = fmt(con);
+    c.className = 'right '+(con>=0?'pos':'neg');
+  });
+
+  // bandwidth
+  const bwGB = totalUsers * num('bw_peruser');
+  const bwOver = Math.max(0, bwGB - num('bw_included'));
+  const bwCost = bwOver * num('bw_rate');
+  $('bwHint').innerHTML = `Projected egress: <strong>${bwGB.toLocaleString()} GB/mo</strong> · included ${num('bw_included').toLocaleString()} GB · overage ${bwOver.toLocaleString(undefined,{maximumFractionDigits:0})} GB → <strong>${fmt2(bwCost)}/mo</strong>`;
+
+  // AI Draft surcharge readout
+  const ratio = Math.max(0.1, ai.ratio);
+  const totalDrafts = tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts,0);
+  const aiQuotes = totalDrafts/ratio;
+  const surchargeRev = ai.fee * aiQuotes;
+  const claudeCost = tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts*num('c_draft')*num('c_draftmult'),0);
+  const aiNet = surchargeRev - claudeCost;
+  $('surchargeHint').innerHTML = `Billed AI quotes: <strong>${Math.round(aiQuotes).toLocaleString()}/mo</strong> (${totalDrafts.toLocaleString()} draft runs ÷ ${ratio}) · surcharge revenue <strong>${fmt2(surchargeRev)}</strong> · Claude cost <strong>${fmt2(claudeCost)}</strong> · <strong class="${aiNet>=0?'pos':'neg'}">net ${aiNet>=0?'+':''}${fmt2(aiNet)}/mo</strong> — AI Draft ${aiNet>=0?'now pays for itself':'still runs at a loss'} at ${fmt2(ai.fee)}/quote.`;
+
+  const fixed = num('c_supabase')+num('c_railway')+num('c_netlify')+num('c_docuseal_base');
+  const totalCost = variable + bwCost + fixed;
+
+  const totalRev = useProp?revProp:revCur;
+  const profit = totalRev - totalCost;
+  const margin = totalRev>0 ? (profit/totalRev*100) : 0;
+  const profitCur = revCur - totalCost;
+  const profitProp = revProp - totalCost;
+
+  // KPIs
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="k">Monthly revenue (MRR)</div><div class="v">${fmt(totalRev)}</div><div class="h">${tiers.reduce((s,t)=>s+t.ws,0)} workspaces · ${totalUsers.toLocaleString()} users</div></div>
+    <div class="kpi"><div class="k">Total monthly cost</div><div class="v">${fmt(totalCost)}</div><div class="h">fixed ${fmt(fixed)} · variable ${fmt(variable+bwCost)}</div></div>
+    <div class="kpi"><div class="k">Gross profit</div><div class="v ${profit>=0?'pos':'neg'}">${fmt(profit)}</div><div class="h">${fmt(profit/Math.max(1,tiers.reduce((s,t)=>s+t.ws,0)))} / workspace</div></div>
+    <div class="kpi"><div class="k">Gross margin</div><div class="v ${margin>=0?'pos':'neg'}">${margin.toFixed(0)}%</div><div class="h">on ${fmt(totalRev)} revenue</div></div>`;
+
+  // tier foot
+  $('tierFoot').innerHTML = `<tr>
+    <td class="tier-name">Total</td>
+    <td>${tiers.reduce((s,t)=>s+t.ws,0)}</td><td>${totalUsers.toLocaleString()}</td>
+    <td>${totalDocs.toLocaleString()}</td><td></td><td></td><td></td>
+    <td class="right"><strong>${fmt(totalRev)}</strong></td>
+    <td class="right"><strong>${fmt(variable)}</strong></td>
+    <td class="right"><strong>${fmt(totalRev-variable)}</strong></td></tr>`;
+
+  // compare boxes
+  const delta = profitProp - profitCur;
+  $('compare').innerHTML = `
+    <div class="box ${scenario==='current'?'active':''}">
+      <div class="lab">Current pricing</div>
+      <div class="big ${profitCur>=0?'pos':'neg'}">${fmt(profitCur)}</div>
+      <div class="row"><span>Revenue</span><span>${fmt(revCur)}</span></div>
+      <div class="row"><span>Margin</span><span>${revCur>0?(profitCur/revCur*100).toFixed(0):0}%</span></div>
+    </div>
+    <div class="box ${scenario==='proposed'?'active':''}">
+      <div class="lab">Proposed pricing</div>
+      <div class="big ${profitProp>=0?'pos':'neg'}">${fmt(profitProp)}</div>
+      <div class="row"><span>Revenue</span><span>${fmt(revProp)}</span></div>
+      <div class="row"><span>Margin</span><span>${revProp>0?(profitProp/revProp*100).toFixed(0):0}%</span></div>
+    </div>
+    <div class="box delta">
+      <div class="lab">Proposed − Current</div>
+      <div class="big ${delta>=0?'pos':'neg'}">${(delta>=0?'+':'')+fmt(delta)}</div>
+      <div class="row"><span>Extra revenue / mo</span><span>${(revProp-revCur>=0?'+':'')+fmt(revProp-revCur)}</span></div>
+      <div class="row"><span>Annualized Δ profit</span><span>${(delta>=0?'+':'')+fmt(delta*12)}</span></div>
+    </div>`;
+
+  // cost bar
+  const segs=[
+    {lab:'Fixed platform',val:fixed,col:'#334155'},
+    {lab:'DocuSeal/doc',val:tiers.reduce((s,t)=>s+t.ws*t.docs*num('c_doc'),0),col:'#0ea5a4'},
+    {lab:'Claude',val:tiers.reduce((s,t)=>s+t.ws*t.docs*t.drafts*num('c_draft')*num('c_draftmult'),0),col:'#2563eb'},
+    {lab:'Gemini',val:tiers.reduce((s,t)=>s+t.ws*t.users*num('c_gemini'),0),col:'#7c3aed'},
+    {lab:'Bandwidth',val:bwCost,col:'#d97706'},
+  ];
+  const tc=segs.reduce((s,x)=>s+x.val,0)||1;
+  $('costbar').innerHTML = segs.map(s=>{
+    const pct=s.val/tc*100;
+    return `<span style="background:${s.col};flex:0 0 ${pct}%" title="${s.lab}: ${fmt2(s.val)}">${pct>9?fmt(s.val):''}</span>`;
+  }).join('');
+  $('costlegend').innerHTML = segs.map(s=>`<span><i style="background:${s.col}"></i>${s.lab} — <strong>${fmt2(s.val)}</strong> (${(s.val/tc*100).toFixed(0)}%)</span>`).join('');
+}
+
+// ---------- wire up ----------
+document.querySelectorAll('#scenSeg button').forEach(b=>b.addEventListener('click',()=>{
+  scenario=b.dataset.scen;
+  document.querySelectorAll('#scenSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  compute();
+}));
+['c_supabase','c_railway','c_netlify','c_docuseal_base','c_doc','c_draft','c_gemini','bw_peruser','bw_included','bw_rate']
+  .forEach(id=>$(id).addEventListener('input',compute));
+$('s_fee').addEventListener('input',e=>{ai.fee=parseFloat(e.target.value)||0;compute();});
+$('s_ratio').addEventListener('input',e=>{ai.ratio=parseFloat(e.target.value)||0;compute();});
+
+buildTierRows();
+buildPlanParams();
+compute();
+</script>
+</body>
+</html>
