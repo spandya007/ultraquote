@@ -5,8 +5,7 @@ import { loadSerializeInput } from "@/lib/pdf/load";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
-import { logAiUsage, countDraftCallsForQuote } from "@/lib/ai/usage";
-import { maxDraftCallsPerQuote } from "@/lib/ai/limits";
+import { logAiUsage, aiDraftLimitBlock } from "@/lib/ai/usage";
 import {
   brandSystemHeader, CLAUDE_MODEL, OUTLINE_SYSTEM_SUFFIX, OUTLINE_JSON_INSTRUCTION,
   OUTLINE_DEFAULT_SECTIONS, outlineClientNotesBlock,
@@ -59,15 +58,10 @@ export async function POST(request: NextRequest) {
   try { body = (await request.json()) as Body; } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   if (!body.quoteId) return NextResponse.json({ error: "quoteId is required" }, { status: 400 });
 
-  // Per-quote AI hard cap — a new outline is the start of a full draft; block if the
-  // quote is already at its limit of Claude draft calls.
-  const limit = maxDraftCallsPerQuote();
-  if ((await countDraftCallsForQuote(body.quoteId)) >= limit) {
-    return NextResponse.json(
-      { error: `This quote has reached its AI drafting limit (${limit} AI actions). Please continue refining the draft manually.` },
-      { status: 429 }
-    );
-  }
+  // AI draft caps (per-quote incl. carried-forward budget + per-tenant monthly).
+  // A new outline is the start of a full draft, so gate it too.
+  const block = await aiDraftLimitBlock(body.quoteId);
+  if (block) return NextResponse.json({ error: block }, { status: 429 });
 
   const input = await loadSerializeInput(supabase, body.quoteId);
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });

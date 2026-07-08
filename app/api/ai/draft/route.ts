@@ -7,8 +7,7 @@ import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
-import { logAiUsage, countDraftCallsForQuote } from "@/lib/ai/usage";
-import { maxDraftCallsPerQuote } from "@/lib/ai/limits";
+import { logAiUsage, aiDraftLimitBlock } from "@/lib/ai/usage";
 import {
   brandSystemHeader, CLAUDE_MODEL, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
   DRAFT_REFERENCE_HEADER, draftReferenceExemplar, draftTask, draftClosingCta, draftInstructions,
@@ -78,15 +77,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "section or sections is required" }, { status: 400 });
   }
 
-  // Per-quote AI hard cap: block once this quote has used its allowance of Claude
-  // draft calls (a full proposal is ~7 calls). Checked before doing any work.
-  const limit = maxDraftCallsPerQuote();
-  if ((await countDraftCallsForQuote(body.quoteId)) >= limit) {
-    return NextResponse.json(
-      { error: `This quote has reached its AI drafting limit (${limit} AI actions). Please continue refining the draft manually.` },
-      { status: 429 }
-    );
-  }
+  // AI draft caps (per-quote incl. carried-forward budget + per-tenant monthly).
+  // Checked before doing any work.
+  const block = await aiDraftLimitBlock(body.quoteId);
+  if (block) return NextResponse.json({ error: block }, { status: 429 });
 
   // Grounding: the quote's own structured data (client/services/totals).
   const input = await loadSerializeInput(supabase, body.quoteId);

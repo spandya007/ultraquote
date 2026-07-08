@@ -34,6 +34,7 @@ const MIGRATIONS: string[] = [
   "supabase/migrations/023_add_line_item_details.sql",
   "supabase/migrations/024_ai_usage.sql",
   "supabase/migrations/025_ai_usage_quote_index.sql",
+  "supabase/migrations/026_quote_ai_calls_carried.sql",
 ];
 
 async function resetDb() {

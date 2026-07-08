@@ -12,3 +12,15 @@ export function maxDraftCallsPerQuote(): number {
   const n = Number.parseInt(raw ?? "", 10);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_DRAFT_CALLS_PER_QUOTE;
 }
+
+const DEFAULT_MAX_DRAFT_CALLS_PER_TENANT_MONTH = 2000;
+
+// Per-tenant monthly ceiling on Claude `draft_*` calls — an abuse circuit-breaker
+// (not per-plan margin enforcement, which needs billing data we don't have yet).
+// Default 2000 (~285 full drafts / month) is well above any legit single tenant but
+// bounds runaway/scripted abuse. Override with MAX_AI_DRAFT_CALLS_PER_TENANT_MONTH.
+export function maxDraftCallsPerTenantMonth(): number {
+  const raw = process.env.MAX_AI_DRAFT_CALLS_PER_TENANT_MONTH;
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_DRAFT_CALLS_PER_TENANT_MONTH;
+}
