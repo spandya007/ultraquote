@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   const limit = maxDraftCallsPerQuote();
   if ((await countDraftCallsForQuote(body.quoteId)) >= limit) {
     return NextResponse.json(
-      { error: `This quote has reached its AI limit (${limit} AI actions). Edit the sections manually, or duplicate the quote to start fresh.` },
+      { error: `This quote has reached its AI drafting limit (${limit} AI actions). Please continue refining the draft manually.` },
       { status: 429 }
     );
   }
