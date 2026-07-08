@@ -91,7 +91,9 @@ Within a scenario, add line items two ways:
   tier buttons.
 - **Add free-text item** — a blank row for custom entries.
 
-Each row has a description, billing period (**Monthly** or **One Time**),
+Each row has an **Item name** (shown in bold on the proposal) and an optional
+**Description** underneath it (indented, for extra detail) — catalog items fill
+both in for you — plus a billing period (**Monthly** or **One Time**),
 quantity, unit price, a **Disc %** (discount), and an auto-calculated total.
 Scenario totals (monthly recurring, one-time, tax, grand total) compute
 automatically on the **discounted** prices.
@@ -496,18 +498,29 @@ pricing table to the document for the AI to know your pricing — it reads the
 scenarios directly. (You still add a pricing-table block where you want the
 priced breakdown to *appear* for the client.)
 
+**Length (applies to all drafts):** at the top of the AI Draft menu, pick
+**Short**, **Standard**, or **Detailed**. The choice applies to every draft you
+generate (and is remembered).
+
 **Ways to draft:**
 
-- **Guided draft…** — the recommended way for a full proposal. Step 1 sets the
-  **style** (tone, length per section, optional emphasis). Step 2 shows a
-  proposed **section outline tailored to this deal** — rename, reorder, add, or
-  remove sections — then **Draft** them all.
-- **Draft full proposal** — one click drafts all the standard sections
-  (Executive Summary → Scope of Work → Why Us → Timeline → Investment → Next
-  Steps) at once.
-- **A single section** — pick one from the list to draft just that section.
+- **Draft full proposal** — the guided path for a whole proposal. Step 1 sets the
+  **style** (tone, optional emphasis, optionally a past proposal to match).
+  Step 2 shows a proposed **section outline tailored to this deal** — rename,
+  reorder, add, or remove sections — then **Draft** them all. It drafts
+  **section by section**, showing progress (e.g. "Drafting 3/6…"), so a long
+  proposal never times out.
+- **A single section** — pick one of the standard sections (Executive Summary →
+  Scope of Work → Why Us → Timeline → Investment → Next Steps) to draft just
+  that one.
 - **Custom section…** — type any heading (e.g. "Implementation Plan",
   "Maintenance & Support") and draft it.
+
+**Fair-use limit:** AI drafting is capped **per quote** (about **25 AI actions**,
+roughly three full-proposal drafts). When you reach it you'll see a note to keep
+refining the draft manually. The count **follows a quote when you duplicate it**,
+so duplicating doesn't reset the limit. Ask AI and the pricing tools aren't
+affected. (There's also a high monthly per-workspace ceiling as an abuse guard.)
 
 **Review before it's inserted:** every draft is shown in a preview window first —
 click **Insert** to add it, or **Discard**. Inserted content is normal editable
@@ -524,6 +537,13 @@ end by inviting the client to **e-sign** the proposal. If you've placed
 client must accept — added via the `/` menu), the closing also asks them to
 review and accept those. Tip: place those blocks first, then draft (or re-draft
 the Next Steps section) so the closing reflects them.
+
+### Seeing AI usage per quote
+
+On the **Quotes** list, click **Show AI usage** to add two columns showing how
+many **AI Draft** and **Ask AI** actions each quote has used. Available to all
+users — a quick way to see which quotes lean on the AI and to keep an eye on the
+per-quote fair-use limit.
 
 ### AI Draft vs. Ask AI
 

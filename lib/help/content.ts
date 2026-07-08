@@ -66,7 +66,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Line items",
         blocks: [
-          p("Add items from your product catalog or as free-text. For each line you set:"),
+          p("Add items from your product catalog or as free-text. Each line has an Item name (shown in bold on the proposal) and an optional Description underneath it (indented, for extra detail). Catalog items fill both in for you. For each line you also set:"),
           ul([
             "Billing period — Monthly (recurring) or One Time",
             "Quantity and unit price",
@@ -89,6 +89,12 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [
           p("Line items remember the product’s price and setup fee from the moment you added them, so a sent quote’s numbers never change underneath you."),
           p("If you update a product in the catalog and want an existing quote to pick up the new prices, open the quote → Pricing Scenarios → “Refresh prices from catalog.” It re-pulls current unit cost, price, and setup for every catalog-linked line; your quantities, discounts, and free-text items are kept."),
+        ],
+      },
+      {
+        heading: "Seeing AI usage per quote",
+        blocks: [
+          p("On the Quotes list, click “Show AI usage” to add two columns showing how many AI Draft and Ask AI actions each quote has used — a quick way to see which quotes lean on the AI and to keep an eye on the per-quote fair-use limit."),
         ],
       },
       {
@@ -148,14 +154,15 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "AI Draft — write proposal sections for you",
         blocks: [
           p("The ✦ AI Draft button (Document toolbar) writes proposal content grounded in this quote — your pricing scenarios, the client, your Proposal Voice (Settings), and your Client Notes. You don’t need a pricing table in the document for the AI to know your pricing; it reads the scenarios directly."),
-          p("Ways to draft:"),
+          p("Set the length once at the top of the menu — Short, Standard, or Detailed — and it applies to every draft you generate. Then choose how much to draft:"),
           ul([
-            "Guided draft — set the style (tone, length, optional emphasis, optionally a past proposal to match), review an AI-proposed section outline you can rename / reorder / add / remove, then draft it all.",
-            "Draft full proposal — one click drafts all the standard sections at once.",
-            "A single section, or Custom section — draft just one, or type any heading you like.",
+            "Draft full proposal — the guided path: set the style (tone, optional emphasis, optionally a past proposal to match), review an AI-proposed section outline you can rename / reorder / add / remove, then draft the whole thing. It drafts section by section, showing progress (e.g. “Drafting 3/6…”).",
+            "A single section — pick one of the standard sections (Executive Summary, Scope of Work, Why Us, Timeline, Investment, Next Steps) to draft just that one.",
+            "Custom section — type any heading you like (e.g. “Implementation Plan”) and draft it.",
           ]),
           p("Every draft is shown for review first — Insert or Discard — and inserted text is fully editable. Full-proposal drafts end with a call to action to e-sign; if you’ve added multiple-choice or acceptance blocks, it also asks the client to accept those options/terms."),
           p("The AI only uses the services and prices on your quote — it never invents line items, prices, or dates, and leaves bracketed notes like “[confirm: timeline]” where a detail is unknown."),
+          p("Fair-use limit: AI drafting is capped per quote (around 25 AI actions, roughly three full-proposal drafts). If you reach it you’ll see a note to keep refining the draft manually. The count follows a quote when you duplicate it, so duplicating doesn’t reset the limit. Ask AI and the other pricing tools aren’t affected."),
         ],
       },
       {
