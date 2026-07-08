@@ -361,8 +361,11 @@ drafts per doc (1→5)": **25 `draft_*` calls per quote, hard-blocked, the same 
   tunable in the What-If model (`docs/pricing-cost-model.html`).
 - **Enforcement — BUILT:** 25-`draft_*`-calls-per-quote + a flat per-tenant monthly cap (both env-configurable),
   429 on hit, in `/api/ai/draft` + `/api/ai/outline`; **duplicate carry-forward** closes the reset loophole.
-- **#3 — still to BUILD:** a **measurement view** (AI-cost-per-signed-doc + actual draft:sent ratio) to replace
-  the guessed inputs with real data. (Per-plan caps await billing.)
+- **#3 — BUILT (2026-07-07):** a Platform-Admin **measurement view** ("AI cost per signed doc" card in `/admin`,
+  `components/admin/ai-measurement-card.tsx`, aggregated in `app/admin/page.tsx`). Joins the `ai_usage` draft
+  ledger to each quote's **current status** (last 30 days) → real **draft:sign ratio**, **draft:sent ratio**,
+  **AI cost per drafted quote**, and **AI cost per signed doc** (= cost/drafted × draft:sign). Replaces the guessed
+  §12/§13.1 inputs with live data. (Per-plan caps still await billing.)
 
 ---
 
