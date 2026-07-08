@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriteAccess } from "@/lib/access/guard";
+import { countDraftCallsForQuote } from "@/lib/ai/usage";
 
 // Clones a quote (metadata + document) plus all its scenarios and line items
 // into a brand-new draft quote with a fresh quote number.
@@ -124,6 +125,21 @@ export async function POST(
       }
     }
   }
+
+  // 5. Carry the source quote's used AI budget forward, so a copy does NOT reset the
+  // per-quote draft cap (would otherwise be a trivial bypass). Best-effort: never
+  // fail the duplicate over this (e.g. before migration 026).
+  try {
+    const srcLogged = await countDraftCallsForQuote(params.id);
+    const { data: srcCarry } = await db
+      .from("quotes").select("ai_draft_calls_carried").eq("id", params.id).maybeSingle() as {
+        data: { ai_draft_calls_carried?: number } | null;
+      };
+    const carried = srcLogged + (srcCarry?.ai_draft_calls_carried ?? 0);
+    if (carried > 0) {
+      await db.from("quotes").update({ ai_draft_calls_carried: carried }).eq("id", newQuote.id);
+    }
+  } catch { /* ignore — carry-forward is best-effort */ }
 
   return NextResponse.json({ id: newQuote.id, quote_number: newQuote.quote_number });
 }

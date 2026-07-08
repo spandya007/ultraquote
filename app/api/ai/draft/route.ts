@@ -7,7 +7,7 @@ import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
-import { logAiUsage } from "@/lib/ai/usage";
+import { logAiUsage, aiDraftLimitBlock } from "@/lib/ai/usage";
 import {
   brandSystemHeader, CLAUDE_MODEL, DRAFT_RULES, DRAFT_LENGTH_GUIDANCE, draftClientNotesBlock,
   DRAFT_REFERENCE_HEADER, draftReferenceExemplar, draftTask, draftClosingCta, draftInstructions,
@@ -76,6 +76,11 @@ export async function POST(request: NextRequest) {
   if (!sections) {
     return NextResponse.json({ error: "section or sections is required" }, { status: 400 });
   }
+
+  // AI draft caps (per-quote incl. carried-forward budget + per-tenant monthly).
+  // Checked before doing any work.
+  const block = await aiDraftLimitBlock(body.quoteId);
+  if (block) return NextResponse.json({ error: block }, { status: 429 });
 
   // Grounding: the quote's own structured data (client/services/totals).
   const input = await loadSerializeInput(supabase, body.quoteId);

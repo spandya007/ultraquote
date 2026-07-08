@@ -5,7 +5,7 @@ import { loadSerializeInput } from "@/lib/pdf/load";
 import { quoteContextMarkdown } from "@/lib/ai/quote-context";
 import { claudeGenerate, claudeErrorMessage, hasClaudeKey } from "@/lib/ai/claude";
 import { getBrandProfile } from "@/lib/ai/brand-profile";
-import { logAiUsage } from "@/lib/ai/usage";
+import { logAiUsage, aiDraftLimitBlock } from "@/lib/ai/usage";
 import {
   brandSystemHeader, CLAUDE_MODEL, OUTLINE_SYSTEM_SUFFIX, OUTLINE_JSON_INSTRUCTION,
   OUTLINE_DEFAULT_SECTIONS, outlineClientNotesBlock,
@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
   let body: Body;
   try { body = (await request.json()) as Body; } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   if (!body.quoteId) return NextResponse.json({ error: "quoteId is required" }, { status: 400 });
+
+  // AI draft caps (per-quote incl. carried-forward budget + per-tenant monthly).
+  // A new outline is the start of a full draft, so gate it too.
+  const block = await aiDraftLimitBlock(body.quoteId);
+  if (block) return NextResponse.json({ error: block }, { status: 429 });
 
   const input = await loadSerializeInput(supabase, body.quoteId);
   if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });

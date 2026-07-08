@@ -253,14 +253,17 @@ Target **~90% gross margin**. Worked example at a **$9 / quote** price point:
   proposal = **7** `draft_*` calls; a single-section re-draft = 1; the outline = 1), so we meter **`draft_*`
   calls per quote** from the `ai_usage` ledger, with a **flat hard cap of 25 calls per quote** (~$0.45; ≈ 3.5
   full drafts), **the same on every tier** — AI is NOT a tier differentiator. At the cap → **hard-block** that
-  quote's AI (the user edits manually or duplicates the quote to reset).
+  quote's AI (the user continues refining the draft manually — no "duplicate to reset," that's carried forward).
   *(Supersedes both the earlier "drafts-per-doc, 1–5 by tier" and the first-cut "~27–30 calls/quote.")*
 - **Draft/Sent ratio (margin knob).** The 25-call cap is per **drafted** quote, but revenue is per **sent /
   billed** doc, so **AI cost per billed doc = (avg calls per drafted quote) × ~$0.018 × Draft/Sent ratio**, where
   the ratio = drafted quotes per sent doc (**ideal 1**; realistic **1.5–2**, because drafts also run on quotes
-  that never sign). It's a tunable input in the What-If model (`docs/pricing-cost-model.html`). Per-quote
-  enforcement bounds each quote's cost; if mass quote-creation ever shows abuse, add a **per-tenant monthly call
-  cap** on top.
+  that never sign). It's a tunable input in the What-If model (`docs/pricing-cost-model.html`).
+- **Enforcement (BUILT).** Per-quote cap (env `MAX_AI_DRAFT_CALLS_PER_QUOTE`, default **25**) **and** a flat
+  per-tenant **monthly** cap (env `MAX_AI_DRAFT_CALLS_PER_TENANT_MONTH`, default **2000** — an abuse
+  circuit-breaker, not per-plan) are both enforced in `/api/ai/draft` + `/api/ai/outline` (429 on hit).
+  **Duplicating a quote carries its used budget forward** (`quotes.ai_draft_calls_carried`, migration 026), so a
+  copy can't reset the per-quote cap.
 - **Ask AI (Gemini) is intentionally unlimited to start** — it's cheap (~$0.30 / $2.50 per 1M tokens in/out;
   fractions of a cent per call), so no cap initially.
 - Net: **Draft is more valuable than Ask.** Budget and any future limits center on **Claude draft calls**; Ask AI
@@ -356,9 +359,10 @@ drafts per doc (1→5)": **25 `draft_*` calls per quote, hard-blocked, the same 
   revisit paid extras only if data shows demand.
 - **Draft/Sent ratio — ADDED as a margin knob** (§12.3): drafted quotes per sent doc (ideal 1, realistic 1.5–2),
   tunable in the What-If model (`docs/pricing-cost-model.html`).
-- **#1 / #3 — still to BUILD:** the enforcement (a 25-`draft_*`-calls-per-quote guard in `/api/ai/draft` + outline,
-  counting the ledger) and a **measurement view** (AI-cost-per-signed-doc + actual draft:sent ratio) to replace
-  the guessed inputs with real data.
+- **Enforcement — BUILT:** 25-`draft_*`-calls-per-quote + a flat per-tenant monthly cap (both env-configurable),
+  429 on hit, in `/api/ai/draft` + `/api/ai/outline`; **duplicate carry-forward** closes the reset loophole.
+- **#3 — still to BUILD:** a **measurement view** (AI-cost-per-signed-doc + actual draft:sent ratio) to replace
+  the guessed inputs with real data. (Per-plan caps await billing.)
 
 ---
 
