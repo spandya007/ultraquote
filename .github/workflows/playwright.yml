@@ -51,7 +51,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned (not `latest`) so we don't hit GitHub's API to resolve the newest
+          # release — that lookup is rate-limited and flaked the post-merge e2e run.
+          version: 2.108.0
       # Boots the local stack from supabase/config.toml (Docker on the runner —
       # no Colima needed). global-setup.ts rebuilds the schema + seeds + creates
       # the Auth users; the webServer (next dev) is started by Playwright.

@@ -42,7 +42,9 @@ jobs:
       - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned (not `latest`) to avoid the rate-limited "resolve latest release"
+          # GitHub API lookup that flakes CI. Bump deliberately when needed.
+          version: 2.108.0
       # Boots the local stack from supabase/config.toml. CLI migrations + analytics
       # are disabled there; scripts/test-db-reset.mjs builds the schema. The runner
       # has Docker, so no Colima needed (that was a local-only workaround).
