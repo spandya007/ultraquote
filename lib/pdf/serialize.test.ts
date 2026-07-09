@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { lineRev, lineSetup, calcTotals } from "./serialize";
-import type { SerializeLineItem, SerializeScenario } from "./types";
+import { lineRev, lineSetup, calcTotals, signatureLineLabel } from "./serialize";
+import type { SerializeLineItem, SerializeScenario, SerializeInput } from "./types";
 
 // Helper to build a line item with sensible defaults.
 function item(over: Partial<SerializeLineItem> = {}): SerializeLineItem {
@@ -46,6 +46,61 @@ describe("lineRev (discounted line revenue)", () => {
 
   it("treats null unit price as 0", () => {
     expect(lineRev(item({ quantity: 5, unit_price: null }))).toBe(0);
+  });
+});
+
+describe("signatureLineLabel (Preview/PDF signature line — person, company)", () => {
+  function input(over: {
+    contact_name?: string | null; company_name?: string;
+    secondary_contact_name?: string | null;
+    tenant_contact_name?: string | null; tenant_name?: string;
+  } = {}): SerializeInput {
+    return {
+      quote: { quote_number: "Q-1", title: "T", valid_until: null, tax_rate: 0, payment_terms: null },
+      blocks: [],
+      scenarios: [],
+      client: {
+        company_name: over.company_name ?? "Acme Corp",
+        contact_name: over.contact_name ?? "Jane Smith",
+        contact_email: null, contact_phone: null,
+        secondary_contact_name: over.secondary_contact_name ?? "John Doe",
+        secondary_contact_email: null, secondary_contact_phone: null,
+        address: null, address_street: null, address_suite: null, address_city: null,
+        address_state: null, address_postal: null, address_country: null, logo_url: null,
+      },
+      tenant: {
+        name: over.tenant_name ?? "MSP LLC",
+        contact_name: over.tenant_contact_name ?? "Sam Owner",
+        email: null, phone: null, address: null, logo_url: null,
+      },
+      bodyFont: null,
+      imageUrlMap: {},
+    };
+  }
+
+  it("shows person + company consistently for every signer", () => {
+    expect(signatureLineLabel("client", input())).toBe("Jane Smith, Acme Corp");
+    expect(signatureLineLabel("client2", input())).toBe("John Doe, Acme Corp");
+    expect(signatureLineLabel("tenant", input())).toBe("Sam Owner, MSP LLC");
+  });
+
+  it("secondary signer uses the client company (not a separate one)", () => {
+    expect(signatureLineLabel("client2", input({ secondary_contact_name: "Pat Lee" }))).toBe("Pat Lee, Acme Corp");
+  });
+
+  it("falls back to just the company when the person is missing", () => {
+    expect(signatureLineLabel("client", input({ contact_name: "" }))).toBe("Acme Corp");
+    expect(signatureLineLabel("client2", input({ secondary_contact_name: "" }))).toBe("Acme Corp");
+  });
+
+  it("falls back to just the person when the company is missing", () => {
+    expect(signatureLineLabel("client", input({ company_name: "" }))).toBe("Jane Smith");
+  });
+
+  it("uses a generic role word when both are missing", () => {
+    expect(signatureLineLabel("client", input({ contact_name: "", company_name: "" }))).toBe("Client");
+    expect(signatureLineLabel("client2", input({ secondary_contact_name: "", company_name: "" }))).toBe("Signatory");
+    expect(signatureLineLabel("tenant", input({ tenant_contact_name: "", tenant_name: "" }))).toBe("Authorized signature");
   });
 });
 

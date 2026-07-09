@@ -70,6 +70,19 @@ function docusealRole(signer: "client" | "client2" | "tenant"): "Client" | "Comp
   return signer === "tenant" ? "Company" : signer === "client2" ? "Secondary" : "Client";
 }
 
+// The label under a signature line in the normal Preview/PDF (NOT the signing
+// copy). Consistent for every signer: "Person Name, Company" — falling back
+// gracefully to whichever is present, else a generic role word.
+export function signatureLineLabel(signer: "client" | "client2" | "tenant", input: SerializeInput): string {
+  const person =
+    signer === "tenant" ? input.tenant.contact_name
+    : signer === "client2" ? input.client.secondary_contact_name
+    : input.client.contact_name;
+  const company = signer === "tenant" ? input.tenant.name : input.client.company_name;
+  const fallback = signer === "tenant" ? "Authorized signature" : signer === "client2" ? "Signatory" : "Client";
+  return [person, company].map((s) => (s || "").trim()).filter(Boolean).join(", ") || fallback;
+}
+
 // ─── Inline content ────────────────────────────────────────────────────────────
 
 function renderInline(content: InlineContent[] | string | undefined, tokenMap: Record<string, string>): string {
@@ -362,11 +375,7 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
             `</div></div>`
           );
         } else {
-          const label = signer === "tenant"
-            ? escapeHtml(input.tenant.name || "Authorized signature")
-            : signer === "client2"
-            ? escapeHtml(input.client.secondary_contact_name || input.client.company_name || "Signatory")
-            : escapeHtml(input.client.company_name || "Client");
+          const label = escapeHtml(signatureLineLabel(signer, input));
           out.push(
             `<div class="sig-line"><div class="sig-rule"></div>` +
             `<div class="sig-label">${label} — Signature &nbsp;·&nbsp; Date</div></div>`
