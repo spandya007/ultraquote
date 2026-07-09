@@ -129,7 +129,7 @@ export function ClientsClient({ initialClients, isOwner }: Props) {
                 {showFormat && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setShowFormat(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-40 w-80 rounded-lg border bg-popover p-4 text-sm shadow-xl">
+                    <div className="absolute right-0 top-full mt-1 z-40 w-80 rounded-lg border bg-background p-4 text-sm shadow-xl">
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-semibold">Client CSV format</p>
                         <button onClick={() => setShowFormat(false)} className="p-0.5 rounded hover:bg-muted"><X className="w-4 h-4" /></button>
