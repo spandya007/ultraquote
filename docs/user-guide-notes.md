@@ -306,9 +306,10 @@ you can tell them apart from hand-curated or CSV-imported products.
 Send a finished quote to the client for e-signature, with you counter-signing.
 
 1. In the **Document** tab, place one or more **Signature Fields** where each
-   party signs: type `/signature` and pick **Client signs here** or **My company
-   signs here**. (Add one for the client and, if you want to counter-sign, one
-   for your company.)
+   party signs: type `/signature` and pick **Client signs here**, **Secondary
+   contact signs here**, or **My company signs here**. (Add one for the client
+   and, if you want to counter-sign, one for your company. Use **Secondary
+   contact** when you need a second client-side signature — see below.)
 2. The **Send for signature** button appears in the quote header **once at least
    one signature field is in the document** (and disappears if you remove them
    all). Click it — the dialog shows a signer section for each party that has a
@@ -343,6 +344,42 @@ Send a finished quote to the client for e-signature, with you counter-signing.
 Notes:
 - In the normal **Preview/PDF**, signature fields show as a plain signature line;
   the actual fillable fields only appear in the copy sent for signing.
+- **Two client signatures:** set a signature/initials block’s signer to
+  **Secondary contact**. The Send dialog then shows a **Secondary signer**
+  section (prefilled from the client’s secondary contact). Both client-side
+  signers are emailed; the quote only completes once **all** signers finish. The
+  secondary signer is recorded with the role **Authorized Signatory**.
+
+## Clients
+
+**Clients → Add Client** (any team member can add; only the owner edits existing
+ones). Fields:
+- **Company Name** (required) + **primary contact** (name, email, phone).
+- **Secondary Contact** (optional) — name, email, phone. Primarily a **second
+  signer**: place a signature/initials block set to *Secondary contact* and this
+  person is routed a signature at send time.
+- **Address** — structured fields: **Street, Suite/Unit, City, State/Province,
+  ZIP/Postal, Country**. (Older clients may have a single free-text address; it’s
+  kept as a fallback and shown as a hint until you fill the structured fields.)
+- **Logo** (co-branding via `{{client.logo}}`) and **Notes** (internal).
+
+Proposal tokens: `{{client.secondary_contact_name}}`, `{{client.secondary_email}}`,
+`{{client.secondary_phone}}`, and `{{client.address}}` (composes the structured
+fields, else the legacy text).
+
+## Client Import — CSV format (owner-only)
+
+**Clients → Import CSV.** Only **Company Name** is required; everything else is
+optional.
+- **Contact / Secondary contact:** name, email, phone for each.
+- **Address:** Street Address, Suite, City, State, ZIP, Country.
+- **Notes.**
+- Common CRM header spellings (Account Name, Email, Postal Code, Province…) are
+  recognized automatically.
+- **Re-importing** matches by **Company Name** (case-insensitive) and updates
+  that client in place; a new name creates a new client.
+- The **CSV format** button (next to Import) shows this reference and offers a
+  **sample CSV** download (`/client-import-template.csv`).
 
 ## Settings
 

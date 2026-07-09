@@ -20,6 +20,7 @@ import { useTheme } from "next-themes";
 import { AlignLeft, AlignCenter, AlignRight, Scissors, ChevronDown, Table2, Sparkles, Loader2, Undo2, Redo2, Check, X, FileUp, ListPlus, AlertTriangle, BookTemplate, PenLine, CheckSquare, CircleDot, Columns2, Keyboard } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { scenarioColor } from "@/lib/scenario-colors";
+import { composeAddress } from "@/lib/clients/address";
 import { htmlToBlocks } from "@/lib/import/html-to-blocks";
 import { stripMarkdownTables } from "@/lib/ai/strip-markdown-tables";
 import { createClient } from "@/lib/supabase/client";
@@ -103,6 +104,7 @@ function SignatureFieldView({ block, editor }: { block: any; editor: any }) {
           style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
         >
           <option value="client">Client signs here</option>
+          <option value="client2">Secondary contact signs here</option>
           <option value="tenant">My company signs here</option>
         </select>
       </div>
@@ -189,6 +191,7 @@ function InitialsFieldView({ block, editor }: { block: any; editor: any }) {
           style={{ fontSize: 12, padding: "1px 4px", borderRadius: 4, border: "1px solid #bfdbfe", background: "#fff", color: "#1e40af" }}
         >
           <option value="client">Client initials here</option>
+          <option value="client2">Secondary contact initials here</option>
           <option value="tenant">My company initials here</option>
         </select>
       </div>
@@ -666,12 +669,15 @@ interface FieldVariable {
 }
 
 const CLIENT_VARS: FieldVariable[] = [
-  { label: "Company Name",  token: "{{client.company_name}}"  },
-  { label: "Contact Name",  token: "{{client.contact_name}}"  },
-  { label: "Email",         token: "{{client.email}}"         },
-  { label: "Phone",         token: "{{client.phone}}"         },
-  { label: "Address",       token: "{{client.address}}"       },
-  { label: "Logo",          token: "{{client.logo}}"          },
+  { label: "Company Name",     token: "{{client.company_name}}"          },
+  { label: "Contact Name",     token: "{{client.contact_name}}"          },
+  { label: "Email",            token: "{{client.email}}"                 },
+  { label: "Phone",            token: "{{client.phone}}"                 },
+  { label: "2nd Contact Name", token: "{{client.secondary_contact_name}}" },
+  { label: "2nd Contact Email",token: "{{client.secondary_email}}"        },
+  { label: "2nd Contact Phone",token: "{{client.secondary_phone}}"        },
+  { label: "Address",          token: "{{client.address}}"               },
+  { label: "Logo",             token: "{{client.logo}}"                  },
 ];
 
 const TENANT_VARS: FieldVariable[] = [
@@ -690,7 +696,16 @@ interface ClientData {
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  secondary_contact_name?: string | null;
+  secondary_contact_email?: string | null;
+  secondary_contact_phone?: string | null;
   address: string | null;
+  address_street?: string | null;
+  address_suite?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_postal?: string | null;
+  address_country?: string | null;
 }
 
 interface TenantData {
@@ -919,7 +934,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   const notifySignatureFields = useCallback(() => {
     if (!onSigChangeRef.current) return;
     const kinds = flattenBlocks(editorRef.current.document)
-      .filter(b => b.type === "signatureField")
+      .filter(b => b.type === "signatureField" || b.type === "initialsField")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map(b => String((b.props as any)?.signer ?? "client"));
     const key = kinds.join(",");
@@ -1653,7 +1668,10 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
       if (token === "{{client.contact_name}}")  return clientData.contact_name   || token;
       if (token === "{{client.email}}")          return clientData.contact_email  || token;
       if (token === "{{client.phone}}")          return clientData.contact_phone  || token;
-      if (token === "{{client.address}}")        return clientData.address        || token;
+      if (token === "{{client.secondary_contact_name}}") return clientData.secondary_contact_name || token;
+      if (token === "{{client.secondary_email}}")        return clientData.secondary_contact_email || token;
+      if (token === "{{client.secondary_phone}}")        return clientData.secondary_contact_phone || token;
+      if (token === "{{client.address}}")        return composeAddress(clientData) || token;
     }
     if (tenantData) {
       if (token === "{{tenant.company_name}}")  return tenantData.name           || token;

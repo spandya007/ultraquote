@@ -22,6 +22,7 @@ type FieldErrors = {
   companyName:  string | null;
   contactName:  string | null;
   contactEmail: string | null;
+  secondaryEmail: string | null;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,13 +36,24 @@ export function ClientDrawer({ open, client, onClose, onSaved, readOnly }: Props
   const toast = useToast();
 
   const [saving, setSaving] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({ companyName: null, contactName: null, contactEmail: null });
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({ companyName: null, contactName: null, contactEmail: null, secondaryEmail: null });
 
   const [companyName,  setCompanyName]  = useState("");
   const [contactName,  setContactName]  = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [address,      setAddress]      = useState("");
+  // Secondary contact (second signer / point of contact)
+  const [secondaryName,  setSecondaryName]  = useState("");
+  const [secondaryEmail, setSecondaryEmail] = useState("");
+  const [secondaryPhone, setSecondaryPhone] = useState("");
+  // Structured address (6 fields). Legacy free-text kept as a fallback.
+  const [addrStreet,  setAddrStreet]  = useState("");
+  const [addrSuite,   setAddrSuite]   = useState("");
+  const [addrCity,    setAddrCity]    = useState("");
+  const [addrState,   setAddrState]   = useState("");
+  const [addrPostal,  setAddrPostal]  = useState("");
+  const [addrCountry, setAddrCountry] = useState("");
+  const [legacyAddress, setLegacyAddress] = useState<string | null>(null);
   const [notes,        setNotes]        = useState("");
   const [isActive,     setIsActive]     = useState(true);
   const [logoUrl,      setLogoUrl]      = useState<string | null>(null);
@@ -56,16 +68,27 @@ export function ClientDrawer({ open, client, onClose, onSaved, readOnly }: Props
       setContactName(client.contact_name ?? "");
       setContactEmail(client.contact_email ?? "");
       setContactPhone(client.contact_phone ?? "");
-      setAddress(client.address ?? "");
+      setSecondaryName(client.secondary_contact_name ?? "");
+      setSecondaryEmail(client.secondary_contact_email ?? "");
+      setSecondaryPhone(client.secondary_contact_phone ?? "");
+      setAddrStreet(client.address_street ?? "");
+      setAddrSuite(client.address_suite ?? "");
+      setAddrCity(client.address_city ?? "");
+      setAddrState(client.address_state ?? "");
+      setAddrPostal(client.address_postal ?? "");
+      setAddrCountry(client.address_country ?? "");
+      setLegacyAddress(client.address ?? null);
       setNotes(client.notes ?? "");
       setIsActive(client.is_active);
       setLogoUrl(client.logo_url ?? null);
     } else {
-      setCompanyName(""); setContactName(""); setContactEmail("");
-      setContactPhone(""); setAddress(""); setNotes(""); setIsActive(true);
+      setCompanyName(""); setContactName(""); setContactEmail(""); setContactPhone("");
+      setSecondaryName(""); setSecondaryEmail(""); setSecondaryPhone("");
+      setAddrStreet(""); setAddrSuite(""); setAddrCity(""); setAddrState(""); setAddrPostal(""); setAddrCountry("");
+      setLegacyAddress(null); setNotes(""); setIsActive(true);
       setLogoUrl(null);
     }
-    setFieldErrors({ companyName: null, contactName: null, contactEmail: null });
+    setFieldErrors({ companyName: null, contactName: null, contactEmail: null, secondaryEmail: null });
   }, [client, open]);
 
   // Resolve the stored sb-storage:// logo to a signed URL for preview.
@@ -161,25 +184,46 @@ export function ClientDrawer({ open, client, onClose, onSaved, readOnly }: Props
     }));
   }
 
+  // Secondary email is optional; only validate its format when provided.
+  function validateSecondaryEmail() {
+    const val = secondaryEmail.trim().toLowerCase();
+    setFieldErrors(e => ({
+      ...e,
+      secondaryEmail: val && !EMAIL_RE.test(val) ? "Please enter a valid email address" : null,
+    }));
+  }
+
   // ── Save ──────────────────────────────────────────────────────────────────
 
   const hasErrors = Object.values(fieldErrors).some(Boolean);
   const requiredFilled = companyName.trim() && contactName.trim() && contactEmail.trim();
 
   async function handleSave() {
-    // Run all three validations before saving
+    // Run validations before saving
     await Promise.all([validateCompanyName(), validateContactName(), validateContactEmail()]);
+    validateSecondaryEmail();
     // Re-read state after async — re-check via fresh query
     if (hasErrors || !requiredFilled) return;
 
     setSaving(true);
     try {
+      // Note: the legacy free-text `address` is intentionally NOT written here —
+      // it's preserved as a fallback for older records (proposals compose the
+      // structured fields when present, else fall back to `address`).
       const payload = {
         company_name:  companyName.trim(),
         contact_name:  contactName.trim(),
         contact_email: contactEmail.trim().toLowerCase(),
         contact_phone: contactPhone || null,
-        address:       address || null,
+        secondary_contact_name:  secondaryName.trim() || null,
+        secondary_contact_email: secondaryEmail.trim().toLowerCase() || null,
+        secondary_contact_phone: secondaryPhone.trim() || null,
+        address_street:  addrStreet.trim()  || null,
+        address_suite:   addrSuite.trim()   || null,
+        address_city:    addrCity.trim()    || null,
+        address_state:   addrState.trim()   || null,
+        address_postal:  addrPostal.trim()  || null,
+        address_country: addrCountry.trim() || null,
         logo_url:      logoUrl,
         notes:         notes || null,
         is_active:     isActive,
@@ -294,16 +338,96 @@ export function ClientDrawer({ open, client, onClose, onSaved, readOnly }: Props
             )}
           </div>
 
-          {/* Address */}
-          <div className="space-y-1">
+          {/* Secondary contact (second signer / point of contact) */}
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Secondary Contact</label>
+              <span className="text-xs text-muted-foreground">Optional — e.g. a second signer</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Name</label>
+                <input
+                  value={secondaryName}
+                  onChange={(e) => setSecondaryName(e.target.value)}
+                  className={inputCls(false)}
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Phone</label>
+                <input
+                  value={secondaryPhone}
+                  onChange={(e) => setSecondaryPhone(e.target.value)}
+                  className={inputCls(false)}
+                  placeholder="(510) 555-0101"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <input
+                type="email"
+                value={secondaryEmail}
+                onChange={(e) => { setSecondaryEmail(e.target.value); setFieldErrors(fe => ({ ...fe, secondaryEmail: null })); }}
+                onBlur={validateSecondaryEmail}
+                className={inputCls(!!fieldErrors.secondaryEmail)}
+                placeholder="john@acmecorp.com"
+              />
+              {fieldErrors.secondaryEmail && (
+                <p className="text-xs text-destructive mt-1">{fieldErrors.secondaryEmail}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Address (structured) */}
+          <div className="space-y-2">
             <label className="text-sm font-medium">Address</label>
-            <textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              rows={2}
-              className={cn(inputCls(false), "resize-none")}
-              placeholder="123 Main St, City, CA 94000"
+            {legacyAddress && !(addrStreet || addrCity || addrState || addrPostal || addrCountry || addrSuite) && (
+              <p className="text-xs text-muted-foreground rounded-md bg-muted/50 px-2 py-1.5">
+                Current address on file: <span className="text-foreground">{legacyAddress}</span>. Fill the fields below to replace it.
+              </p>
+            )}
+            <input
+              value={addrStreet}
+              onChange={(e) => setAddrStreet(e.target.value)}
+              className={inputCls(false)}
+              placeholder="Street address (e.g. 123 Main St)"
             />
+            <input
+              value={addrSuite}
+              onChange={(e) => setAddrSuite(e.target.value)}
+              className={inputCls(false)}
+              placeholder="Suite / Unit (optional)"
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                value={addrCity}
+                onChange={(e) => setAddrCity(e.target.value)}
+                className={inputCls(false)}
+                placeholder="City"
+              />
+              <input
+                value={addrState}
+                onChange={(e) => setAddrState(e.target.value)}
+                className={inputCls(false)}
+                placeholder="State / Province"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                value={addrPostal}
+                onChange={(e) => setAddrPostal(e.target.value)}
+                className={inputCls(false)}
+                placeholder="ZIP / Postal code"
+              />
+              <input
+                value={addrCountry}
+                onChange={(e) => setAddrCountry(e.target.value)}
+                className={inputCls(false)}
+                placeholder="Country"
+              />
+            </div>
           </div>
 
           {/* Logo */}

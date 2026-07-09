@@ -110,7 +110,19 @@ export interface Client {
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  // Secondary contact — primarily a second signer / point of contact.
+  secondary_contact_name: string | null;
+  secondary_contact_email: string | null;
+  secondary_contact_phone: string | null;
+  // Legacy single-line address (kept as a fallback for older records).
   address: string | null;
+  // Structured address (standard 6 fields). Composed for display/proposals.
+  address_street: string | null;
+  address_suite: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_postal: string | null;
+  address_country: string | null;
   logo_url: string | null;
   notes: string | null;
   is_active: boolean;

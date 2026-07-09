@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 interface Body {
   clientEmail?: string; clientName?: string;
+  secondaryEmail?: string; secondaryName?: string;
   companyEmail?: string; companyName?: string;
   /** When both parties sign: who goes first, or "together" for parallel signing. */
   firstSigner?: "client" | "tenant" | "together";
@@ -43,8 +44,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const flatten = (blocks: any[]): any[] => (blocks ?? []).flatMap((b) => [b, ...flatten(b.children ?? [])]);
   const kinds = new Set<string>();
   for (const b of flatten(input.blocks ?? [])) {
-    if (b.type === "signatureField" || b.type === "initialsField" || b.type === "radioField") kinds.add(b.props?.signer === "tenant" ? "tenant" : "client");
-    else if (b.type === "acceptanceField") kinds.add("client");
+    if (b.type === "signatureField" || b.type === "initialsField" || b.type === "radioField") {
+      const s = b.props?.signer;
+      kinds.add(s === "tenant" ? "tenant" : s === "client2" ? "client2" : "client");
+    } else if (b.type === "acceptanceField") kinds.add("client");
   }
   if (kinds.size === 0) {
     return NextResponse.json(
@@ -53,9 +56,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
-  // Signing order (only meaningful when both parties sign): user-selected —
-  // client first (default), company first, or both in parallel (same order #).
-  const both = kinds.has("client") && kinds.has("tenant");
+  // Signing order (only meaningful when the client side AND your company both
+  // sign): user-selected — client first (default), company first, or parallel.
+  // The primary + secondary client signers share the client-side order.
+  const anyClient = kinds.has("client") || kinds.has("client2");
+  const both = anyClient && kinds.has("tenant");
   const first = body.firstSigner ?? "client";
   const clientOrder = !both ? 0 : first === "tenant" ? 1 : 0;
   const tenantOrder = !both ? 0 : first === "client" ? 1 : 0; // "together" → both 0
@@ -66,6 +71,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const name = (body.clientName || input.client.contact_name || input.client.company_name || "").trim();
     if (!email) return NextResponse.json({ error: "Client signer email is required." }, { status: 400 });
     submitters.push({ role: "Client", email, name, signerRole: "Client", order: clientOrder });
+  }
+  if (kinds.has("client2")) {
+    // Secondary client signatory — DocuSeal role "Secondary" (matches the field
+    // tags), recorded as "Authorized Signatory" (allowed by quote_signers CHECK).
+    const email = (body.secondaryEmail || input.client.secondary_contact_email || "").trim();
+    const name = (body.secondaryName || input.client.secondary_contact_name || "").trim();
+    if (!email) return NextResponse.json({ error: "Secondary signer email is required. Add it in the Send dialog or on the client." }, { status: 400 });
+    submitters.push({ role: "Secondary", email, name, signerRole: "Authorized Signatory", order: clientOrder });
   }
   if (kinds.has("tenant")) {
     const email = (body.companyEmail || input.tenant.email || "").trim();
