@@ -76,21 +76,21 @@
   .step p{color:var(--muted);font-size:14px}
 
   /* Pricing */
-  #pricing{background:#f8fafc;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .ptable{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px}
-  .plan{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 22px;display:flex;flex-direction:column}
+  section.pricing{background:#f8fafc;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .ptable{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:36px;align-items:stretch}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 15px;display:flex;flex-direction:column}
   .plan.feat{border:2px solid var(--brand);box-shadow:0 18px 40px -22px rgba(37,99,235,.5)}
-  .plan .tag{font-size:12px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em;min-height:16px}
-  .plan h3{font-size:21px;margin:6px 0 4px}
-  .plan .price{font-size:38px;font-weight:800;letter-spacing:-.02em}
-  .plan .price small{font-size:15px;font-weight:600;color:var(--muted)}
-  .plan .meta{color:var(--muted);font-size:13.5px;margin:4px 0 16px;min-height:20px}
-  .plan ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin:0 0 20px}
-  .plan li{font-size:14px;display:flex;gap:9px;align-items:flex-start;color:#1e293b}
-  .plan li::before{content:"✓";color:var(--ok);font-weight:900;font-size:13px;margin-top:1px}
-  .plan .pick{margin-top:auto;text-align:center;font-weight:700;font-size:14px;padding:11px;border-radius:9px;border:1px solid var(--line)}
+  .plan .tag{font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em;min-height:15px}
+  .plan h3{font-size:18px;margin:6px 0 4px}
+  .plan .price{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .plan .price small{font-size:13px;font-weight:600;color:var(--muted)}
+  .plan .meta{color:var(--teal-dark);font-weight:700;font-size:12.5px;margin:6px 0 14px;min-height:18px}
+  .plan ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0 0 18px}
+  .plan li{font-size:13px;display:flex;gap:8px;align-items:flex-start;color:#1e293b}
+  .plan li::before{content:"✓";color:var(--ok);font-weight:900;font-size:12px;margin-top:1px}
+  .plan .pick{margin-top:auto;text-align:center;font-weight:700;font-size:13px;padding:9px;border-radius:9px;border:1px solid var(--line);color:var(--ink)}
   .plan.feat .pick{background:var(--brand);color:#fff;border-color:var(--brand)}
-  .fineprint{margin-top:22px;color:var(--muted);font-size:13px;text-align:center;max-width:78ch;margin-left:auto;margin-right:auto}
+  .fineprint{margin-top:22px;color:var(--muted);font-size:13px;text-align:center;max-width:82ch;margin-left:auto;margin-right:auto}
 
   /* CTA strip */
   .ctastrip{background:linear-gradient(135deg,var(--brand),var(--teal));color:#fff;border-radius:20px;padding:48px;text-align:center;margin:64px auto}
@@ -197,15 +197,83 @@
 </section>
 
 <!-- PRICING / BETA -->
-<section id="contact">
+<section id="contact" class="pricing">
   <div class="wrap">
     <div class="eyebrow" style="text-align:center">Pricing</div>
-    <h2 class="h2" style="text-align:center;margin-left:auto;margin-right:auto">Simple, usage-based pricing — built around signed deals.</h2>
-    <p class="sub" style="text-align:center;margin-left:auto;margin-right:auto">UltraQuote is currently in private beta. Quotes are always unlimited, and plans are designed so you pay for outcomes, not effort. We’ll help you find the right fit.</p>
-    <div style="text-align:center;margin-top:30px">
-      <a class="btn primary" href="https://app.ultraquote.io/beta" style="font-size:16px">Request beta access →</a>
-      <p style="margin-top:16px;color:var(--muted);font-size:15px">Or email <a href="mailto:hello@ultraquote.io?subject=UltraQuote%20pricing%20%26%20early%20access">hello@ultraquote.io</a> for pricing and early-access details.</p>
+    <h2 class="h2" style="text-align:center;margin-left:auto;margin-right:auto">You only pay for documents that get signed.</h2>
+    <p class="sub" style="text-align:center;margin-left:auto;margin-right:auto">Quotes are always unlimited. We meter only completed (fully-signed) documents — so you pay for outcomes, not effort.</p>
+
+    <div class="ptable">
+      <div class="plan">
+        <div class="tag">&nbsp;</div>
+        <h3>Pay-per-use</h3>
+        <div class="price">$9 <small>/ signed doc</small></div>
+        <div class="meta">$0 base · pay as you go</div>
+        <ul>
+          <li>1 user</li>
+          <li>Unlimited quotes</li>
+          <li>All features</li>
+          <li>No commitment</li>
+        </ul>
+        <a class="pick" href="https://app.ultraquote.io/beta">Request access →</a>
+      </div>
+
+      <div class="plan">
+        <div class="tag">&nbsp;</div>
+        <h3>Starter</h3>
+        <div class="price">$30 <small>/ mo</small></div>
+        <div class="meta">5 signed docs / mo</div>
+        <ul>
+          <li>1 user</li>
+          <li>$3 / extra doc</li>
+          <li>Unlimited quotes</li>
+          <li>All features</li>
+        </ul>
+        <a class="pick" href="https://app.ultraquote.io/beta">Request access →</a>
+      </div>
+
+      <div class="plan">
+        <div class="tag">&nbsp;</div>
+        <h3>Standard</h3>
+        <div class="price">$50 <small>/ mo</small></div>
+        <div class="meta">10 signed docs / mo</div>
+        <ul>
+          <li>2 users</li>
+          <li>$3 / extra doc</li>
+          <li>Everything in Starter</li>
+        </ul>
+        <a class="pick" href="https://app.ultraquote.io/beta">Request access →</a>
+      </div>
+
+      <div class="plan feat">
+        <div class="tag">Most popular</div>
+        <h3>Pro</h3>
+        <div class="price">$80 <small>/ mo</small></div>
+        <div class="meta">25 signed docs / mo</div>
+        <ul>
+          <li>5 users</li>
+          <li>$3 / extra doc</li>
+          <li>Everything in Standard</li>
+        </ul>
+        <a class="pick" href="https://app.ultraquote.io/beta">Request access →</a>
+      </div>
+
+      <div class="plan">
+        <div class="tag">&nbsp;</div>
+        <h3>Ultra</h3>
+        <div class="price">$150 <small>/ mo</small></div>
+        <div class="meta">50 signed docs / mo</div>
+        <ul>
+          <li>10 users</li>
+          <li>$3 / extra doc</li>
+          <li>Best per-doc rate</li>
+          <li>Everything in Pro</li>
+        </ul>
+        <a class="pick" href="https://app.ultraquote.io/beta">Request access →</a>
+      </div>
     </div>
+
+    <p class="fineprint">Flat <strong>$3</strong> per completed document beyond your plan’s monthly included docs — any plan, never a hard cap. Users are fixed per plan (no seat add-ons); AI proposal drafting is included on every plan. Annual billing available (~2 months free). Pricing is being finalized during private beta — <a href="https://app.ultraquote.io/beta">request beta access</a> or email <a href="mailto:hello@ultraquote.io?subject=UltraQuote%20pricing%20%26%20early%20access">hello@ultraquote.io</a>.</p>
   </div>
 </section>
 
