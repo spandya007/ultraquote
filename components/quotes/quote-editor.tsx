@@ -96,7 +96,16 @@ interface Quote {
     contact_name: string | null;
     contact_email: string | null;
     contact_phone: string | null;
+    secondary_contact_name: string | null;
+    secondary_contact_email: string | null;
+    secondary_contact_phone: string | null;
     address: string | null;
+    address_street: string | null;
+    address_suite: string | null;
+    address_city: string | null;
+    address_state: string | null;
+    address_postal: string | null;
+    address_country: string | null;
   };
   scenarios: Scenario[];
 }
@@ -416,17 +425,20 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
   const [sigKinds, setSigKinds] = useState<string[]>(() =>
     (Array.isArray(initialQuote.document_content) ? initialQuote.document_content : [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((b: any) => b?.type === "signatureField")
+      .filter((b: any) => b?.type === "signatureField" || b?.type === "initialsField")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((b: any) => String(b?.props?.signer ?? "client"))
   );
   const handleSigFieldsChange = useCallback((kinds: string[]) => setSigKinds(kinds), []);
   const hasClientSig = sigKinds.includes("client");
+  const hasSecondarySig = sigKinds.includes("client2");
   const hasTenantSig = sigKinds.includes("tenant");
 
   const [firstSigner, setFirstSigner] = useState<"client" | "tenant" | "together">("client");
   const [clientEmail, setClientEmail] = useState(quote.client.contact_email ?? "");
   const [clientName, setClientName]   = useState(quote.client.contact_name ?? quote.client.company_name ?? "");
+  const [secondaryEmail, setSecondaryEmail] = useState(quote.client.secondary_contact_email ?? "");
+  const [secondaryName, setSecondaryName]   = useState(quote.client.secondary_contact_name ?? "");
   const [companyEmail, setCompanyEmail] = useState(tenant?.email ?? "");
   const [companyName, setCompanyName]   = useState(tenant?.contact_name ?? tenant?.name ?? "");
   const [emailSubject, setEmailSubject] = useState(() =>
@@ -462,7 +474,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       const res = await fetch(`/api/quotes/${quote.id}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientEmail, clientName, companyEmail, companyName, firstSigner, emailSubject, emailMessage }),
+        body: JSON.stringify({ clientEmail, clientName, secondaryEmail, secondaryName, companyEmail, companyName, firstSigner, emailSubject, emailMessage }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
@@ -1791,6 +1803,16 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                   <input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name"
                     className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
                   <input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="email@client.com"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+              )}
+
+              {hasSecondarySig && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Secondary signer</label>
+                  <input value={secondaryName} onChange={e => setSecondaryName(e.target.value)} placeholder="Name"
+                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                  <input value={secondaryEmail} onChange={e => setSecondaryEmail(e.target.value)} placeholder="second@client.com"
                     className="w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
               )}

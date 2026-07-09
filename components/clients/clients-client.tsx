@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, Search, Building2, Mail, Phone, MoreHorizontal } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { Plus, Search, Building2, Mail, Phone, MoreHorizontal, Upload, Download, HelpCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +22,10 @@ export function ClientsClient({ initialClients, isOwner }: Props) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [logoMap, setLogoMap] = useState<Record<string, string>>({});
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; updated: number; skipped: number; errors: string[] } | null>(null);
+  const [showFormat, setShowFormat] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Resolve each client's sb-storage:// logo to a signed URL for the cards.
   useEffect(() => {
@@ -75,6 +79,30 @@ export function ClientsClient({ initialClients, isOwner }: Props) {
     setDrawerOpen(true);
   }
 
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/clients/import", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportResult({ imported: 0, updated: 0, skipped: 0, errors: [data.error || "Import failed"] });
+      } else {
+        setImportResult(data);
+        if ((data.imported ?? 0) > 0 || (data.updated ?? 0) > 0) refreshClients();
+      }
+    } catch {
+      setImportResult({ imported: 0, updated: 0, skipped: 0, errors: ["Network error during import"] });
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -85,14 +113,90 @@ export function ClientsClient({ initialClients, isOwner }: Props) {
             {filtered.length} of {clients.length} clients
           </p>
         </div>
-        <button
-          onClick={() => openDrawer(null)}
-          className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Client
-        </button>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <>
+              {/* CSV format help + sample template */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFormat((v) => !v)}
+                  title="What columns does the import expect?"
+                  className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  CSV format
+                </button>
+                {showFormat && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setShowFormat(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-40 w-80 rounded-lg border bg-background p-4 text-sm shadow-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold">Client CSV format</p>
+                        <button onClick={() => setShowFormat(false)} className="p-0.5 rounded hover:bg-muted"><X className="w-4 h-4" /></button>
+                      </div>
+                      <p className="text-muted-foreground">Only <span className="font-medium text-foreground">Company Name</span> is required. Everything else is optional.</p>
+                      <ul className="mt-2 space-y-1 text-muted-foreground list-disc pl-4">
+                        <li>Contact + Secondary Contact (name / email / phone)</li>
+                        <li>Address: Street, Suite, City, State, ZIP, Country</li>
+                        <li>Common CRM header spellings are recognized automatically</li>
+                        <li>Re-importing matches by <span className="font-medium text-foreground">Company Name</span> and updates in place</li>
+                      </ul>
+                      <a
+                        href="/client-import-template.csv"
+                        download
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Download sample CSV
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+              <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={importing}
+                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                {importing ? "Importing…" : "Import CSV"}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => openDrawer(null)}
+            className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Client
+          </button>
+        </div>
       </div>
+
+      {/* Import result banner */}
+      {importResult && (
+        <div className={cn(
+          "mb-4 rounded-md px-4 py-3 text-sm flex items-start justify-between gap-3",
+          importResult.errors.length > 0
+            ? "bg-yellow-50 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-300"
+            : "bg-green-50 text-green-800 dark:bg-green-500/15 dark:text-green-300"
+        )}>
+          <div>
+            <p className="font-medium">
+              Import complete — {importResult.imported} added, {importResult.updated} updated
+              {importResult.skipped > 0 ? `, ${importResult.skipped} skipped` : ""}
+            </p>
+            {importResult.errors.length > 0 && (
+              <ul className="mt-1 list-disc pl-4 text-xs">
+                {importResult.errors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
+                {importResult.errors.length > 5 && <li>…and {importResult.errors.length - 5} more</li>}
+              </ul>
+            )}
+          </div>
+          <button onClick={() => setImportResult(null)} className="p-0.5 rounded hover:bg-black/5"><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex gap-2 mb-4">

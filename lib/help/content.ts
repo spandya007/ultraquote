@@ -123,7 +123,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Inserting building blocks (pricing, signature, initials, choice, acceptance, page break)",
         blocks: [
-          p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, Initials, Multiple choice, Acceptance checkbox, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature or initials block lets you pick who signs."),
+          p("Open the toolbar Insert menu → Building blocks → choose Pricing table, Signature, Initials, Multiple choice, Acceptance checkbox, or Page break. The block is added where your cursor is. After inserting, a pricing table lets you pick which scenario to show, and a signature or initials block lets you pick who signs — the Client, the client’s Secondary Contact (a second signer), or your company."),
           p("A Multiple choice block asks a question with options the signer must pick one of at signing time (e.g. “Preferred term: Monthly, Annual”). Type the question and the options separated by commas. The question you type becomes the field title the signer sees."),
           p("Keep each option short — a few words (ideally under ~30 characters). Options render as small labelled boxes in the signed PDF, so long options wrap awkwardly. Put any explanation in the question or a paragraph above the block, and keep the options to concise choices (e.g. question “Data backup plan” with options “Daily (30-day)”, “Weekly (90-day)”, “None”)."),
           p("An Acceptance checkbox is a statement the customer must agree to (e.g. “I have read and accept the terms”). Type the statement, and at signing time the customer must check it before they can sign — add more than one if needed; all are required."),
@@ -262,7 +262,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Send for signature",
         blocks: [
-          p("Add a signature where a party signs — toolbar Insert menu → Building blocks → Signature — then “Send for signature.” The client and your company each receive an email to sign electronically."),
+          p("Add a signature where a party signs — toolbar Insert menu → Building blocks → Signature — then “Send for signature.” Each signer (the client, and your company if you counter-sign) receives an email to sign electronically."),
+          p("Collecting two client signatures: set a signature (or initials) block’s signer to “Secondary contact,” and the Send dialog shows a Secondary signer section (prefilled from the client’s secondary contact). Both client-side signers are emailed; the quote completes once everyone has signed."),
           p("As they view and sign, the quote status updates automatically, and the signed PDF is captured when complete."),
         ],
       },
@@ -315,7 +316,23 @@ export const HELP_TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "Adding a client",
-        blocks: [p("Clients → Add Client. Enter the company name and a primary contact (name, email, phone), plus an optional address and internal notes. Any team member can add a new client.")],
+        blocks: [
+          p("Clients → Add Client. Enter the company name and a primary contact (name, email, phone). You can also add a Secondary Contact and a structured address (street, suite, city, state, ZIP, country), plus internal notes. Any team member can add a new client."),
+          p("Secondary Contact is optional and is primarily for a second signer — when a deal needs two signatures from the client side, add the second person here and you can route a signature to them at send time (see Sending & quote status)."),
+        ],
+      },
+      {
+        heading: "Importing clients from a CSV",
+        ownerOnly: true,
+        blocks: [
+          p("Clients → Import CSV to bulk-add clients from a spreadsheet. Only a Company Name column is required; everything else is optional."),
+          ul([
+            "Optional columns: contact and secondary-contact name/email/phone; address (street, suite, city, state, ZIP, country); notes",
+            "Common CRM header spellings (Account Name, Email, Postal Code…) are recognized automatically",
+            "Re-importing matches by Company Name (case-insensitive) and updates that client in place",
+          ]),
+          p("The “CSV format” button on the Clients page shows the full format and offers a sample template to fill in."),
+        ],
       },
       {
         heading: "Editing or deactivating a client",

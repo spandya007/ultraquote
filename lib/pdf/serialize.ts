@@ -5,6 +5,7 @@ import type {
   InlineContent,
 } from "./types";
 import { scenarioColor, type ScenarioColor } from "../scenario-colors";
+import { composeAddress } from "../clients/address";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,10 @@ function buildTokenMap(input: SerializeInput): Record<string, string> {
     "{{client.contact_name}}": client.contact_name || "",
     "{{client.email}}":         client.contact_email || "",
     "{{client.phone}}":         client.contact_phone || "",
-    "{{client.address}}":       client.address || "",
+    "{{client.secondary_contact_name}}":  client.secondary_contact_name || "",
+    "{{client.secondary_email}}":         client.secondary_contact_email || "",
+    "{{client.secondary_phone}}":         client.secondary_contact_phone || "",
+    "{{client.address}}":       composeAddress(client),
     "{{tenant.company_name}}": tenant.name || "",
     "{{tenant.contact_name}}": tenant.contact_name || "",
     "{{tenant.email}}":         tenant.email || "",
@@ -53,6 +57,17 @@ function substituteTokens(text: string, tokenMap: Record<string, string>): strin
   return text.replace(/\{\{(client|tenant)\.\w+\}\}/g, (match) =>
     match in tokenMap ? tokenMap[match] : match
   );
+}
+
+// A signing field's `signer` prop → the DocuSeal role string. This role is used
+// in BOTH the field tags emitted here and the submitters built in the send route
+// — they must match exactly. "client2" = the client's Secondary Contact (a second
+// signatory, e.g. a co-owner who must also sign).
+function normalizeSigner(signer: unknown): "client" | "client2" | "tenant" {
+  return signer === "tenant" ? "tenant" : signer === "client2" ? "client2" : "client";
+}
+function docusealRole(signer: "client" | "client2" | "tenant"): "Client" | "Company" | "Secondary" {
+  return signer === "tenant" ? "Company" : signer === "client2" ? "Secondary" : "Client";
 }
 
 // ─── Inline content ────────────────────────────────────────────────────────────
@@ -333,10 +348,10 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       }
 
       case "signatureField": {
-        const signer = props.signer === "tenant" ? "tenant" : "client";
+        const signer = normalizeSigner(props.signer);
         if (input.forSigning) {
           // DocuSeal HTML element field tags ({{...}} text tags are PDF-only).
-          const role = signer === "tenant" ? "Company" : "Client";
+          const role = docusealRole(signer);
           out.push(
             `<div class="sig-field">` +
             `<signature-field name="${role} Signature" role="${role}" style="width:260px;height:70px;display:inline-block"></signature-field>` +
@@ -349,6 +364,8 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
         } else {
           const label = signer === "tenant"
             ? escapeHtml(input.tenant.name || "Authorized signature")
+            : signer === "client2"
+            ? escapeHtml(input.client.secondary_contact_name || input.client.company_name || "Signatory")
             : escapeHtml(input.client.company_name || "Client");
           out.push(
             `<div class="sig-line"><div class="sig-rule"></div>` +
@@ -360,8 +377,8 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       }
 
       case "initialsField": {
-        const signer = props.signer === "tenant" ? "tenant" : "client";
-        const role = signer === "tenant" ? "Company" : "Client";
+        const signer = normalizeSigner(props.signer);
+        const role = docusealRole(signer);
         if (input.forSigning) {
           // Clean, unique field name/title ("Client Initials", deduped) instead
           // of "Client Initials-<uuid>".
@@ -382,8 +399,8 @@ function renderBlocks(input: SerializeInput, tokenMap: Record<string, string>): 
       }
 
       case "radioField": {
-        const signer = props.signer === "tenant" ? "tenant" : "client";
-        const role = signer === "tenant" ? "Company" : "Client";
+        const signer = normalizeSigner(props.signer);
+        const role = docusealRole(signer);
         const rawLabel = substituteTokens(String(props.label ?? ""), tokenMap);
         const question = escapeHtml(rawLabel);
         const opts = String(props.options ?? "").split(",").map(o => o.trim()).filter(Boolean);

@@ -7,7 +7,16 @@ export interface SerializeClient {
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  secondary_contact_name: string | null;
+  secondary_contact_email: string | null;
+  secondary_contact_phone: string | null;
   address: string | null;
+  address_street: string | null;
+  address_suite: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_postal: string | null;
+  address_country: string | null;
   logo_url: string | null;
 }
 

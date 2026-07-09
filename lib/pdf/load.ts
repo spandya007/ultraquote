@@ -18,7 +18,7 @@ export async function loadSerializeInput(
     .from("quotes")
     .select(`
       id, tenant_id, quote_number, title, valid_until, tax_rate, payment_terms, document_content,
-      client:clients(company_name, contact_name, contact_email, contact_phone, address, logo_url),
+      client:clients(company_name, contact_name, contact_email, contact_phone, secondary_contact_name, secondary_contact_email, secondary_contact_phone, address, address_street, address_suite, address_city, address_state, address_postal, address_country, logo_url),
       scenarios:quote_scenarios!quote_id(
         id, name, is_recommended, sort_order,
         line_items:quote_line_items(description, details, billing_period, quantity, unit_price, setup_price, is_taxable, discount_percent, discount_amount)
@@ -72,7 +72,10 @@ export async function loadSerializeInput(
     blocks,
     scenarios: quote.scenarios ?? [],
     client: quote.client ?? {
-      company_name: "", contact_name: null, contact_email: null, contact_phone: null, address: null, logo_url: null,
+      company_name: "", contact_name: null, contact_email: null, contact_phone: null,
+      secondary_contact_name: null, secondary_contact_email: null, secondary_contact_phone: null,
+      address: null, address_street: null, address_suite: null, address_city: null,
+      address_state: null, address_postal: null, address_country: null, logo_url: null,
     },
     tenant: tenant ?? {
       name: "", contact_name: null, email: null, phone: null, address: null, logo_url: null,
