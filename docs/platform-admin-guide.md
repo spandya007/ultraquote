@@ -169,6 +169,43 @@ catalog read) is 🔜 Phase 4.
 
 ---
 
+## 1.10 Self-serve signup (public — customers create their own workspace)
+
+The **third onboarding path**, alongside admin-invite (§1.1) and Org-Admin-invite (§1.8). A prospect can
+create their own workspace with no action from you. Design: `docs/self-serve-onboarding-design.md`.
+
+**The flow (public `/signup`, middleware-allowlisted):**
+- `POST /api/auth/signup` creates an **unconfirmed** Auth user and generates a signup token **without**
+  Supabase sending its own email (`admin.generateLink(type:"signup")`).
+- It provisions a **STANDALONE** tenant (`provision_tenant`, `organization_id = NULL`, owner = the new
+  user) — seeded categories and all, exactly like an invited tenant.
+- The app emails a confirmation link itself via **Zoho SMTP** (`sendMail`), landing on the scanner-safe
+  **`/auth/confirm?token_hash=…&type=signup`** page (click-to-verify `verifyOtp`). If provisioning or the
+  token fails, the half-created Auth user is deleted (no orphans).
+- **Email verification hard-gates** sign-in — they can't reach the app until they click the link.
+
+**What the new workspace looks like to you:**
+- It appears in the `/admin` Tenants list as a **"Direct"** (standalone) workspace — no Organization badge,
+  and **no "Added by Org Admin" badge**.
+- **No subscription window** is set: a null subscription resolves to **"active"**, so the workspace has
+  **free, unlimited access** today (billing isn't built). It won't lapse on its own.
+
+**⚠️ Platform-Admin implications (it's LIVE + PUBLIC + unguarded beyond email verify):**
+- **Anyone** can self-provision a workspace — there is **no approval gate, rate limit, or CAPTCHA** yet, so
+  keep an eye on the Tenants list for junk/abuse signups and delete them via the dossier Danger zone (§1.6).
+- These workspaces have **no trial window** — until Stripe lands, set a `subscription_end` on ones you want
+  time-boxed (§1.4), the same way you'd handle an Org-Admin-created workspace.
+- **Config it depends on:** the `SMTP_*` env vars (§2.3) **and** Supabase Auth → **"Confirm email" ON** on
+  that environment. If SMTP is misconfigured the account is created but the confirmation email won't send
+  (the route logs a warning) — the user is then stuck unverified.
+
+**Not built yet (follow-ups):** Stripe billing (pay-per-signed-doc), a **trial window** (auto-stamp
+`subscription_end`), a **free-AI allowance / card-on-file**, and **signup rate-limiting / CAPTCHA**. These
+tie into the pricing AI-cost thread — see `docs/pricing-model-design.md` §13 and
+`docs/self-serve-onboarding-design.md`.
+
+---
+
 ## 2. Operational tasks (the platform "to-do list")
 
 ### 2.1 Database migrations (manual)
@@ -220,12 +257,17 @@ edit company details.
 **Beta:** point people to `app.ultraquote.io/beta` → watch /admin Beta signups (or the email to
 `hello@ultraquote.io`) → invite via the normal tenant-onboarding flow → Mark invited.
 
+**Self-serve signups (§1.10):** periodically scan the /admin Tenants list for new **"Direct"** workspaces
+you didn't invite — confirm they're legit, delete obvious junk (dossier → Danger zone), and set a
+`subscription_end` on any you want time-boxed until billing ships.
+
 ---
 
 ## 4. Pointers
 - Subscription/access: `docs/subscription-and-access-lifecycle-design.md`
 - Tenant deletion: `docs/tenant-deletion-design.md`
 - Tenant onboarding: `docs/tenant-onboarding-design.md`, `docs/manual-tenant-onboarding.md`
+- Self-serve signup (public): `docs/self-serve-onboarding-design.md`
 - Roles/permissions: `docs/roles-permissions-design.md`
 - Pricing (frozen): `docs/pricing-model-design.md`
 - Organizations / Org Admin: `docs/org-admin-guide.md` (the Org Admin's own reference) +
