@@ -1,0 +1,12 @@
+Item Name,Item Type,Item Description,Billing Period,Sell Price,Cost Price,Setup Price,Product Category,Pricing Name,Pricing Description,Manufacturer,Manufacturer Part No.,Supplier Name,Supplier SKU
+Managed Workstation Support,Service,"Proactive monitoring, patching, and helpdesk support per workstation",Monthly,45.00,18.00,0,Managed Services,Standard,Business-hours helpdesk and monitoring,,,,
+Managed Workstation Support,Service,"Proactive monitoring, patching, and helpdesk support per workstation",Monthly,65.00,24.00,0,Managed Services,Premium,24/7 helpdesk with priority response,,,,
+Managed Server Support,Service,"Monitoring, patch management, and administration per server",Monthly,150.00,60.00,0,Managed Services,,,,,,
+Managed Backup (BDR),Service,"Cloud backup and disaster recovery, per protected device",Monthly,79.00,32.00,0,Cloud,,,,,,
+Managed Detection & Response,Service,"24/7 SOC-monitored endpoint detection and response, per user",Monthly,15.00,6.00,0,Security,,,,,,
+Microsoft 365 Business Premium,Software,Per-user license with Office apps and advanced security,Monthly,26.40,22.00,0,Software,,,Microsoft,,Pax8,M365-BP
+Business Laptop 14in,Hardware,"14-inch business laptop, Core i7, 16GB RAM, 512GB SSD",One Time,1249.00,1050.00,0,Hardware,,,Lenovo,21KF0011US,Ingram Micro,LEN-21KF0011US
+FortiGate 60F Firewall,Hardware,"Next-gen firewall appliance with UTM; includes install and configuration",One Time,649.00,520.00,350.00,Security,,,Fortinet,FG-60F,SHI,FTNT-FG60F
+24-Port PoE Gigabit Switch,Hardware,"Managed 24-port Gigabit switch with PoE+ for phones and access points",One Time,379.00,289.00,0,Hardware,,,Ubiquiti,USW-24-POE,Ingram Micro,UBNT-USW24POE
+WiFi 6 Access Point,Hardware,"WiFi 6 indoor access point, ceiling mount",One Time,179.00,129.00,0,Hardware,,,Ubiquiti,U6-Pro,Ingram Micro,UBNT-U6PRO
+Network Assessment,Service,One-time network audit and documentation with findings report,One Time,1500.00,600.00,0,Professional Services,,,,,,
