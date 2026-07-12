@@ -35,6 +35,14 @@ const navItems = [
   { href: "/help",      label: "Help",       icon: HelpCircle },
 ];
 
+// Greeting based on the viewer's LOCAL time of day (computed client-side).
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { brandName?: string; logoUrl?: string | null; showAdmin?: boolean; showOrg?: boolean; userName?: string }) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
@@ -138,7 +146,7 @@ export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { 
           <div className="flex items-center justify-between gap-2">
             {userName ? (
               <div className="text-sm font-medium truncate">
-                Hello, {userName} <span aria-hidden>👋</span>
+                {mounted ? `${timeGreeting()}, ` : ""}{userName}
               </div>
             ) : <span />}
             {isMobile ? (
@@ -156,12 +164,6 @@ export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { 
             <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md shrink-0" />
             <span className="text-xs font-semibold text-muted-foreground tracking-wide">
               UltraQuote Builder for
-            </span>
-            <span
-              title="UltraQuote is in beta — a free evaluation. Features may change and signatures are for evaluation only."
-              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
-            >
-              BETA
             </span>
           </div>
           {logoUrl ? (

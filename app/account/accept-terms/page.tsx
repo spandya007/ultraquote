@@ -23,7 +23,7 @@ export default async function AcceptTermsPage() {
         <h1 className="text-xl font-semibold">Before you continue</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           To use UltraQuote, please review and accept our Terms of Service and Privacy Policy.
-          UltraQuote is currently offered as a free evaluation/beta — these terms explain how the
+          UltraQuote is currently offered as a free evaluation — these terms explain how the
           service is provided and how we handle data.
         </p>
 

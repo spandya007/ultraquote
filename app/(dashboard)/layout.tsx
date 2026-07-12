@@ -59,8 +59,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (ctx && !ctx.legal_accepted_at) redirect("/account/accept-terms");
 
   // Tenant branding for the sidebar (name + logo), from the shared context.
-  const firstName: string =
-    (ctx?.full_name as string | null)?.trim().split(/\s+/)[0] ||
+  const displayName: string =
+    (ctx?.full_name as string | null)?.trim() ||
     user.email?.split("@")[0] ||
     "";
   let brandName = "";
@@ -109,7 +109,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden">
       <IdleTimeout />
-      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} showOrg={isOrgAdmin} userName={firstName} />
+      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} showOrg={isOrgAdmin} userName={displayName} />
       <main className="flex-1 overflow-y-auto bg-muted/20 pt-14 md:pt-0">
         {ctx?.tenant?.deletion_scheduled_at && (
           <DeletionBanner scheduledAt={ctx.tenant.deletion_scheduled_at} />
