@@ -23,7 +23,7 @@ export const PROVIDERS: ProviderDef[] = [
     label: "QuickBooks Online",
     category: "accounting",
     description: "Create a customer and an invoice in QuickBooks when a quote is signed.",
-    status: "coming_soon",
+    status: "available",
   },
 ];
 

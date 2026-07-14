@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createInvoiceOnSigned } from "@/lib/integrations/qbo/invoice-on-signed";
 
 export const runtime = "nodejs";
 
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest) {
       await db.from("quotes")
         .update({ status: "signed", signed_at: nowIso, pdf_url: signedUrl ?? undefined })
         .eq("id", quoteId);
+      // Best-effort: push a QBO invoice if the tenant has QuickBooks connected.
+      // Never throws (idempotent, self-contained). See lib/integrations/qbo.
+      await createInvoiceOnSigned(db, quoteId);
     }
   }
 

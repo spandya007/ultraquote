@@ -69,10 +69,36 @@ right answer. No integration code needed to verify.
 
 ---
 
-## A3 — QuickBooks Online connector
+## A3 — QuickBooks Online connector ✅ BUILT (2026-07-13)
 
-**Env:** `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENV` (sandbox|production).
-Netlify: **All Scopes**.
+**Env (set in Netlify — All Scopes):**
+- `INTEGRATIONS_ENC_KEY` — `openssl rand -base64 32` (token encryption; also signs OAuth state).
+- `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET` — from the Intuit developer app.
+- `QBO_REDIRECT_URI` — must EXACTLY match the Redirect URI registered in the Intuit app, e.g.
+  `https://app.ultraquote.io/api/integrations/qbo/callback` (and a localhost one for dev).
+- `QBO_ENV` — `sandbox` (default) or `production`.
+
+**Intuit setup:** create an app at developer.intuit.com → keys for Development (sandbox) → add the
+Redirect URI(s) → scope `com.intuit.quickbooks.accounting`. Every dev account gets a pre-seeded
+sandbox company.
+
+**Files built:**
+- `lib/integrations/qbo/config.ts` (env + endpoints), `oauth.ts` (code exchange / refresh / revoke),
+  `client.ts` (token-refresh w/ per-tenant lock + persist newest refresh token; customer/item/invoice
+  helpers), `invoice-on-signed.ts` (orchestration), `lib/integrations/oauth-state.ts` (HMAC state).
+- Store token helpers (`saveConnection`/`getConnectionSecrets`/`updateConnectionTokens`/
+  `deleteConnection`) with AES-GCM encryption.
+- Routes: `/api/integrations/qbo/connect|callback|disconnect` (owner + entitlement gated).
+- DocuSeal webhook hooks `createInvoiceOnSigned` after a quote flips to `signed` (best-effort,
+  idempotent). Settings card: QBO now `available` — Connect / Disconnect + OAuth return toast.
+
+**v1 simplifications (documented, deferred):** invoice uses a single fallback service item
+("UltraQuote Services") with per-line discounted amounts (no catalog Item mapping); **tax is NOT
+mirrored** (QBO AST left to compute / none) — the mirror-vs-defer decision is still open; estimates +
+payment posting not built.
+
+**Original env note:** `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENV`
+(sandbox|production). Netlify: **All Scopes**.
 
 - OAuth: `GET /api/integrations/qbo/connect` (signed `state`, owner-only + entitlement) → Intuit
   consent → `GET /api/integrations/qbo/callback` (exchange code, store realmId + encrypted tokens).

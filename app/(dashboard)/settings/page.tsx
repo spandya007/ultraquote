@@ -17,9 +17,11 @@ import { planLabel } from "@/lib/billing/features";
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mfa?: string }>;
+  searchParams: Promise<{ mfa?: string; integration?: string }>;
 }) {
-  const recovered = (await searchParams)?.mfa === "recovered";
+  const sp = await searchParams;
+  const recovered = sp?.mfa === "recovered";
+  const integrationReturn = sp?.integration;
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -110,6 +112,7 @@ export default async function SettingsPage({
           enabled={integrationsEnabled}
           planName={planLabel(tenantPlan)}
           connections={integrationConnections}
+          returnCode={integrationReturn}
         />
       )}
       <TeamCard />

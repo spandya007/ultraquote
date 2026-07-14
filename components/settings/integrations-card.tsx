@@ -1,8 +1,21 @@
 "use client";
 
-import { Plug, Lock, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plug, Lock, CheckCircle2, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { PROVIDERS, CATEGORY_LABELS, type ProviderKey } from "@/lib/integrations/providers";
 import type { IntegrationConnection } from "@/lib/integrations/store";
+
+// Maps a ?integration=<code> return param to a user-facing message.
+const RETURN_MESSAGES: Record<string, { ok: boolean; text: string }> = {
+  qbo_connected: { ok: true, text: "QuickBooks Online connected." },
+  qbo_error: { ok: false, text: "Couldn't connect QuickBooks. Please try again." },
+  qbo_state_error: { ok: false, text: "Connection expired — please try connecting again." },
+  qbo_unconfigured: { ok: false, text: "QuickBooks isn't configured yet. Contact support." },
+  not_entitled: { ok: false, text: "Integrations aren't included in your current plan." },
+  forbidden: { ok: false, text: "Only the account owner can manage integrations." },
+};
 
 // Settings → Integrations. Gated by the 'integrations' entitlement (resolved
 // server-side and passed as `enabled`). Non-entitled tenants see a locked
@@ -11,14 +24,46 @@ export function IntegrationsCard({
   enabled,
   planName,
   connections,
+  returnCode,
 }: {
   enabled: boolean;
   planName: string;
   connections: IntegrationConnection[];
+  returnCode?: string;
 }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [disconnecting, setDisconnecting] = useState<ProviderKey | null>(null);
+
   const byProvider = new Map<ProviderKey, IntegrationConnection>(
     connections.map((c) => [c.provider, c])
   );
+
+  // Show a toast for the OAuth return, then strip the query param.
+  useEffect(() => {
+    if (!returnCode) return;
+    const msg = RETURN_MESSAGES[returnCode];
+    if (msg) (msg.ok ? toast.success : toast.error)(msg.text);
+    router.replace("/settings");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnCode]);
+
+  async function disconnect(provider: ProviderKey) {
+    if (!window.confirm("Disconnect QuickBooks? New signed quotes will stop creating invoices.")) return;
+    setDisconnecting(provider);
+    try {
+      const res = await fetch(`/api/integrations/${provider}/disconnect`, { method: "POST" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error || "Failed to disconnect");
+        return;
+      }
+      toast.success("Disconnected");
+      router.refresh();
+    } finally {
+      setDisconnecting(null);
+    }
+  }
 
   return (
     <div className="rounded-xl border bg-card shadow-sm">
@@ -67,9 +112,14 @@ export function IntegrationsCard({
                     {p.status === "coming_soon" ? (
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Coming soon</span>
                     ) : connected ? (
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {conn?.account_ref ? `#${conn.account_ref}` : "Connected"}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => disconnect(p.key)}
+                        disabled={disconnecting === p.key}
+                        className="inline-flex items-center gap-2 shrink-0 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                      >
+                        {disconnecting === p.key && <Loader2 className="w-4 h-4 animate-spin" />} Disconnect
+                      </button>
                     ) : (
                       <a
                         href={`/api/integrations/${p.key}/connect`}
