@@ -8,7 +8,11 @@ import { AppearanceCard } from "@/components/settings/appearance-card";
 import { MfaCard } from "@/components/settings/mfa-card";
 import { SubscriptionCard } from "@/components/settings/subscription-card";
 import { WorkspaceSummaryCard } from "@/components/settings/workspace-summary-card";
+import { IntegrationsCard } from "@/components/settings/integrations-card";
 import { getTenantDossier } from "@/lib/admin/tenant-dossier";
+import { planHasFeature } from "@/lib/billing/entitlements";
+import { getTenantConnections } from "@/lib/integrations/store";
+import { planLabel } from "@/lib/billing/features";
 
 export default async function SettingsPage({
   searchParams,
@@ -60,6 +64,12 @@ export default async function SettingsPage({
   // Owner-only "what's in your workspace" summary (keyed to the owner's own tenant).
   const dossier = isOwner ? await getTenantDossier(tenantId) : null;
 
+  // Owner-only Integrations (gated by the 'integrations' plan entitlement).
+  const tenantPlan = (tenant?.plan as string | undefined) ?? "beta";
+  const integrationsEnabled = isOwner ? await planHasFeature(tenantPlan, "integrations") : false;
+  const integrationConnections =
+    isOwner && integrationsEnabled ? await getTenantConnections(tenantId) : [];
+
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-8">
       <div>
@@ -95,6 +105,13 @@ export default async function SettingsPage({
         />
       )}
       {isOwner && dossier && <WorkspaceSummaryCard dossier={dossier} />}
+      {isOwner && (
+        <IntegrationsCard
+          enabled={integrationsEnabled}
+          planName={planLabel(tenantPlan)}
+          connections={integrationConnections}
+        />
+      )}
       <TeamCard />
       <ChangePasswordCard />
       <MfaCard />

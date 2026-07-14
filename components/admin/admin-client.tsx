@@ -7,6 +7,7 @@ import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, U
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 import type { SubscriptionTerm, TenantInvite } from "@/types";
+import { PLANS, type PlanKey } from "@/lib/billing/features";
 import {
   computeEndDate, subscriptionStatus, todayIso, SUB_STATUS_CLS,
 } from "@/lib/access/subscription";
@@ -25,6 +26,7 @@ export interface AdminTenantRow {
   subscription_start: string | null;
   subscription_end: string | null;
   subscription_term: SubscriptionTerm | null;
+  plan: PlanKey;
   platform_enabled: boolean;
   suspended_reason: string | null;
   organization_id: string | null;
@@ -459,6 +461,8 @@ function ManageSubscriptionModal({
   const [name, setName] = useState(row.name);
   const [email, setEmail] = useState(row.contact_email ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [plan, setPlan] = useState<PlanKey>(row.plan);
+  const [savingPlan, setSavingPlan] = useState(false);
   const [start, setStart] = useState(row.subscription_start ?? todayIso());
   const [term, setTerm] = useState<SubscriptionTerm | "">(row.subscription_term ?? "");
   const [customEnd, setCustomEnd] = useState(row.subscription_term === "custom" ? (row.subscription_end ?? "") : "");
@@ -486,6 +490,23 @@ function ManageSubscriptionModal({
       onSaved();
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function savePlan() {
+    setSavingPlan(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${row.id}/plan`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Failed to save plan"); return; }
+      toast.success("Plan updated");
+      onSaved();
+    } finally {
+      setSavingPlan(false);
     }
   }
 
@@ -553,6 +574,30 @@ function ManageSubscriptionModal({
               className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
               {savingProfile && <Loader2 className="w-4 h-4 animate-spin" />} Save company details
             </button>
+          </div>
+
+          <hr className="border-border" />
+
+          {/* Plan (tier) — controls feature availability via the entitlements matrix */}
+          <div className="space-y-3">
+            <div className="text-sm font-medium">Plan</div>
+            <div className="flex items-end gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Subscription plan</label>
+                <select value={plan} onChange={(e) => setPlan(e.target.value as PlanKey)} className={inputCls}>
+                  {PLANS.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={savePlan} disabled={savingPlan || plan === row.plan}
+                className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+                {savingPlan && <Loader2 className="w-4 h-4 animate-spin" />} Save plan
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Determines which features this tenant can use (see &ldquo;Feature availability by plan&rdquo;).
+            </p>
           </div>
 
           <hr className="border-border" />

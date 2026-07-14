@@ -4,8 +4,11 @@ import { BetaSignupsCard, type BetaSignupRow } from "@/components/admin/beta-sig
 import { AiUsageCard, type AiUsageSummary } from "@/components/admin/ai-usage-card";
 import { AiMeasurementCard, type AiMeasurementSummary } from "@/components/admin/ai-measurement-card";
 import { OrganizationsSection, type OrgRow } from "@/components/admin/organizations-section";
+import { FeatureEntitlementsCard } from "@/components/admin/feature-entitlements-card";
+import { buildMatrix, type PlanFeatureRow } from "@/lib/billing/entitlements";
 import { effectiveStatus } from "@/lib/quote-status";
 import type { QuoteStatus, TenantInvite, User } from "@/types";
+import type { PlanKey } from "@/lib/billing/features";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +17,7 @@ interface TenantRowDb {
   subscription_start: string | null; subscription_end: string | null;
   subscription_term: string | null; platform_enabled: boolean;
   suspended_reason: string | null; organization_id: string | null;
-  created_by_org_admin_user: string | null;
+  created_by_org_admin_user: string | null; plan: string | null;
 }
 
 export default async function AdminPage() {
@@ -25,9 +28,9 @@ export default async function AdminPage() {
   const AI_USAGE_WINDOW_DAYS = 30;
   const aiUsageSince = new Date(Date.now() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  const [tenantsRes, usersRes, quotesRes, invitesRes, betaRes, orgsRes, orgAdminsRes, aiUsageRes] = await Promise.all([
+  const [tenantsRes, usersRes, quotesRes, invitesRes, betaRes, orgsRes, orgAdminsRes, aiUsageRes, planFeaturesRes] = await Promise.all([
     admin.from("tenants").select(
-      "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason, organization_id, created_by_org_admin_user"
+      "id, name, email, created_at, subscription_start, subscription_end, subscription_term, platform_enabled, suspended_reason, organization_id, created_by_org_admin_user, plan"
     ).order("created_at"),
     admin.from("users").select("id, tenant_id, email, full_name, role, enabled"),
     admin.from("quotes").select("id, tenant_id, status, valid_until"),
@@ -45,7 +48,11 @@ export default async function AdminPage() {
       .select("tenant_id, quote_id, kind, model, input_tokens, output_tokens, cache_read_input_tokens, cost_usd")
       .gte("created_at", aiUsageSince)
       .limit(50000),
+    // plan_features matrix (migration 028 — `?? []` if not yet run).
+    admin.from("plan_features").select("plan, feature_key, enabled"),
   ]);
+
+  const planFeatureMatrix = buildMatrix((planFeaturesRes.data ?? []) as PlanFeatureRow[]);
 
   const betaSignups = (betaRes.data ?? []) as BetaSignupRow[];
   const tenants = (tenantsRes.data ?? []) as TenantRowDb[];
@@ -75,6 +82,7 @@ export default async function AdminPage() {
       subscription_start: t.subscription_start,
       subscription_end: t.subscription_end,
       subscription_term: (t.subscription_term as AdminTenantRow["subscription_term"]) ?? null,
+      plan: (t.plan as PlanKey | null) ?? "beta",
       platform_enabled: t.platform_enabled ?? true,
       suspended_reason: t.suspended_reason,
       organization_id: t.organization_id,
@@ -217,6 +225,7 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <AdminClient tenants={rows} />
+      <FeatureEntitlementsCard matrix={planFeatureMatrix} />
       <AiUsageCard summary={aiUsage} />
       <AiMeasurementCard summary={aiMeasurement} />
       <OrganizationsSection orgs={orgRows} standaloneWorkspaces={standaloneWorkspaces} />
