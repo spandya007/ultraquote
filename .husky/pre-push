@@ -1,0 +1,18 @@
+# Pre-push gate: fast, Docker-free checks before code leaves the machine.
+# Mirrors CI's fast checks so failures surface before the push, not after.
+#
+# NOT run here (too heavy / needs Docker): `npm run test:e2e` (Playwright) and
+# `npx next build`. Those run in CI on every push (.github/workflows/*). For
+# UI/route/flow changes, ALSO run `npm run test:e2e` locally first — see the
+# pre-commit checklist in CLAUDE.md (and the reuseExistingServer/.env.local
+# gotcha for running E2E locally).
+#
+# To bypass in an emergency: `git push --no-verify`.
+
+echo "▶ pre-push: type-check…"
+npm run type-check || exit 1
+
+echo "▶ pre-push: unit tests…"
+npm test || exit 1
+
+echo "✓ pre-push checks passed"

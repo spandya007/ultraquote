@@ -10,6 +10,8 @@ Run these (and require green) before committing code changes:
 3. `npx next build` — for changes to routes, `next.config`, or server components (catches route/bundling/Suspense issues `tsc` misses).
 4. `npm run test:e2e` — **Playwright E2E**. Always run when a change touches user-facing chrome, routes, or the auth/quote/dashboard flows. (A greeting text change silently broke E2E and it stayed red for days — 2026-07-16 — because only tsc+unit were run.) E2E also runs in CI on every push (`.github/workflows/playwright.yml`), which is the authoritative environment.
 
+A **husky `pre-push` hook** (`.husky/pre-push`) auto-runs items 1–2 (`type-check` + unit tests) on every `git push` — fast, Docker-free. It deliberately does NOT run E2E/build (too heavy for a hook); those stay in CI. Bypass in an emergency with `git push --no-verify`. (Husky installs via the `prepare` script on `npm install`.)
+
 **Running Playwright locally** needs Docker + `supabase start` (local stack; `tests/e2e/global-setup.ts` rebuilds schema + seeds + creates users) and a dev server pointed at the **local** Supabase. GOTCHA: `playwright.config.ts` sets `reuseExistingServer` locally, so an already-running `npm run dev` on `:3000` that points at **cloud** Supabase (via `.env.local`) gets reused → the seeded test users don't exist there → login times out and every login-dependent spec fails. Stop that dev server first, or just rely on CI (clean stack, no `.env.local`).
 
 ## What This App Does
