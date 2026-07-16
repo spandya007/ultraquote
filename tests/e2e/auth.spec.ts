@@ -13,8 +13,11 @@ test.describe("authentication", () => {
     // Past all gates (MFA / access / legal) -> on the dashboard, not bounced
     // to /account/* or /auth/*.
     await expect(page).not.toHaveURL(/\/account\/|\/auth\/mfa|\/login/);
-    // Sidebar greets the user by first name ("Hello, Eve").
-    await expect(page.getByText(/Hello, Eve/i)).toBeVisible();
+    // Sidebar greets the user by full name with a time-of-day greeting
+    // ("Good morning/afternoon/evening, Eve Owner").
+    await expect(
+      page.getByText(/Good (morning|afternoon|evening), Eve Owner/i)
+    ).toBeVisible();
   });
 
   test("invalid credentials show an error", async ({ page }) => {
