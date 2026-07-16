@@ -95,6 +95,11 @@ export function IntegrationsCard({
                 const connected = conn?.status === "connected";
                 return (
                   <li key={p.key} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                    <ProviderLogo
+                      src={p.logoSrc}
+                      monogram={p.monogram ?? p.label.charAt(0)}
+                      color={p.brandColor ?? "#64748b"}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{p.label}</span>
@@ -135,6 +140,34 @@ export function IntegrationsCard({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Renders the vendor's official logo (from /public) when present, else a
+// brand-coloured monogram badge. The <img> falls back to the monogram on load
+// error, so a missing asset never shows a broken image.
+function ProviderLogo({ src, monogram, color }: { src?: string; monogram: string; color: string }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        className="w-9 h-9 rounded-md object-contain shrink-0"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold lowercase text-white"
+      style={{ backgroundColor: color }}
+      aria-hidden
+    >
+      {monogram}
     </div>
   );
 }

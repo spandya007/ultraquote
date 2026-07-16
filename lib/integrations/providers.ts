@@ -15,6 +15,13 @@ export interface ProviderDef {
   // 'available' = OAuth/connect flow is wired (A3 flips QBO to this).
   // 'coming_soon' = listed but not yet connectable.
   status: "available" | "coming_soon";
+  // Brand logo: drop the vendor's OFFICIAL asset in /public and set this path
+  // (subject to the vendor's branding guidelines — for QBO see Intuit's
+  // developer branding assets). If the file is missing, the UI falls back to a
+  // brand-coloured monogram badge (brandColor + monogram).
+  logoSrc?: string;
+  brandColor?: string;
+  monogram?: string;
 }
 
 export const PROVIDERS: ProviderDef[] = [
@@ -24,6 +31,9 @@ export const PROVIDERS: ProviderDef[] = [
     category: "accounting",
     description: "Create a customer and an invoice in QuickBooks when a quote is signed.",
     status: "available",
+    logoSrc: "/logos/quickbooks.svg",
+    brandColor: "#2CA01C", // QuickBooks brand green (monogram fallback only)
+    monogram: "qb",
   },
 ];
 
