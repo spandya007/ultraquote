@@ -160,6 +160,7 @@ export interface QboInvoiceLine {
   quantity: number;
   unitPrice: number;
   amount: number;
+  taxable: boolean;    // whether QBO should tax this line (rate computed by QBO)
 }
 
 export async function createInvoice(
@@ -174,6 +175,11 @@ export async function createInvoice(
       ItemRef: { value: l.itemId },
       Qty: l.quantity,
       UnitPrice: Math.round(l.unitPrice * 100) / 100,
+      // We DON'T mirror our own tax rate — QBO is authoritative for tax. We only
+      // flag taxability per line; QBO's Automated Sales Tax computes the actual
+      // rate from the customer's address. TAX/NON are the US/AST reserved codes.
+      // (Non-AST/manual-tax companies would need a real TaxCode id — deferred.)
+      TaxCodeRef: { value: l.taxable ? "TAX" : "NON" },
     },
   }));
   const created = await qboFetch<{ Invoice: { Id: string } }>(tenantId, "invoice", {

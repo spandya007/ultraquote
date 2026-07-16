@@ -66,7 +66,11 @@
 ---
 
 ## Notes / known v1 limitations (expected, not bugs)
-- **Tax isn't mirrored.** The invoice does not carry our `quotes.tax_rate`; QBO applies its own (Automated Sales Tax) or none. Decision (mirror vs. defer to QBO) is still open — verify totals with this in mind.
+- **Tax is deferred to QBO (not mirrored).** We don't push `quotes.tax_rate`; each line is flagged
+  taxable/non-taxable from the quote's `is_taxable` (QBO `TaxCodeRef` TAX/NON) and **QBO computes the
+  rate** from the customer address (Automated Sales Tax). So the signed proposal total (our estimated
+  tax) and the QBO invoice total may differ by the tax amount — expected, by design. To verify: mark a
+  line taxable on the quote and confirm QBO applies tax to that line (and not to non-taxable lines).
 - **One fallback item.** All lines reference a single "UltraQuote Services" service item (created on first use); we don't yet map to catalog Items. Per-line description carries the detail.
 - **Only the recommended scenario** is invoiced (falls back to selected → first).
 - No estimate-on-send and no payment posting yet.

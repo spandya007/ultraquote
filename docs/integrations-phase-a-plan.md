@@ -95,9 +95,18 @@ sandbox company.
 **v1 mapping (updated 2026-07-15 — Option B):** each invoice line's **Product/Service** = a QBO Item
 found-or-created per distinct product name (`line.description`, sanitized: no `:`, ≤100 chars); the
 line **Description** = `line.details` (the long description), falling back to the name; amounts are the
-discounted revenue. Setup fees are a separate line under the same item. Still deferred: full catalog
-sync (`products.qbo_item_id`), **tax NOT mirrored** (QBO AST — mirror-vs-defer decision still open),
-estimates + payment posting.
+discounted revenue. Setup fees are a separate line under the same item.
+
+**Tax (DECIDED 2026-07-16 — defer to QBO, do NOT mirror):** UltraQuote does **not** push its
+`tax_rate` onto the invoice. Each line is flagged taxable/non-taxable from the quote's per-line
+`is_taxable` (QBO `TaxCodeRef` = `TAX`/`NON`, the US Automated-Sales-Tax reserved codes); **QBO computes
+the actual rate** from the customer's address. Rationale: QBO is the system of record for tax/filing,
+AST is more accurate than our single company-wide rate and often can't be overridden per line, and this
+matches what an MSP on QBO expects. **Consequence to document for users:** the signed *proposal* total
+(our estimated tax) and the QBO *invoice* total may differ by the tax amount — the proposal is the
+agreed scope + pre-tax pricing; tax is a pass-through computed authoritatively at billing. Limitation:
+`TAX`/`NON` assume a US/AST company; non-AST/manual-tax companies would need a real `TaxCode` id
+(deferred). Also still deferred: full catalog sync (`products.qbo_item_id`), estimates, payment posting.
 
 **Original env note:** `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENV`
 (sandbox|production). Netlify: **All Scopes**.

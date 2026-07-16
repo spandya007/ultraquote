@@ -43,7 +43,7 @@ export async function createInvoiceOnSigned(
 
     const { data: items } = await db
       .from("quote_line_items")
-      .select("description, details, quantity, unit_price, setup_price, discount_percent, discount_amount, billing_period")
+      .select("description, details, quantity, unit_price, setup_price, discount_percent, discount_amount, billing_period, is_taxable")
       .eq("scenario_id", scenario.id)
       .order("sort_order");
     if (!items || items.length === 0) return;
@@ -74,6 +74,7 @@ export async function createInvoiceOnSigned(
     const lines: QboInvoiceLine[] = [];
     for (const it of items) {
       const itemName = it.description?.trim() || "Item";
+      const taxable = Boolean(it.is_taxable);
       const revenue = lineRev(it);
       if (revenue > 0) {
         lines.push({
@@ -82,16 +83,20 @@ export async function createInvoiceOnSigned(
           quantity: it.quantity,
           unitPrice: it.quantity > 0 ? revenue / it.quantity : revenue,
           amount: revenue,
+          taxable,
         });
       }
       const setup = lineSetup(it);
       if (setup > 0) {
+        // Setup fees follow the line's taxability (they're in the taxable base
+        // when the line is taxable — see serialize.ts calcTotals).
         lines.push({
           itemId: await resolveItem(itemName),
           description: `${itemName} — setup (one-time)`,
           quantity: 1,
           unitPrice: setup,
           amount: setup,
+          taxable,
         });
       }
     }
