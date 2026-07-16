@@ -3,6 +3,15 @@
 ## ⚠️ Workflow rule
 **As of 2026-06-18 the project is on a PAID Netlify plan** ($9/mo Single User); the user **deploys, publishes, and tests directly in Prod** via the Netlify dashboard. The old free-tier "Stop builds" constraint no longer governs the workflow. **Commit AND push freely after each change** (GitHub = backup/visibility); the user handles deploys themselves. Don't assume pushes do/don't auto-deploy — just tell them what's on `main` and that it's deployable.
 
+## ✅ Pre-commit checklist
+Run these (and require green) before committing code changes:
+1. `npx tsc --noEmit` — typecheck.
+2. `npm run test` — unit tests (vitest).
+3. `npx next build` — for changes to routes, `next.config`, or server components (catches route/bundling/Suspense issues `tsc` misses).
+4. `npm run test:e2e` — **Playwright E2E**. Always run when a change touches user-facing chrome, routes, or the auth/quote/dashboard flows. (A greeting text change silently broke E2E and it stayed red for days — 2026-07-16 — because only tsc+unit were run.) E2E also runs in CI on every push (`.github/workflows/playwright.yml`), which is the authoritative environment.
+
+**Running Playwright locally** needs Docker + `supabase start` (local stack; `tests/e2e/global-setup.ts` rebuilds schema + seeds + creates users) and a dev server pointed at the **local** Supabase. GOTCHA: `playwright.config.ts` sets `reuseExistingServer` locally, so an already-running `npm run dev` on `:3000` that points at **cloud** Supabase (via `.env.local`) gets reused → the seeded test users don't exist there → login times out and every login-dependent spec fails. Stop that dev server first, or just rely on CI (clean stack, no `.env.local`).
+
 ## What This App Does
 Multi-tenant SaaS web application for Managed Service Providers (MSPs) to create, manage, and send professional proposals/quotes to clients.
 
