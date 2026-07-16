@@ -92,10 +92,12 @@ sandbox company.
 - DocuSeal webhook hooks `createInvoiceOnSigned` after a quote flips to `signed` (best-effort,
   idempotent). Settings card: QBO now `available` — Connect / Disconnect + OAuth return toast.
 
-**v1 simplifications (documented, deferred):** invoice uses a single fallback service item
-("UltraQuote Services") with per-line discounted amounts (no catalog Item mapping); **tax is NOT
-mirrored** (QBO AST left to compute / none) — the mirror-vs-defer decision is still open; estimates +
-payment posting not built.
+**v1 mapping (updated 2026-07-15 — Option B):** each invoice line's **Product/Service** = a QBO Item
+found-or-created per distinct product name (`line.description`, sanitized: no `:`, ≤100 chars); the
+line **Description** = `line.details` (the long description), falling back to the name; amounts are the
+discounted revenue. Setup fees are a separate line under the same item. Still deferred: full catalog
+sync (`products.qbo_item_id`), **tax NOT mirrored** (QBO AST — mirror-vs-defer decision still open),
+estimates + payment posting.
 
 **Original env note:** `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENV`
 (sandbox|production). Netlify: **All Scopes**.

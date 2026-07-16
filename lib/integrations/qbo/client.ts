@@ -122,7 +122,17 @@ export async function getDefaultIncomeAccountId(tenantId: string): Promise<strin
   return id;
 }
 
-export async function findOrCreateServiceItem(tenantId: string, name: string): Promise<string> {
+// QBO Item names must be unique, <= 100 chars, and cannot contain ':' (that
+// denotes sub-items). Sanitize + fall back so we never send an invalid name.
+export function sanitizeItemName(name: string): string {
+  const cleaned = name.replace(/:/g, "-").replace(/\s+/g, " ").trim().slice(0, 100);
+  return cleaned || "UltraQuote Services";
+}
+
+// Find-or-create a Service item by (sanitized) name. Used per distinct product
+// name so the invoice's Product/Service column shows the real item.
+export async function findOrCreateServiceItem(tenantId: string, rawName: string): Promise<string> {
+  const name = sanitizeItemName(rawName);
   const found = await qboFetch<{ QueryResponse?: { Item?: Array<{ Id: string }> } }>(tenantId, "query", {
     method: "GET",
     query: { query: `select Id from Item where Name = '${q(name)}'` },
@@ -145,7 +155,8 @@ export async function findOrCreateServiceItem(tenantId: string, name: string): P
 // ── Invoices ────────────────────────────────────────────────────────────────
 
 export interface QboInvoiceLine {
-  description: string;
+  itemId: string;      // QBO Item (Product/Service) reference for this line
+  description: string; // free-text Description shown on the line
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -153,14 +164,14 @@ export interface QboInvoiceLine {
 
 export async function createInvoice(
   tenantId: string,
-  params: { customerId: string; itemId: string; lines: QboInvoiceLine[]; docNumber?: string }
+  params: { customerId: string; lines: QboInvoiceLine[]; docNumber?: string }
 ): Promise<string> {
   const Line = params.lines.map((l) => ({
     DetailType: "SalesItemLineDetail",
     Amount: Math.round(l.amount * 100) / 100,
     Description: l.description.slice(0, 4000),
     SalesItemLineDetail: {
-      ItemRef: { value: params.itemId },
+      ItemRef: { value: l.itemId },
       Qty: l.quantity,
       UnitPrice: Math.round(l.unitPrice * 100) / 100,
     },

@@ -43,7 +43,7 @@ export async function createInvoiceOnSigned(
 
     const { data: items } = await db
       .from("quote_line_items")
-      .select("description, quantity, unit_price, setup_price, discount_percent, discount_amount, billing_period")
+      .select("description, details, quantity, unit_price, setup_price, discount_percent, discount_amount, billing_period")
       .eq("scenario_id", scenario.id)
       .order("sort_order");
     if (!items || items.length === 0) return;
@@ -55,13 +55,30 @@ export async function createInvoiceOnSigned(
       .maybeSingle();
     if (!client) return;
 
+    const customerId = await findOrCreateCustomer(quote.tenant_id, client);
+
+    // Resolve a QBO Item per distinct product name (find-or-create, cached per
+    // invoice) so the Product/Service column shows the real item name.
+    const itemCache = new Map<string, string>();
+    const resolveItem = async (name: string): Promise<string> => {
+      const cached = itemCache.get(name);
+      if (cached) return cached;
+      const id = await findOrCreateServiceItem(quote.tenant_id, name);
+      itemCache.set(name, id);
+      return id;
+    };
+
     // Build lines from discounted revenue (matches the quote/PDF math exactly).
+    // Product/Service = item name (line.description); Description = the line's
+    // long description (line.details), falling back to the name.
     const lines: QboInvoiceLine[] = [];
     for (const it of items) {
+      const itemName = it.description?.trim() || "Item";
       const revenue = lineRev(it);
       if (revenue > 0) {
         lines.push({
-          description: it.description || "Item",
+          itemId: await resolveItem(itemName),
+          description: it.details?.trim() || itemName,
           quantity: it.quantity,
           unitPrice: it.quantity > 0 ? revenue / it.quantity : revenue,
           amount: revenue,
@@ -70,7 +87,8 @@ export async function createInvoiceOnSigned(
       const setup = lineSetup(it);
       if (setup > 0) {
         lines.push({
-          description: `${it.description || "Item"} — setup (one-time)`,
+          itemId: await resolveItem(itemName),
+          description: `${itemName} — setup (one-time)`,
           quantity: 1,
           unitPrice: setup,
           amount: setup,
@@ -79,11 +97,8 @@ export async function createInvoiceOnSigned(
     }
     if (lines.length === 0) return;
 
-    const customerId = await findOrCreateCustomer(quote.tenant_id, client);
-    const itemId = await findOrCreateServiceItem(quote.tenant_id, "UltraQuote Services");
     const invoiceId = await createInvoice(quote.tenant_id, {
       customerId,
-      itemId,
       lines,
       docNumber: quote.quote_number,
     });
