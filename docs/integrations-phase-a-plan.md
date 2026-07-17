@@ -123,6 +123,56 @@ agreed scope + pre-tax pricing; tax is a pass-through computed authoritatively a
 
 ---
 
+## Path A — QBO production go-live checklist
+> Goal: let **real** MSP tenants push invoices to their **own** QuickBooks companies (not the sandbox).
+> This is Intuit's lower tier — production access, NOT a public QuickBooks App Store listing (that's
+> Path B: adds a fuller security assessment + possible pen test + marketing/listing review). Intuit
+> changes these requirements periodically — verify the current specifics on the Intuit developer portal
+> ("Go live" / "Publish your app") before starting.
+
+### 1. Intuit developer portal
+- [ ] In the app, request/enable **Production** keys (Keys & credentials → Production).
+- [ ] Complete Intuit's **security/compliance questionnaire** (app assessment) — see §3 for our answers.
+- [ ] Register the **production Redirect URI** under the **Production** keys tab (NOT Webhooks):
+      `https://app.ultraquote.io/api/integrations/qbo/callback` (exact match).
+- [ ] Provide required URLs: **privacy policy**, **terms of service**, **support/contact** (we have legal
+      docs live — see [[ultraquote-legal-docs-live]]).
+- [ ] Confirm scope stays `com.intuit.quickbooks.accounting`.
+
+### 2. App env / config (Netlify — All Scopes, then redeploy)
+- [ ] `QBO_ENV=production`
+- [ ] `QBO_CLIENT_ID` / `QBO_CLIENT_SECRET` = the **Production** pair (not Development).
+- [ ] `QBO_REDIRECT_URI` = the prod callback above (unchanged host).
+- [ ] `INTEGRATIONS_ENC_KEY` unchanged (rotating it makes stored tokens undecryptable).
+- [ ] Redeploy (env changes need a fresh deploy). Code already switches API base via `QBO_ENV`
+      (`qboApiBase()` → `quickbooks.api.intuit.com`).
+
+### 3. Technical requirements — mostly already met
+- [x] OAuth 2.0 (connect/callback), signed `state`, owner + entitlement gated.
+- [x] Tokens **encrypted at rest** (AES-256-GCM) + **refresh-token rotation** (persist newest).
+- [x] **Disconnect** flow with token revoke.
+- [x] Official **"Connect to QuickBooks"** button + logo (Intuit branding guidelines).
+- [x] Minimal data footprint: we store only `realmId` + encrypted access/refresh tokens (per tenant) and
+      `quotes.qbo_invoice_id` / `clients.qbo_customer_id`. No financial data cached.
+- [ ] Questionnaire notes to have ready: encryption method + key management, who can access tokens
+      (service-role only, RLS no-policies tables), retention (deleted on disconnect / tenant delete
+      cascade), and incident response.
+
+### 4. Post-switch verification (production sandbox → real, low-risk)
+- [ ] Connect a **real** QuickBooks company (ideally your own / a test company) via `/settings`.
+- [ ] Sign a low-stakes real quote → confirm the invoice lands in the real QBO with correct
+      item/description/tax behavior (QBO computes tax).
+- [ ] Verify disconnect + reconnect, and token refresh (force `expires_at` back, trigger a call).
+- [ ] Watch Netlify function logs for `[qbo] …` lines.
+
+### 5. Rollout guardrails
+- [ ] Because `plan_features` gates integrations, only entitled tenants can connect — production exposure
+      is controlled per-plan.
+- [ ] DocuSeal is also still sandbox — move it to production keys/webhook before real client signing
+      volume (separate from QBO; see CLAUDE.md).
+
+---
+
 ## Assumed defaults (owner-confirmed 2026-07-13)
 1. Single feature key `'integrations'` now; registry extensible to per-connector keys later.
 2. Beta tenants keep integrations (seeded on).
