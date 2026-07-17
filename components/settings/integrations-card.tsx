@@ -126,12 +126,11 @@ export function IntegrationsCard({
                         {disconnecting === p.key && <Loader2 className="w-4 h-4 animate-spin" />} Disconnect
                       </button>
                     ) : (
-                      <a
+                      <ConnectButton
                         href={`/api/integrations/${p.key}/connect`}
-                        className="shrink-0 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90"
-                      >
-                        Connect
-                      </a>
+                        label={p.label}
+                        buttonSrc={p.connectButtonSrc}
+                      />
                     )}
                   </li>
                 );
@@ -169,5 +168,34 @@ function ProviderLogo({ src, monogram, color }: { src?: string; monogram: string
     >
       {monogram}
     </div>
+  );
+}
+
+// Connect CTA. Renders the vendor's OFFICIAL connect-button asset (from /public)
+// unmodified — proportional scale only — per the vendor's branding guidelines.
+// Falls back to a plain text button if the asset is missing or fails to load, so
+// the flow always works even before the official asset is added.
+function ConnectButton({ href, label, buttonSrc }: { href: string; label: string; buttonSrc?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (buttonSrc && !broken) {
+    return (
+      <a href={href} className="shrink-0" aria-label={`Connect to ${label}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={buttonSrc}
+          alt={`Connect to ${label}`}
+          className="h-10 w-auto"
+          onError={() => setBroken(true)}
+        />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+    >
+      Connect
+    </a>
   );
 }

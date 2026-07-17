@@ -22,6 +22,11 @@ export interface ProviderDef {
   logoSrc?: string;
   brandColor?: string;
   monogram?: string;
+  // Vendor's OFFICIAL "Connect to <vendor>" button asset (drop in /public).
+  // Rendered unmodified as the connect CTA per the vendor's branding guidelines
+  // (QBO: Intuit's "Connect to QuickBooks" button). Missing file → the plain
+  // text "Connect" button is shown instead.
+  connectButtonSrc?: string;
 }
 
 export const PROVIDERS: ProviderDef[] = [
@@ -34,6 +39,7 @@ export const PROVIDERS: ProviderDef[] = [
     logoSrc: "/logos/quickbooks.svg",
     brandColor: "#2CA01C", // QuickBooks brand green (monogram fallback only)
     monogram: "qb",
+    connectButtonSrc: "/logos/connect-to-quickbooks.svg",
   },
 ];
 
