@@ -3,9 +3,10 @@ import { getOrgAdminUser } from "@/lib/org-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendInviteEmail } from "@/lib/invites";
 import { sendMail } from "@/lib/email/mailer";
+import { ENTITY } from "@/lib/legal/entity";
 
 // Notification inbox for Platform Admins (matches the beta-signup pattern).
-const PLATFORM_NOTIFY_TO = process.env.PLATFORM_NOTIFY_EMAIL || "hello@ultraquote.io";
+const PLATFORM_NOTIFY_TO = process.env.PLATFORM_NOTIFY_EMAIL || ENTITY.contactEmail;
 
 // Org Admin creates a NEW workspace inside THEIR OWN org and invites its owner.
 // Body: { company_name, owner_email, owner_name? }

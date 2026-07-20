@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import { ENTITY } from "@/lib/legal/entity";
 
 // Shown to a tenant whose workspace is scheduled for permanent deletion. The
 // workspace stays usable until the date so they can export — this just warns.
@@ -13,7 +14,7 @@ export function DeletionBanner({ scheduledAt }: { scheduledAt: string }) {
         <strong>Your workspace is scheduled for permanent deletion on {when}.</strong> Please save
         copies of anything you need to keep before then — you can download individual quotes as PDFs.
         If you need a full copy of your data, or this is a mistake, contact{" "}
-        <a href="mailto:hello@ultraquote.io" className="underline">hello@ultraquote.io</a> right away.
+        <a href={`mailto:${ENTITY.contactEmail}`} className="underline">{ENTITY.contactEmail}</a> right away.
       </span>
     </div>
   );

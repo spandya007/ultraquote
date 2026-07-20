@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail } from "@/lib/email/mailer";
+import { ENTITY } from "@/lib/legal/entity";
 
-const NOTIFY_TO = process.env.BETA_NOTIFY_TO || "hello@ultraquote.io";
+const NOTIFY_TO = process.env.BETA_NOTIFY_TO || ENTITY.contactEmail;
 
 // Public endpoint for the /beta landing-page form. Inserts a lead into
 // beta_signups via the service-role client (the table is RLS-locked to
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   if (error) {
     console.error("beta-signup insert failed:", error.message);
     return NextResponse.json(
-      { error: "Something went wrong. Please email hello@ultraquote.io." },
+      { error: `Something went wrong. Please email ${ENTITY.contactEmail}.` },
       { status: 500 }
     );
   }
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     await sendMail({
       to: NOTIFY_TO,
       replyTo: email,
-      subject: `New UltraQuote beta signup — ${companyName}`,
+      subject: `New ${ENTITY.productName} beta signup — ${companyName}`,
       text:
         `New beta signup:\n\n` +
         `Company: ${companyName}\n` +
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
         `Email:   ${email}\n` +
         `Note:    ${message || "—"}\n\n` +
         `Reply to this email to reach them directly.\n` +
-        `Manage signups: https://app.ultraquote.io/admin`,
+        `Manage signups: ${ENTITY.appUrl}/admin`,
     });
   } catch (e) {
     console.error("beta-signup notify failed:", e instanceof Error ? e.message : e);

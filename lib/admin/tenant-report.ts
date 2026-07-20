@@ -1,5 +1,6 @@
 import { type TenantDossier, type DossierQuote } from "@/lib/admin/tenant-dossier";
 import { formatCurrency } from "@/lib/utils/format";
+import { ENTITY } from "@/lib/legal/entity";
 
 // Renders a print-ready, self-contained HTML report of a tenant's workspace
 // (counts + flagged items). Shared by the Platform Admin report route and the
@@ -46,7 +47,7 @@ export function renderTenantReport(d: TenantDossier, opts: { hideProductDetail?:
   ];
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>UltraQuote workspace summary — ${esc(d.tenant.name)}</title>
+<title>${esc(ENTITY.productName)} workspace summary — ${esc(d.tenant.name)}</title>
 <style>
   @page { size: Letter; margin: 18mm; }
   :root{ --brand:#2563eb; --teal:#0ea5a4; --ink:#0b1f3a; --muted:#64748b; --line:#e2e8f0; }
@@ -70,14 +71,14 @@ export function renderTenantReport(d: TenantDossier, opts: { hideProductDetail?:
 </style></head><body>
 
 <div class="band">
-  <h1>Your UltraQuote workspace summary</h1>
+  <h1>Your ${esc(ENTITY.productName)} workspace summary</h1>
   <div class="meta">${esc(d.tenant.name)}${d.owner ? ` · ${esc(d.owner.email)}` : ""} · generated ${fmtDate(d.generatedAt)}</div>
 </div>
 
 <div class="note">
-  This is a summary of everything currently stored in your UltraQuote workspace. Please review it and
+  This is a summary of everything currently stored in your ${esc(ENTITY.productName)} workspace. Please review it and
   save copies of anything you need to keep (you can download individual quotes as PDFs; contact
-  hello@ultraquote.io if you need a full copy of your data). In-flight (sent) and signed quotes are
+  ${esc(ENTITY.contactEmail)} if you need a full copy of your data). In-flight (sent) and signed quotes are
   highlighted below — those represent active or completed deals worth saving before any changes are
   made to your account.
 </div>
@@ -131,6 +132,6 @@ ${
     : ""
 }
 
-<div class="foot">UltraQuote · Proposals &amp; quoting for modern teams · hello@ultraquote.io · app.ultraquote.io</div>
+<div class="foot">${esc(ENTITY.productName)} · Proposals &amp; quoting for modern teams · ${esc(ENTITY.contactEmail)} · ${esc(ENTITY.appDomain)}</div>
 </body></html>`;
 }

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { ENTITY } from "@/lib/legal/entity";
 
 export const metadata: Metadata = {
-  title: "Privacy & Data Requests — UltraQuote",
-  description: "Submit a request to access, correct, or delete your personal information held by UltraQuote.",
+  title: `Privacy & Data Requests — ${ENTITY.productName}`,
+  description: `Submit a request to access, correct, or delete your personal information held by ${ENTITY.productName}.`,
 };
 
 // Public page (no auth) — linked from the Privacy Policy as the way for users to
 // submit data-subject access requests (access / correct / delete). Middleware
 // allows /privacy-request without a session.
-const PRIVACY_EMAIL = "privacy@ultraquote.io";
+const PRIVACY_EMAIL = ENTITY.privacyEmail;
 
 const mailto =
   `mailto:${PRIVACY_EMAIL}` +

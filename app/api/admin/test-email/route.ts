@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPlatformAdminUser } from "@/lib/platform-admin";
 import { mailerConfig, sendMail } from "@/lib/email/mailer";
+import { ENTITY } from "@/lib/legal/entity";
 
 // Platform-admin only: send a test email and report the exact result/error so
 // SMTP misconfiguration can be diagnosed from the browser (instead of digging
@@ -34,7 +35,7 @@ export async function POST() {
     });
   }
 
-  const to = process.env.BETA_NOTIFY_TO || "hello@ultraquote.io";
+  const to = process.env.BETA_NOTIFY_TO || ENTITY.contactEmail;
   try {
     await sendMail({
       to,
