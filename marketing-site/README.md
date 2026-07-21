@@ -21,7 +21,7 @@ Separate from the app, which lives on **app.smartprops.io** (the Next.js project
 3. HTTPS: let Netlify provision the Let's Encrypt cert for both names.
 
 ## Keeping it in sync
-`index.html` was derived from `../marketing-materials/ultraquote-brochure.html` (the design source,
+`index.html` was derived from `../marketing-materials/smartprops-brochure.html` (the design source,
 also used for the PDF). If you change marketing copy, update both or treat this `index.html` as the
 canonical web copy. The PDF brochure still uses a `mailto:` CTA — regenerate it if you want it to
 point at `/beta` too.

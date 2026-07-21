@@ -1,18 +1,18 @@
 const pptxgen = require("pptxgenjs");
 
-// ---- Brand palette — "Signal" (Blue + Teal), locked 2026-06-21 -----------
+// ---- Brand palette — SmartProps Green / Lime, rebranded 2026-07-21 -----------
 const NAVY = "0B1F3A";   // ink / dark bg
-const BRAND = "2563EB";  // primary blue
-const BRAND_DK = "1D4ED8";
-const TEAL = "0EA5A4";   // accent
-const TEAL_DK = "0F5F5C";// teal text on light
-const TEAL_50 = "ECFEFF";// teal mist (light accent section)
-const TEAL_100 = "CCFBF1";
-const ICE = "EFF6FF";    // brand-50 (blue tint)
+const BRAND = "4D7C0F";  // primary lime
+const BRAND_DK = "3D640D";
+const TEAL = "65A30D";   // accent
+const TEAL_DK = "3F6212";// teal text on light
+const TEAL_50 = "F0F7E0";// teal mist (light accent section)
+const TEAL_100 = "DCF0C2";
+const ICE = "F2F8E6";    // brand-50 (blue tint)
 const MUTED = "64748B";
 const LINE = "E2E8F0";
 const WHITE = "FFFFFF";
-const OK = "16A34A";
+const OK = "4D7C0F";
 const CARD = "F8FAFC";
 
 const HF = "Georgia";    // header font
@@ -20,8 +20,8 @@ const BF = "Calibri";    // body font
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";        // 13.3 x 7.5
-pres.author = "UltraQuote";
-pres.title = "UltraQuote — Proposals & Quoting Software";
+pres.author = "SmartProps";
+pres.title = "SmartProps — Proposals & Pricing Software";
 const W = 13.3, H = 7.5;
 
 const shadow = () => ({ type: "outer", color: "0F172A", blur: 9, offset: 3, angle: 135, opacity: 0.12 });
@@ -32,7 +32,7 @@ function logo(slide, x, y, dark, chipColor) {
   const chip = chipColor || BRAND;
   slide.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w: 0.5, h: 0.5, rectRadius: 0.08, fill: { color: chip } });
   slide.addText("UQ", { x, y, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: HF, bold: true, color: chip === WHITE ? BRAND : WHITE, fontSize: 16, margin: 0 });
-  slide.addText("UltraQuote", { x: x + 0.58, y, w: 3, h: 0.5, align: "left", valign: "middle", fontFace: HF, bold: true, color: dark ? WHITE : NAVY, fontSize: 19, margin: 0 });
+  slide.addText("SmartProps", { x: x + 0.58, y, w: 3, h: 0.5, align: "left", valign: "middle", fontFace: HF, bold: true, color: dark ? WHITE : NAVY, fontSize: 19, margin: 0 });
 }
 
 function eyebrow(slide, text, x, y) {
@@ -47,13 +47,13 @@ s.background = { color: NAVY };
 s.addShape(pres.shapes.OVAL, { x: 9.0, y: -2.4, w: 7, h: 7, fill: { color: BRAND, transparency: 55 } });
 s.addShape(pres.shapes.OVAL, { x: 10.6, y: 2.2, w: 5, h: 5, fill: { color: TEAL, transparency: 55 } });
 logo(s, 0.9, 0.7, true);
-s.addText("PROPOSALS & QUOTING SOFTWARE  ·  NOW IN PRIVATE BETA", { x: 0.95, y: 2.25, w: 11, h: 0.4, fontFace: BF, bold: true, color: "93C5FD", fontSize: 13, charSpacing: 2, margin: 0 });
+s.addText("PROPOSALS & PRICING SOFTWARE  ·  NOW IN PRIVATE BETA", { x: 0.95, y: 2.25, w: 11, h: 0.4, fontFace: BF, bold: true, color: "A9D66B", fontSize: 13, charSpacing: 2, margin: 0 });
 s.addText([
   { text: "Proposals your clients\n", options: { color: WHITE } },
-  { text: "sign in minutes.", options: { color: "60A5FA" } },
+  { text: "sign in minutes.", options: { color: "8FC24E" } },
 ], { x: 0.9, y: 2.7, w: 11, h: 2.0, fontFace: HF, bold: true, fontSize: 50, lineSpacingMultiple: 1.0, margin: 0 });
-s.addText("The all-in-one platform for any team that sends quotes — build multi-option quotes, let AI draft polished proposals in your brand voice, and collect legally-binding e-signatures — for one team or a whole organization.", { x: 0.95, y: 4.9, w: 9.8, h: 1.0, fontFace: BF, color: "CBD5E1", fontSize: 16, margin: 0 });
-s.addText("hello@ultraquote.io   ·   app.ultraquote.io", { x: 0.95, y: 6.6, w: 9, h: 0.4, fontFace: BF, color: "64748B", fontSize: 13, margin: 0 });
+s.addText("The all-in-one platform for any team that sends proposals — build multi-option pricing, let AI draft polished proposals in your brand voice, and collect legally-binding e-signatures — for one team or a whole organization.", { x: 0.95, y: 4.9, w: 9.8, h: 1.0, fontFace: BF, color: "CBD5E1", fontSize: 16, margin: 0 });
+s.addText("hello@smartprops.io   ·   app.smartprops.io", { x: 0.95, y: 6.6, w: 9, h: 0.4, fontFace: BF, color: "64748B", fontSize: 13, margin: 0 });
 
 // =========================================================================
 // 2. THE PROBLEM
@@ -61,13 +61,13 @@ s.addText("hello@ultraquote.io   ·   app.ultraquote.io", { x: 0.95, y: 6.6, w: 
 s = pres.addSlide();
 s.background = { color: WHITE };
 eyebrow(s, "The problem", 0.9, 0.7);
-s.addText("Quoting is slow, manual, and scattered across tools.", { x: 0.9, y: 1.05, w: 11.5, h: 0.9, fontFace: HF, bold: true, color: NAVY, fontSize: 32, margin: 0 });
+s.addText("Building proposals is slow, manual, and scattered across tools.", { x: 0.9, y: 1.05, w: 11.5, h: 0.9, fontFace: HF, bold: true, color: NAVY, fontSize: 32, margin: 0 });
 
 const problems = [
   ["Disconnected tools", "A spreadsheet for pricing, Word for the proposal, and a third app for signatures — copy-pasted by hand every time."],
-  ["Pricing errors", "Manual totals, tax, and discounts mean costly mistakes that slip into client-facing quotes."],
+  ["Pricing errors", "Manual totals, tax, and discounts mean costly mistakes that slip into client-facing proposals."],
   ["Slow turnaround", "Days of back-and-forth, printing, and scanning before a deal is signed — momentum lost."],
-  ["No visibility", "Once a quote is sent, it disappears into an inbox. No idea if it was opened, let alone won."],
+  ["No visibility", "Once a proposal is sent, it disappears into an inbox. No idea if it was opened, let alone won."],
 ];
 let px = 0.9;
 problems.forEach((p) => {
@@ -78,7 +78,7 @@ problems.forEach((p) => {
   s.addText(p[1], { x: px + 0.25, y: 4.05, w: 2.4, h: 1.6, fontFace: BF, color: MUTED, fontSize: 12.5, margin: 0 });
   px += 3.05;
 });
-s.addText("You lose deals to whoever quotes first — not whoever quotes best.", { x: 0.9, y: 6.35, w: 11.5, h: 0.5, fontFace: BF, italic: true, color: BRAND_DK, fontSize: 15, margin: 0 });
+s.addText("You lose deals to whoever responds first — not whoever proposes best.", { x: 0.9, y: 6.35, w: 11.5, h: 0.5, fontFace: BF, italic: true, color: BRAND_DK, fontSize: 15, margin: 0 });
 
 // =========================================================================
 // 3. THE SOLUTION
@@ -87,11 +87,11 @@ s = pres.addSlide();
 s.background = { color: ICE };
 eyebrow(s, "The solution", 0.9, 0.7);
 s.addText("One workflow: catalog → proposal → signature.", { x: 0.9, y: 1.05, w: 11.5, h: 0.9, fontFace: HF, bold: true, color: NAVY, fontSize: 32, margin: 0 });
-s.addText("UltraQuote replaces the spreadsheet, the Word template, and the signing tool with a single, branded workflow built for how modern teams sell.", { x: 0.9, y: 1.95, w: 10.5, h: 0.8, fontFace: BF, color: MUTED, fontSize: 16, margin: 0 });
+s.addText("SmartProps replaces the spreadsheet, the Word template, and the signing tool with a single, branded workflow built for how modern teams sell.", { x: 0.9, y: 1.95, w: 10.5, h: 0.8, fontFace: BF, color: MUTED, fontSize: 16, margin: 0 });
 
 const pillars = [
-  ["Build", "Multi-option quotes from your product catalog with tiers, setup fees, discounts, tax & margins — calculated instantly."],
-  ["Write", "AI drafts the whole proposal from your quote, in your brand voice — in a rich editor with your branding, two-column layouts, and live pricing."],
+  ["Build", "Multi-option pricing from your product catalog with tiers, setup fees, discounts, tax & margins — calculated instantly."],
+  ["Write", "AI drafts the whole proposal from your pricing, in your brand voice — in a rich editor with your branding, two-column layouts, and live pricing."],
   ["Sign & Win", "Send for e-signature, track status live from sent → viewed → signed, and watch your pipeline on a real dashboard."],
 ];
 let qx = 0.9;
@@ -110,17 +110,17 @@ pillars.forEach((p, i) => {
 s = pres.addSlide();
 s.background = { color: WHITE };
 eyebrow(s, "Capabilities", 0.9, 0.55);
-s.addText("Everything you need to quote like a pro.", { x: 0.9, y: 0.9, w: 11.5, h: 0.8, fontFace: HF, bold: true, color: NAVY, fontSize: 30, margin: 0 });
+s.addText("Everything you need to propose like a pro.", { x: 0.9, y: 0.9, w: 11.5, h: 0.8, fontFace: HF, bold: true, color: NAVY, fontSize: 30, margin: 0 });
 
 const feats = [
   ["Product catalog & tiers", "Import via CSV; price with multiple tiers, setup fees & billing periods."],
   ["Multi-option scenarios", "Present Good / Better / Best side-by-side; star a recommended pick."],
-  ["AI proposal drafting", "Draft a full proposal from your quote in your brand voice; edit the outline. Plus inline Ask AI."],
+  ["AI proposal drafting", "Draft a full proposal from your pricing in your brand voice; edit the outline. Plus inline Ask AI."],
   ["Built-in e-signature", "Client + counter-sign roles, initials, checkboxes — status flips live."],
   ["Your brand", "Logo, accent theme, proposal font, and custom domain. Clients see you."],
   ["Templates & import", "Reusable templates; import from Word or Markdown in one click."],
-  ["Teams, roles & orgs", "Owner/member roles, quote ownership, presence — and multi-workspace Organizations."],
-  ["Real-time dashboard", "Pipeline value, win rate, expiring quotes, recurring revenue at a glance."],
+  ["Teams, roles & orgs", "Owner/member roles, proposal ownership, presence — and multi-workspace Organizations."],
+  ["Real-time dashboard", "Pipeline value, win rate, expiring proposals, recurring revenue at a glance."],
   ["Secure by design", "Multi-tenant isolation, 2FA, password policy & idle auto-logout."],
 ];
 let fx = 0.9, fy = 1.95;
@@ -140,7 +140,7 @@ s = pres.addSlide();
 s.background = { color: ICE };
 eyebrow(s, "Featured · AI proposal drafting", 0.9, 0.55);
 s.addText("Let AI draft the whole proposal — in your voice.", { x: 0.9, y: 0.9, w: 11.5, h: 0.8, fontFace: HF, bold: true, color: NAVY, fontSize: 30, margin: 0 });
-s.addText("Grounded in your quote's own services, pricing, and client — the AI never invents numbers, and you review every word before it's inserted.", { x: 0.9, y: 1.72, w: 11.4, h: 0.6, fontFace: BF, color: MUTED, fontSize: 15, margin: 0 });
+s.addText("Grounded in your own services, pricing, and client — the AI never invents numbers, and you review every word before it's inserted.", { x: 0.9, y: 1.72, w: 11.4, h: 0.6, fontFace: BF, color: MUTED, fontSize: 15, margin: 0 });
 
 const flow = [
   ["1 · Intake", "Set the style — tone, length, emphasis. Optionally reference a past proposal to match."],
@@ -179,7 +179,7 @@ eyebrow(s, "How it works", 0.9, 0.7);
 s.addText("Four steps from inquiry to signed contract.", { x: 0.9, y: 1.05, w: 11.5, h: 0.8, fontFace: HF, bold: true, color: WHITE, fontSize: 30, margin: 0 });
 
 const steps = [
-  ["Build the quote", "Pull products from your catalog, add scenarios, and apply per-line discounts."],
+  ["Build the pricing", "Pull products from your catalog, add scenarios, and apply per-line discounts."],
   ["Write the proposal", "Let AI draft it in your brand voice; drop in live pricing; brand it."],
   ["Send for signature", "Preview the PDF, then send. Client signs online; you counter-sign."],
   ["Track & win", "Watch status flip in real time and manage pipeline on the dashboard."],
@@ -200,11 +200,11 @@ s = pres.addSlide();
 s.background = { color: WHITE };
 eyebrow(s, "Pricing", 0.9, 0.45);
 s.addText("You only pay for documents that get signed.", { x: 0.9, y: 0.8, w: 11.5, h: 0.7, fontFace: HF, bold: true, color: NAVY, fontSize: 28, margin: 0 });
-s.addText("Quotes are always unlimited. We meter only completed (fully-signed) documents.", { x: 0.9, y: 1.5, w: 11.5, h: 0.4, fontFace: BF, color: MUTED, fontSize: 14, margin: 0 });
+s.addText("Proposals are always unlimited. We meter only completed (fully-signed) documents.", { x: 0.9, y: 1.5, w: 11.5, h: 0.4, fontFace: BF, color: MUTED, fontSize: 14, margin: 0 });
 
 const plans = [
-  ["Pay-per-use", "$9", "/ signed doc", "$0 base · pay as you go", ["1 user", "Unlimited quotes", "All features", "No commitment"], false],
-  ["Starter", "$30", "/ mo", "5 signed docs / mo", ["1 user", "$3 / extra doc", "Unlimited quotes", "All features"], false],
+  ["Pay-per-use", "$9", "/ signed doc", "$0 base · pay as you go", ["1 user", "Unlimited proposals", "All features", "No commitment"], false],
+  ["Starter", "$30", "/ mo", "5 signed docs / mo", ["1 user", "$3 / extra doc", "Unlimited proposals", "All features"], false],
   ["Standard", "$50", "/ mo", "10 signed docs / mo", ["2 users", "$3 / extra doc", "Everything in Starter"], false],
   ["Pro", "$80", "/ mo", "25 signed docs / mo", ["5 users", "$3 / extra doc", "Everything in Standard"], true],
   ["Ultra", "$150", "/ mo", "50 signed docs / mo", ["10 users", "$3 / extra doc", "Best per-doc rate", "Everything in Pro"], false],
@@ -226,7 +226,7 @@ plans.forEach((p) => {
   s.addText(items, { x: ix, y: ty + 1.5, w: iw, h: 1.9, fontFace: BF, fontSize: 10.5, margin: 0 });
   plx += step;
 });
-s.addText("Flat $3 per completed document beyond your plan's monthly included docs — any plan, never a hard cap. Users are fixed per plan (no seat add-ons); AI proposal drafting is included on every plan. Annual billing (~2 months free). Pricing is being finalized during beta — contact hello@ultraquote.io.", { x: 0.9, y: 6.55, w: 11.5, h: 0.6, fontFace: BF, italic: true, color: MUTED, fontSize: 11, align: "center", margin: 0 });
+s.addText("Flat $3 per completed document beyond your plan's monthly included docs — any plan, never a hard cap. Users are fixed per plan (no seat add-ons); AI proposal drafting is included on every plan. Annual billing (~2 months free). Pricing is being finalized during beta — contact hello@smartprops.io.", { x: 0.9, y: 6.55, w: 11.5, h: 0.6, fontFace: BF, italic: true, color: MUTED, fontSize: 11, align: "center", margin: 0 });
 
 // =========================================================================
 // 7. CLOSING CTA
@@ -237,9 +237,9 @@ s.addShape(pres.shapes.OVAL, { x: -2, y: 3.5, w: 7, h: 7, fill: { color: BRAND_D
 s.addShape(pres.shapes.OVAL, { x: 9.5, y: -3, w: 7, h: 7, fill: { color: TEAL, transparency: 45 } });
 logo(s, 0.9, 0.8, true, WHITE);
 s.addText("Ready to send proposals that close?", { x: 0.9, y: 2.6, w: 11, h: 1.5, fontFace: HF, bold: true, color: WHITE, fontSize: 40, margin: 0 });
-s.addText("Join the teams building faster, more professional quotes with UltraQuote.\nNow in private beta — request your early-access invite.", { x: 0.95, y: 4.3, w: 10, h: 1.0, fontFace: BF, color: ICE, fontSize: 17, margin: 0 });
+s.addText("Join the teams building faster, more professional proposals with SmartProps.\nNow in private beta — request your early-access invite.", { x: 0.95, y: 4.3, w: 10, h: 1.0, fontFace: BF, color: ICE, fontSize: 17, margin: 0 });
 s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 0.95, y: 5.6, w: 3.4, h: 0.75, rectRadius: 0.1, fill: { color: WHITE }, shadow: shadow() });
 s.addText("Request access  →", { x: 0.95, y: 5.6, w: 3.4, h: 0.75, align: "center", valign: "middle", fontFace: BF, bold: true, color: BRAND_DK, fontSize: 16, margin: 0 });
-s.addText("hello@ultraquote.io     ·     app.ultraquote.io", { x: 0.95, y: 6.7, w: 9, h: 0.4, fontFace: BF, color: ICE, fontSize: 13, margin: 0 });
+s.addText("hello@smartprops.io     ·     app.smartprops.io", { x: 0.95, y: 6.7, w: 9, h: 0.4, fontFace: BF, color: ICE, fontSize: 13, margin: 0 });
 
-pres.writeFile({ fileName: "/Users/sameer/ultraquote/marketing-materials/ultraquote-deck.pptx" }).then((f) => console.log("WROTE", f));
+pres.writeFile({ fileName: "/Users/sameer/ultraquote/marketing-materials/smartprops-deck.pptx" }).then((f) => console.log("WROTE", f));
