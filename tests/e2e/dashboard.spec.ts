@@ -7,7 +7,7 @@ test.describe("dashboard date-range control", () => {
     await login(page, OWNER);
     await page.goto("/");
 
-    await expect(page.getByText("Showing quotes created in this range")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Showing proposals created in this range")).toBeVisible({ timeout: 30_000 });
     // Dual-thumb slider = two range inputs.
     await expect(page.getByRole("slider")).toHaveCount(2);
     // The range-filtered stat tiles.
@@ -16,6 +16,6 @@ test.describe("dashboard date-range control", () => {
 
     // A preset still works (no crash; control stays visible).
     await page.getByRole("button", { name: "30d" }).click();
-    await expect(page.getByText("Showing quotes created in this range")).toBeVisible();
+    await expect(page.getByText("Showing proposals created in this range")).toBeVisible();
   });
 });
