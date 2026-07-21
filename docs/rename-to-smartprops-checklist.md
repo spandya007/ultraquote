@@ -54,14 +54,11 @@ needs SPF/DKIM/DMARC passing first.
 ## Phase 1 — Domain + email infrastructure (do FIRST; DNS/email take time to propagate)
 - [x] **[you]** ✅ **DONE (2026-07-20)** — `smartprops.io` registered.
 - [x] **[you]** ✅ **DONE (2026-07-20)** — Zoho mailboxes created: **`hello@smartprops.io`** +
-      **`sales@smartprops.io`**. ⚠️ Note: the codebase's privacy-request contact is `privacy@` (see the
-      `privacy@` decision below) — either add `privacy@smartprops.io` in Zoho, or point privacy contact
-      at `hello@`. Still needed: generate an **app password** for SMTP (Zoho → Security → App Passwords).
-- [ ] **[you]** DNS for `smartprops.io`: confirm **SPF + DKIM + DMARC** are set (Zoho's setup wizard adds
-      SPF+DKIM when you verified the domain; **DMARC is often NOT auto-added** — add a `_dmarc` TXT record,
-      e.g. `v=DMARC1; p=none; rua=mailto:hello@smartprops.io`). Verify all green in Zoho's console.
-- [ ] **[you]** Decide the **`privacy@`** address: add `privacy@smartprops.io` mailbox/alias in Zoho, OR
-      change `ENTITY.privacyEmail` to `hello@smartprops.io` at rename time. (Legal docs reference it.)
+      **`sales@smartprops.io`**; SMTP **app password** generated (set as `SMTP_PASS` in Phase 5).
+- [x] **[you]** ✅ **DONE (2026-07-20)** — DNS **SPF + DKIM + DMARC** set + green in Zoho's console.
+- [ ] **[decide at rename]** The **`privacy@`** address (only `hello@`/`sales@` exist today). At the Phase 3
+      rename either add `privacy@smartprops.io` in Zoho, or set `ENTITY.privacyEmail = "hello@smartprops.io"`.
+      Not a blocker for the deploy — legal docs reference it, resolved in the rename branch.
 
 ### Phase 1b — Netlify custom domain (detailed) — the app: `app.smartprops.io`
 > Mental model — **there is no data migration.** It's the same Netlify site + same Supabase database.
@@ -78,34 +75,29 @@ needs SPF/DKIM/DMARC passing first.
       - ⚠️ **DO NOT move `smartprops.io`'s nameservers to Netlify DNS** unless you first re-create the
         **Zoho MX + SPF + DKIM** records there — switching nameservers without them **breaks your new
         email**. Keeping DNS at your current host and adding one CNAME is the safe path.
-- [ ] **[you]** Back in Netlify, once DNS resolves (minutes to ~1h), Netlify **auto-provisions a
-      Let's Encrypt TLS cert** for `app.smartprops.io`. Wait for "Netlify certificate" to go green.
-- [ ] **[verify]** Open `https://app.smartprops.io` → it serves the **current app** (still branded
-      UltraQuote — that's expected until the Phase 3 rename). Login works. Both domains now work.
-- [ ] **[you]** **Leave `app.ultraquote.io` as the PRIMARY domain for now** (Netlify → Domain management →
-      "Set as primary"). Flip primary to `app.smartprops.io` at cutover (Phase 6) — primary just controls
-      which host the others 301-redirect to and the canonical URL.
+- [x] **[you]** ✅ **DONE (2026-07-20)** — Netlify TLS cert for `app.smartprops.io` provisioned (green).
+- [x] **[verify]** ✅ **DONE** — `https://app.smartprops.io` serves the app (still UltraQuote-branded until
+      the Phase 3 rename); login works; both domains live.
+- [x] **[you]** ✅ **DONE** — `app.ultraquote.io` kept as PRIMARY for now; flip to `app.smartprops.io` at
+      cutover (Phase 6).
 - [ ] **[you] (optional) Apex marketing site** — if you keep `marketing-site/`, add `smartprops.io`
       (+ `www`) to that **separate** Netlify site the same way (apex needs an `ALIAS`/`ANAME`, or an
       `A` record to Netlify's load balancer `75.2.60.5`, per Netlify's instructions for that site).
 
-- [ ] **[verify]** Send a test email from `hello@smartprops.io` to an external inbox (Gmail/Outlook) →
-      lands in **inbox**, not spam; check the header shows SPF+DKIM **pass**. New domains have zero
-      sending reputation — send a few over a day if it looks spammy.
+- [x] **[verify]** ✅ **DONE** — test email from `hello@smartprops.io` reaches an external inbox (watch
+      spam/reputation over the first few days).
 
-## Phase 2 — External service consoles (point them at the new domain)
+## Phase 2 — External service consoles (point them at the new domain) ✅ DONE (2026-07-20)
 > These use the **new** callback/redirect URLs. Since there are no users, you can switch cleanly.
-- [ ] **[you] Supabase Auth → URL Configuration:** set **Site URL** = `https://app.smartprops.io`; set
-      **Redirect allowlist** to `https://app.smartprops.io/auth/set-password`, `…/auth/confirm`,
-      `…/**` + `http://localhost:3000/**`. (Removing the old ultraquote URLs is fine — no users.)
-- [ ] **[you] Supabase → Auth email templates** (invite / reset / confirm): re-brand "UltraQuote" →
-      "SmartProps", fix any hardcoded links.
-- [ ] **[you] Intuit / QBO developer console:** add redirect URI
-      `https://app.smartprops.io/api/integrations/qbo/callback` under **Keys & credentials → Redirect
-      URIs** (NOT the Webhooks box — documented gotcha). It must equal `QBO_REDIRECT_URI` exactly.
-- [ ] **[you] DocuSeal console:** update the webhook endpoint to
-      `https://app.smartprops.io/api/webhooks/docuseal?secret=<DOCUSEAL_WEBHOOK_SECRET>` and any
-      sender/reply-to branding. **Save it** (unsaved = 401s).
+- [x] **[you] Supabase Auth → URL Configuration:** ✅ Site URL + redirect allowlist updated for
+      `app.smartprops.io` (`/auth/set-password`, `/auth/confirm`, `/**`, + localhost).
+- [x] **[you] Supabase → Auth email templates** (invite / reset / confirm): ✅ re-branded to SmartProps
+      / links fixed.
+- [x] **[you] Intuit / QBO developer console:** ✅ redirect URI
+      `https://app.smartprops.io/api/integrations/qbo/callback` added under **Keys & credentials → Redirect
+      URIs** (must equal `QBO_REDIRECT_URI` exactly).
+- [x] **[you] DocuSeal console:** ✅ webhook endpoint updated to
+      `https://app.smartprops.io/api/webhooks/docuseal?secret=…` + sender/reply-to branding, **Saved**.
 
 ## Phase 3 — Code + assets (branch `chore/rename-smartprops`)
 > Since there are no users, rename freely — no fallbacks needed.
@@ -193,11 +185,14 @@ needs SPF/DKIM/DMARC passing first.
       before wiring Stripe**.
 
 ## Phase 5 — Env vars (Netlify, All Scopes — see the env-var-scopes gotcha)
-- [ ] **[you]** `NEXT_PUBLIC_SITE_URL` = `https://app.smartprops.io`
-- [ ] **[you]** `SMTP_USER` = `hello@smartprops.io` (+ `SMTP_PASS`/host if the Zoho app password changed)
-- [ ] **[you]** `BETA_NOTIFY_TO` / `PLATFORM_NOTIFY_EMAIL` = `hello@smartprops.io`
-- [ ] **[you]** `QBO_REDIRECT_URI` = `https://app.smartprops.io/api/integrations/qbo/callback`
-- [ ] **[you]** Re-check `DOCUSEAL_*` if any embed the domain.
+- [x] **[you]** ✅ `NEXT_PUBLIC_SITE_URL` = `https://app.smartprops.io`
+- [x] **[you]** ✅ `SMTP_USER` = `hello@smartprops.io` (+ `SMTP_PASS` = the new Zoho app password)
+- [x] **[you]** ✅ **DONE (2026-07-20)** — `BETA_NOTIFY_TO` + `PLATFORM_NOTIFY_EMAIL` set to smartprops
+      inboxes. These are the *recipient* inboxes for internal notification emails (NOT the sender):
+      `BETA_NOTIFY_TO` receives new **/beta signup** alerts + the /admin "test email";
+      `PLATFORM_NOTIFY_EMAIL` receives a note when an **Org Admin creates a new workspace**.
+- [x] **[you]** ✅ `QBO_REDIRECT_URI` = `https://app.smartprops.io/api/integrations/qbo/callback`
+- [x] **[you]** ✅ `DOCUSEAL_*` re-checked.
 - [ ] **[you]** Trigger a fresh Netlify deploy (env changes need a rebuild to take effect).
 
 ## Phase 6 — Pre-merge gate + cutover
