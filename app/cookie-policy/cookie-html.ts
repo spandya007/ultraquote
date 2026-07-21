@@ -19,7 +19,7 @@ th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-siz
 <div data-custom-class="title"><h1>COOKIE POLICY</h1></div>
 <div data-custom-class="subtitle"><strong>Last updated July 21, 2026</strong></div>
 <br>
-<div data-custom-class="body_text">This Cookie Policy explains how Sameer Pandya, doing business as SmartProps ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," and "<strong>our</strong>") uses cookies and similar technologies when you visit our website at <a target="_blank" data-custom-class="link" href="https://app.smartprops.io">https://app.smartprops.io</a> ("<strong>Website</strong>").</div>
+<div data-custom-class="body_text">This Cookie Policy explains how SmartProps LLC ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," and "<strong>our</strong>") uses cookies and similar technologies when you visit our website at <a target="_blank" data-custom-class="link" href="https://app.smartprops.io">https://app.smartprops.io</a> ("<strong>Website</strong>").</div>
 <br>
 <div data-custom-class="heading_1"><h2>What are cookies?</h2></div>
 <div data-custom-class="body_text">Cookies are small data files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work, or work more efficiently. Cookies set by the website owner (in this case, SmartProps) are called "first-party cookies."</div>

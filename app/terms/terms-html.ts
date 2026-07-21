@@ -19,15 +19,15 @@ ol li { font-family: Arial; }
 <div data-custom-class="subtitle"><strong>Last updated</strong> <strong>July 21, 2026</strong></div>
 <br>
 <div data-custom-class="heading_1"><h2>AGREEMENT TO OUR LEGAL TERMS</h2></div>
-<div data-custom-class="body_text">We are Sameer Pandya, doing business as SmartProps ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a company registered in California, United States at 2005 Laurel Canyon Court, Fremont, CA 94539.</div>
+<div data-custom-class="body_text">We are SmartProps LLC ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a company registered in California, United States.</div>
 <br>
 <div data-custom-class="body_text">We operate the website <a target="_blank" data-custom-class="link" href="https://app.smartprops.io">https://app.smartprops.io</a> (the "<strong>Site</strong>"), as well as any other related products and services that refer or link to these legal terms (the "<strong>Legal Terms</strong>") (collectively, the "<strong>Services</strong>").</div>
 <br>
 <div data-custom-class="body_text">SmartProps is a cloud-based, multi-tenant software-as-a-service (SaaS) platform that enables businesses to build, manage, and send professional proposals and price quotes to their clients. Users can maintain a product/service catalog, create multi-scenario quotes, author proposal documents, preview and generate PDFs, and send proposals for electronic signature. The service is accessed through a web browser and stores customer-provided data (such as client contact details and proposal content) to provide these features.</div>
 <br>
-<div data-custom-class="body_text">You can contact us by phone at 510-250-1688, email at <a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a>, or by mail to 2005 Laurel Canyon Court, Fremont, CA 94539, United States.</div>
+<div data-custom-class="body_text">You can contact us by email at <a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a>.</div>
 <br>
-<div data-custom-class="body_text">These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("<strong>you</strong>"), and Sameer Pandya, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.</div>
+<div data-custom-class="body_text">These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("<strong>you</strong>"), and SmartProps LLC, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.</div>
 <br>
 <div data-custom-class="body_text">We will notify users by posting the updated Legal Terms on this page with a new "Last updated" date. For material changes, we may also notify users by email. Your continued use of the Services after the updated terms become effective constitutes acceptance of the changes.</div>
 <br>
@@ -215,11 +215,7 @@ ol li { font-family: Arial; }
 <div data-custom-class="heading_1" id="contact"><h2>28. CONTACT US</h2></div>
 <div data-custom-class="body_text">In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:</div>
 <br>
-<div data-custom-class="body_text"><strong>Sameer Pandya</strong></div>
-<div data-custom-class="body_text"><strong>2005 Laurel Canyon Court</strong></div>
-<div data-custom-class="body_text"><strong>Fremont, CA 94539</strong></div>
-<div data-custom-class="body_text"><strong>United States</strong></div>
-<div data-custom-class="body_text"><strong>Phone: 510-250-1688</strong></div>
+<div data-custom-class="body_text"><strong>SmartProps LLC</strong></div>
 <div data-custom-class="body_text"><strong><a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a></strong></div>
 <br>
 <div data-custom-class="body_text">These Terms of Service were created using Termly's <a href="https://termly.io/products/terms-and-conditions-generator/" target="_blank" rel="noopener external" data-custom-class="link">Terms and Conditions Generator</a>.</div>
