@@ -11,7 +11,9 @@ export async function POST() {
   if (!adminUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const cfg = mailerConfig();
-  // What the running function actually sees — exposes the Netlify scoping issue.
+  // What the running function actually sees — exposes the Netlify scoping issue
+  // AND the exact sender/recipient (so a stale deploy or an SMTP_FROM override is
+  // obvious without opening DevTools).
   const env = {
     SMTP_USER: Boolean(process.env.SMTP_USER),
     SMTP_PASS: Boolean(process.env.SMTP_PASS),
@@ -22,6 +24,13 @@ export async function POST() {
     // function isn't getting Netlify env at all.
     NETLIFY: Boolean(process.env.NETLIFY),
     user: process.env.SMTP_USER || null,
+    // Actual sender address = SMTP_FROM || SMTP_USER. If this isn't what you set,
+    // either the deploy is stale or SMTP_FROM is pinned to an old address.
+    from: cfg.from,
+    // Whether SMTP_FROM is explicitly set (it overrides SMTP_USER for the sender).
+    fromOverride: process.env.SMTP_FROM || null,
+    // The recipient the notification routes will use (BETA_NOTIFY_TO || fallback).
+    notifyTo: process.env.BETA_NOTIFY_TO || ENTITY.contactEmail,
   };
 
   if (!cfg.configured) {

@@ -118,11 +118,21 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
           <span className="font-medium">{testResult.message}</span>
           {testResult.hint && <div className="mt-1 opacity-90">{testResult.hint}</div>}
           {testResult.env && (
-            <div className="mt-1.5 font-mono text-[11px] opacity-90">
-              runtime sees: SMTP_USER={String(testResult.env.SMTP_USER)} · SMTP_PASS=
-              {String(testResult.env.SMTP_PASS)} · NETLIFY={String(testResult.env.NETLIFY)} · host=
-              {String(testResult.env.SMTP_HOST)} · port={String(testResult.env.SMTP_PORT)}
-            </div>
+            <>
+              <div className="mt-1.5 font-mono text-[11px] opacity-90">
+                sends from: <span className="font-semibold">{String(testResult.env.from ?? "?")}</span>
+                {" → to: "}
+                <span className="font-semibold">{String(testResult.env.notifyTo ?? "?")}</span>
+                {testResult.env.fromOverride
+                  ? ` (SMTP_FROM override = ${String(testResult.env.fromOverride)})`
+                  : ""}
+              </div>
+              <div className="mt-1 font-mono text-[11px] opacity-90">
+                runtime sees: SMTP_USER={String(testResult.env.SMTP_USER)} · SMTP_PASS=
+                {String(testResult.env.SMTP_PASS)} · NETLIFY={String(testResult.env.NETLIFY)} · host=
+                {String(testResult.env.SMTP_HOST)} · port={String(testResult.env.SMTP_PORT)}
+              </div>
+            </>
           )}
         </div>
       )}
