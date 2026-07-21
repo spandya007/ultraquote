@@ -42,7 +42,7 @@ export async function POST(
     .single();
 
   if (srcErr || !src) {
-    return NextResponse.json({ error: srcErr?.message ?? "Quote not found" }, { status: 404 });
+    return NextResponse.json({ error: srcErr?.message ?? "Proposal not found" }, { status: 404 });
   }
 
   // 2. Generate a fresh quote number (atomic, security-definer RPC).
@@ -50,7 +50,7 @@ export async function POST(
     p_tenant_id: tenant_id,
   }) as { data: string | null; error: { message: string } | null };
   if (numErr || !quote_number) {
-    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate quote number" }, { status: 500 });
+    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate proposal number" }, { status: 500 });
   }
 
   // 3. Insert the new quote (always a fresh draft). Any tenant member may
@@ -61,7 +61,7 @@ export async function POST(
       tenant_id,
       created_by:       user.id,
       client_id:        src.client_id,
-      title:            src.title ? `${src.title} (Copy)` : "Untitled Quote (Copy)",
+      title:            src.title ? `${src.title} (Copy)` : "Untitled Proposal (Copy)",
       status:           "draft",
       quote_number,
       tax_rate:         src.tax_rate,

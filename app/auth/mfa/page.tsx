@@ -9,7 +9,7 @@ export default function MfaChallengePage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-192.png" alt="UltraQuote" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-sm" />
+          <img src="/favicon.svg" alt="SmartProps" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-sm" />
           <h1 className="text-2xl font-bold tracking-tight">Two-step verification</h1>
           <p className="text-muted-foreground mt-2 text-sm">Enter the code from your authenticator app.</p>
         </div>

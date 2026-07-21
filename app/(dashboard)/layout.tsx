@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Sidebar } from "@/components/ui/sidebar";
+import { AppShell } from "@/components/ui/app-shell";
 import { IdleTimeout } from "@/components/auth/idle-timeout";
 import { ContextualHelp } from "@/components/help/contextual-help";
 import { getAccessState } from "@/lib/access/access-state";
@@ -107,17 +107,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <>
       <IdleTimeout />
-      <Sidebar brandName={brandName} logoUrl={logoUrl} showAdmin={Boolean(platformAdmin)} showOrg={isOrgAdmin} userName={displayName} />
-      <main className="flex-1 overflow-y-auto bg-muted/20 pt-14 md:pt-0">
+      <AppShell
+        brandName={brandName}
+        logoUrl={logoUrl}
+        showAdmin={Boolean(platformAdmin)}
+        showOrg={isOrgAdmin}
+        userName={displayName}
+      >
         {ctx?.tenant?.deletion_scheduled_at && (
           <DeletionBanner scheduledAt={ctx.tenant.deletion_scheduled_at} />
         )}
         {banner && <SubscriptionBanner {...banner} />}
         {children}
-      </main>
+      </AppShell>
       <ContextualHelp />
-    </div>
+    </>
   );
 }

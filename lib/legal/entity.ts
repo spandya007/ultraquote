@@ -15,7 +15,7 @@
 // docs/rename-to-smartprops-assessment.md (§6) + docs/rename-to-smartprops-checklist.md (Phase 4a).
 
 export interface LegalEntity {
-  /** Legal contracting party. Today the sole proprietor; becomes e.g. "SmartProps LLC" if an entity is formed. */
+  /** Legal contracting party (the entity that contracts with users), e.g. "SmartProps LLC". */
   legalName: string;
   /** Assumed / "doing business as" name. Set to null once the entity name itself IS the trade name. */
   dba: string | null;
@@ -35,23 +35,24 @@ export interface LegalEntity {
   appDomain: string;
 }
 
-// CURRENT values (pre-rename). Flip these to SmartProps / smartprops.io during
-// the rename cutover; flip `legalName` (+ drop `dba`) if/when an entity is formed.
+// SmartProps LLC (legal party). Email-only public contact — the personal name,
+// home address, and phone are intentionally NOT published in the legal docs.
+// NOTE: form SmartProps LLC before go-live so the docs are accurate when public.
 export const ENTITY: LegalEntity = {
-  legalName: "Sameer Pandya",
-  dba: "UltraQuote",
-  productName: "UltraQuote",
-  addressLines: ["2005 Laurel Canyon Court", "Fremont, CA 94539", "United States"],
-  phone: "510-250-1688",
-  contactEmail: "hello@ultraquote.io",
-  privacyEmail: "privacy@ultraquote.io",
-  appUrl: "https://app.ultraquote.io",
-  appDomain: "app.ultraquote.io",
+  legalName: "SmartProps LLC",
+  dba: null,
+  productName: "SmartProps",
+  addressLines: [],
+  phone: "",
+  contactEmail: "hello@smartprops.io",
+  privacyEmail: "privacy@smartprops.io",
+  appUrl: "https://app.smartprops.io",
+  appDomain: "app.smartprops.io",
 };
 
 /**
- * The standard legal-party phrasing, e.g. "Sameer Pandya (doing business as UltraQuote)".
- * Once an entity is formed and `dba` is null, this returns just the legal name.
+ * The standard legal-party phrasing, e.g. "Acme LLC (doing business as Acme)" when a dba is set.
+ * With `dba` null (the current SmartProps LLC case) this returns just the legal name.
  */
 export function legalParty(): string {
   return ENTITY.dba ? `${ENTITY.legalName} (doing business as ${ENTITY.dba})` : ENTITY.legalName;

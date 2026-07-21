@@ -79,13 +79,13 @@ export function BetaClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Something went wrong. Please email hello@ultraquote.io.");
+        setError(data.error || "Something went wrong. Please email hello@smartprops.io.");
         setStatus("idle");
         return;
       }
       setStatus("done");
     } catch {
-      setError("Network error. Please email hello@ultraquote.io.");
+      setError("Network error. Please email hello@smartprops.io.");
       setStatus("idle");
     }
   }
@@ -95,16 +95,16 @@ export function BetaClient() {
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="sheet">
         <div className="band">
-          <div className="logo"><span className="mark">UQ</span> UltraQuote</div>
+          <div className="logo"><span className="mark">SP</span> SmartProps</div>
           <span className="pill">● You&apos;re invited — private beta</span>
           <h1>Send proposals your clients sign in minutes.</h1>
-          <p>The all-in-one platform to build quotes, draft polished proposals with AI, and collect e-signatures — for one team or a whole organization.</p>
+          <p>The all-in-one platform to build proposals, draft polished proposals with AI, and collect e-signatures — for one team or a whole organization.</p>
         </div>
 
         <div className="body">
           <p className="lead">
             Quoting today means juggling a spreadsheet, a Word template, and a separate signing tool — slow, error-prone,
-            and easy to lose track of. <strong>UltraQuote replaces all three</strong> with a single branded workflow:
+            and easy to lose track of. <strong>SmartProps replaces all three</strong> with a single branded workflow:
             build a multi-option quote, let AI draft the proposal in your brand voice, send it for a legally-binding
             signature, and watch it move from sent → viewed → signed in real time.
           </p>
@@ -112,8 +112,8 @@ export function BetaClient() {
           <div className="benefits">
             <div className="ben">
               <div className="ic">⚡</div>
-              <h3>Quote in minutes</h3>
-              <p>Build multi-option quotes from your catalog with tiers, discounts, tax &amp; margins — calculated instantly.</p>
+              <h3>Proposals in minutes</h3>
+              <p>Build multi-option proposals from your catalog with tiers, discounts, tax &amp; margins — calculated instantly.</p>
             </div>
             <div className="ben">
               <div className="ic">✍️</div>
@@ -143,7 +143,7 @@ export function BetaClient() {
                 <div className="h">You&apos;re on the list — thank you! 🎉</div>
                 <div className="p">
                   We&apos;ll review your request and send your invite to <strong>{form.email}</strong> within 24 hours.
-                  Questions? Email <a href="mailto:hello@ultraquote.io" style={{ color: "#7dd3fc" }}>hello@ultraquote.io</a>.
+                  Questions? Email <a href="mailto:hello@smartprops.io" style={{ color: "#7dd3fc" }}>hello@smartprops.io</a>.
                 </div>
               </div>
             ) : (
@@ -181,8 +181,8 @@ export function BetaClient() {
         </div>
 
         <footer>
-          <div>© 2026 UltraQuote · Proposals &amp; quoting for modern teams</div>
-          <div><a href="mailto:hello@ultraquote.io">hello@ultraquote.io</a></div>
+          <div>© 2026 SmartProps · Proposals &amp; quoting for modern teams</div>
+          <div><a href="mailto:hello@smartprops.io">hello@smartprops.io</a></div>
         </footer>
       </div>
     </div>

@@ -25,17 +25,17 @@ export function WorkspaceSummaryCard({ dossier }: { dossier: TenantDossier }) {
         <h2 className="font-semibold">Your workspace</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        A summary of what&apos;s stored in your UltraQuote account. Keep this in mind before requesting
-        account deletion — save copies of anything you need to keep (you can download individual quotes
+        A summary of what&apos;s stored in your SmartProps account. Keep this in mind before requesting
+        account deletion — save copies of anything you need to keep (you can download individual proposals
         as PDFs).
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Clients" value={counts.clients} />
         <Stat label="Active products" value={counts.productsActive} />
-        <Stat label="Quotes" value={counts.quotesTotal} />
+        <Stat label="Proposals" value={counts.quotesTotal} />
         <Stat label="Templates" value={counts.templates} />
-        <Stat label="Signed quotes" value={signed} warn={signed > 0} />
+        <Stat label="Signed proposals" value={signed} warn={signed > 0} />
         <Stat label="Sent / awaiting" value={inFlight} warn={inFlight > 0} />
         <Stat label="Team members" value={dossier.users.length} />
       </div>
@@ -43,7 +43,7 @@ export function WorkspaceSummaryCard({ dossier }: { dossier: TenantDossier }) {
       {(signed > 0 || inFlight > 0) && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
           You have{signed > 0 ? ` ${signed} signed` : ""}{signed > 0 && inFlight > 0 ? " and" : ""}
-          {inFlight > 0 ? ` ${inFlight} sent` : ""} quote(s). These represent completed or in-progress
+          {inFlight > 0 ? ` ${inFlight} sent` : ""} proposal(s). These represent completed or in-progress
           deals — be sure to download them (as PDFs) before any account deletion.
         </div>
       )}

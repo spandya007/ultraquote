@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   if (block) return NextResponse.json({ error: block }, { status: 429 });
 
   const input = await loadSerializeInput(supabase, body.quoteId);
-  if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!input) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
   const quoteContext = quoteContextMarkdown(input);
 
   const { data: qRow } = (await supabase

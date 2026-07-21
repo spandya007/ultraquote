@@ -96,9 +96,9 @@ export function DashboardClient({ quotes, clientCount }: { quotes: QuoteRow[]; c
       <section className="rounded-xl border bg-card p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
-            <p className="text-sm font-medium">Showing quotes created in this range</p>
+            <p className="text-sm font-medium">Showing proposals created in this range</p>
             <p className="text-xs text-muted-foreground">
-              {fmtDay(startMs)} – {fmtDay(endMs)} · {inRange.length} quote{inRange.length === 1 ? "" : "s"}
+              {fmtDay(startMs)} – {fmtDay(endMs)} · {inRange.length} proposal{inRange.length === 1 ? "" : "s"}
               {isAll ? " (all time)" : ""}
             </p>
           </div>
@@ -119,21 +119,21 @@ export function DashboardClient({ quotes, clientCount }: { quotes: QuoteRow[]; c
 
       {/* Filtered stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Open pipeline" value={formatCurrency(pipeline)} hint={`${open.length} open quote${open.length === 1 ? "" : "s"}`} />
+        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Open pipeline" value={formatCurrency(pipeline)} hint={`${open.length} open proposal${open.length === 1 ? "" : "s"}`} />
         <StatCard icon={<Repeat className="w-4 h-4" />} label="Monthly recurring (open)" value={`${formatCurrency(pipelineMrr)}/mo`} />
         <StatCard icon={<CheckCircle2 className="w-4 h-4" />} label="Won (signed)" value={formatCurrency(wonValue)} hint={`${signed.length} signed`} />
-        <StatCard icon={<Trophy className="w-4 h-4" />} label="Win rate" value={winRate != null ? `${winRate}%` : "—"} hint={decided > 0 ? `of ${decided} decided` : "no decided quotes"} />
+        <StatCard icon={<Trophy className="w-4 h-4" />} label="Win rate" value={winRate != null ? `${winRate}%` : "—"} hint={decided > 0 ? `of ${decided} decided` : "no decided proposals"} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quotes by status (filtered) */}
+        {/* Proposals by status (filtered) */}
         <section className="rounded-xl border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Quotes by status</h2>
+            <h2 className="font-semibold">Proposals by status</h2>
             <span className="text-sm text-muted-foreground">{inRange.length} in range</span>
           </div>
           {inRange.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No quotes in this range.</p>
+            <p className="text-sm text-muted-foreground">No proposals in this range.</p>
           ) : (
             <div className="space-y-2.5">
               {byStatus.map(({ status, count }) => (
@@ -161,12 +161,12 @@ export function DashboardClient({ quotes, clientCount }: { quotes: QuoteRow[]; c
             </span>
           </div>
           {expiring.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No open quotes expiring in the next 14 days.</p>
+            <p className="text-sm text-muted-foreground">No open proposals expiring in the next 14 days.</p>
           ) : (
             <ul className="space-y-2">
               {expiring.map(({ q, days }) => (
                 <li key={q.id}>
-                  <Link href={`/quotes/${q.id}`} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors">
+                  <Link href={`/proposals/${q.id}`} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors">
                     <span className="min-w-0">
                       <span className="font-medium text-sm">{q.client?.company_name ?? "—"}</span>
                       <span className="text-xs text-muted-foreground ml-2">{q.quote_number}</span>
@@ -182,24 +182,24 @@ export function DashboardClient({ quotes, clientCount }: { quotes: QuoteRow[]; c
         </section>
       </div>
 
-      {/* Recent quotes (filtered) */}
+      {/* Recent proposals (filtered) */}
       <section className="rounded-xl border bg-card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-semibold">Recent quotes</h2>
+            <h2 className="font-semibold">Recent proposals</h2>
           </div>
-          <Link href="/quotes" className="flex items-center gap-1 text-sm text-primary hover:underline">
+          <Link href="/proposals" className="flex items-center gap-1 text-sm text-primary hover:underline">
             View all <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
         {recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground px-5 py-8 text-center">No quotes in this range.</p>
+          <p className="text-sm text-muted-foreground px-5 py-8 text-center">No proposals in this range.</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/30">
               <tr>
-                <th className="text-left px-5 py-2.5 font-medium text-muted-foreground">Quote #</th>
+                <th className="text-left px-5 py-2.5 font-medium text-muted-foreground">Proposal #</th>
                 <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Client</th>
                 <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Status</th>
                 <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Value</th>
@@ -211,7 +211,7 @@ export function DashboardClient({ quotes, clientCount }: { quotes: QuoteRow[]; c
                 const rep = repScenario(q);
                 return (
                   <tr key={q.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-5 py-2.5"><Link href={`/quotes/${q.id}`} className="font-mono text-xs font-medium hover:underline">{q.quote_number}</Link></td>
+                    <td className="px-5 py-2.5"><Link href={`/proposals/${q.id}`} className="font-mono text-xs font-medium hover:underline">{q.quote_number}</Link></td>
                     <td className="px-3 py-2.5">{q.client?.company_name ?? "—"}</td>
                     <td className="px-3 py-2.5"><span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize", STATUS_STYLES[effectiveStatus(q)])}>{effectiveStatus(q)}</span></td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{rep ? formatCurrency(rep.total) : "—"}</td>

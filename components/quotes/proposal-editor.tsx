@@ -385,7 +385,7 @@ function ScenarioTableView({ block, editor }: { block: any; editor: any }) {
       {shown.length === 0 ? (
         <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>
           {scenarios.length === 0
-            ? "Pricing table placeholder — will use the quote's scenarios when this template is applied."
+            ? "Pricing table placeholder — will use the proposal's scenarios when this template is applied."
             : "Referenced scenario no longer exists — pick another above."}
         </div>
       ) : shown.map(s => {
@@ -1421,8 +1421,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   }
 
   // ── Save current document as a template ─────────────────────────────────────
-  // (Applying templates happens at quote creation — New Quote modal "Start
-  // from", or /templates → "New quote" — not mid-document.)
+  // (Applying templates happens at quote creation — New Proposal modal "Start
+  // from", or /templates → "New proposal" — not mid-document.)
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [tplOpen, setTplOpen] = useState(false);
   const [tplBusy, setTplBusy] = useState(false);
@@ -1952,12 +1952,12 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
           })()}
         </div>
 
-        {/* Draft a section with AI (quote-only — needs the quote's scenarios/
+        {/* Draft a section with AI (quote-only — needs the proposal's scenarios/
             client data to ground the content). Hidden in template mode. */}
         {!isTemplate && (
         <div className="relative">
           <button
-            title="AI Draft — generate a proposal section (Executive Summary, Scope, etc.) grounded in this quote's client, pricing, and client notes"
+            title="AI Draft — generate a proposal section (Executive Summary, Scope, etc.) grounded in this proposal's client, pricing, and client notes"
             onMouseDown={(e) => { e.preventDefault(); if (!draftBusy) setDraftOpen(o => !o); }}
             disabled={!!draftBusy}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
@@ -2065,7 +2065,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
         {!isTemplate && (
         <div className="relative">
           <button
-            title="Save this document as a reusable template (new quotes can start from it)"
+            title="Save this document as a reusable template (new proposals can start from it)"
             onMouseDown={(e) => { e.preventDefault(); if (!tplBusy) setTplOpen(o => !o); }}
             disabled={tplBusy}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
@@ -2094,7 +2094,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                     Save current document
                   </button>
                   <p className="text-[11px] text-muted-foreground">
-                    New quotes can start from it (New Quote → “Start from”).
+                    New proposals can start from it (New Proposal → “Start from”).
                   </p>
                 </div>
               </div>
@@ -2159,7 +2159,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         // Drop blocks we don't support in the proposal/PDF:
                         // Video/Audio/File never render in the PDF; Quote/Code
                         // Block/Check List are new in 0.51 and either confuse
-                        // ("Quote" vs an UltraQuote quote) or aren't wanted here.
+                        // ("Quote" vs an SmartProps quote) or aren't wanted here.
                         ...getDefaultReactSlashMenuItems(editor).filter(
                           (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List", "Toggle List"].includes((item as { title?: string }).title ?? "")
                         ),
@@ -2429,7 +2429,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
             <div className="flex items-center gap-2 px-5 py-3 border-b">
               <ListPlus className="w-4 h-4 text-emerald-600" />
               <span className="text-sm font-semibold">Review extracted pricing</span>
-              <span className="text-xs text-muted-foreground">— creates scenarios in this quote</span>
+              <span className="text-xs text-muted-foreground">— creates scenarios in this proposal</span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">

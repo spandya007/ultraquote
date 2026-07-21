@@ -71,7 +71,7 @@ export function TeamCard() {
   }
 
   async function setMemberEnabled(target: User, enabled: boolean) {
-    if (!enabled && !window.confirm(`Disable ${target.full_name || target.email}? They'll be blocked from UltraQuote until you re-enable them. Their quotes are kept.`)) return;
+    if (!enabled && !window.confirm(`Disable ${target.full_name || target.email}? They'll be blocked from SmartProps until you re-enable them. Their proposals are kept.`)) return;
     setActionId(target.id);
     try {
       const res = await fetch(`/api/team/members/${target.id}/status`, {
@@ -169,7 +169,7 @@ export function TeamCard() {
                           onClick={() => setMemberEnabled(u, false)}
                           disabled={actionId === u.id}
                           className="inline-flex items-center gap-1 rounded-md border border-destructive/40 text-destructive px-2 py-1 text-xs hover:bg-destructive/10 disabled:opacity-50"
-                          title="Block this member's access (keeps their quotes)"
+                          title="Block this member's access (keeps their proposals)"
                         >
                           <Ban className="w-3 h-3" /> Disable
                         </button>

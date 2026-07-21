@@ -25,7 +25,7 @@ export function HelpClient() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><HelpCircle className="w-6 h-6 text-muted-foreground" /> Help</h1>
-        <p className="text-muted-foreground text-sm mt-1">How to get the most out of UltraQuote.</p>
+        <p className="text-muted-foreground text-sm mt-1">How to get the most out of SmartProps.</p>
       </div>
 
       <div className="relative max-w-md">

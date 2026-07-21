@@ -229,7 +229,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               <th className="px-3 py-2.5 font-medium">Organization</th>
               <th className="px-3 py-2.5 font-medium">Owner</th>
               <th className="px-3 py-2.5 font-medium text-right" title="Billing basis: active users in the tenant">Users</th>
-              <th className="px-3 py-2.5 font-medium text-right">Quotes</th>
+              <th className="px-3 py-2.5 font-medium text-right">Proposals</th>
               <th className="px-3 py-2.5 font-medium">Created</th>
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th className="px-3 py-2.5 font-medium">Subscription</th>
@@ -369,7 +369,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                       <button
                         onClick={() => setDeleteRow(row)}
                         className="ml-1.5 inline-flex items-center gap-1 rounded-md border border-destructive/40 text-destructive px-2 py-1 text-xs hover:bg-destructive/10"
-                        title="Permanently delete this empty tenant (no owner, no quotes)"
+                        title="Permanently delete this empty tenant (no owner, no proposals)"
                       >
                         <Trash2 className="w-3 h-3" /> Delete
                       </button>

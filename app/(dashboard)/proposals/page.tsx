@@ -28,7 +28,7 @@ export default async function QuotesPage() {
     }>,
   ]);
 
-  // Active templates for the New Quote "Start from" selector.
+  // Active templates for the New Proposal "Start from" selector.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: templates } = await (supabase as any)
     .from("templates")

@@ -8,7 +8,7 @@ import { lineRev, lineSetup } from "@/lib/pdf/serialize";
 // logs and returns, so a QBO hiccup can't break the DocuSeal webhook.
 // docs/integrations-phase-a-plan.md (A3).
 //
-// v1 mapping: one fallback service item ("UltraQuote Services") with the line's
+// v1 mapping: one fallback service item ("SmartProps Services") with the line's
 // own description/qty/discounted-unit-price. Catalog item mapping + tax mirroring
 // (QBO AST) are deferred. Uses the RECOMMENDED scenario (→ selected → first).
 export async function createInvoiceOnSigned(

@@ -32,7 +32,7 @@ interface QuoteRow {
 function statusTooltip(q: QuoteRow): string | undefined {
   const eff = effectiveStatus(q);
   if (eff === "expired") {
-    return "Past its Valid Until date — open the quote and extend the date to reactivate";
+    return "Past its Valid Until date — open the proposal and extend the date to reactivate";
   }
   if (q.status === "declined") {
     const decliner = (q.signers ?? []).find(s => s.status === "declined" && s.decline_reason);
@@ -71,7 +71,7 @@ interface Props {
   isOwner: boolean;
   /** Teammates (for the created-by filter), current user excluded. */
   teamUsers: { id: string; name: string }[];
-  /** Active templates for the New Quote "Start from" selector. */
+  /** Active templates for the New Proposal "Start from" selector. */
   templates: { id: string; name: string }[];
 }
 
@@ -125,7 +125,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
 
   async function deleteQuote(q: QuoteRow) {
     if (q.status !== "draft" && q.status !== "declined") {
-      toast.warning(`${q.quote_number} is "${effectiveStatus(q)}" — only Draft or Declined quotes can be deleted.`);
+      toast.warning(`${q.quote_number} is "${effectiveStatus(q)}" — only Draft or Declined proposals can be deleted.`);
       return;
     }
     if (!window.confirm(`Delete ${q.quote_number} permanently? This removes the quote and all its scenarios, line items and signing records. This cannot be undone.`)) return;
@@ -150,7 +150,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to duplicate");
       toast.success(`Created ${data.quote_number}`);
-      router.push(`/quotes/${data.id}`);
+      router.push(`/proposals/${data.id}`);
     } catch (e) {
       toast.error((e as Error).message);
       setDuplicatingId(null);
@@ -198,9 +198,9 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{filterOwner === "mine" ? "My Quotes" : "Quotes"}</h1>
+          <h1 className="text-2xl font-bold">{filterOwner === "mine" ? "My Proposals" : "Proposals"}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {filtered.length} of {visibleQuotes.length} quotes
+            {filtered.length} of {visibleQuotes.length} proposals
             {hiddenDrafts > 0 && (
               <span className="ml-2 text-xs">
                 · {hiddenDrafts} older draft{hiddenDrafts === 1 ? "" : "s"} hidden (inactive &gt;{validDays} days — raise “Default Valid Days” in Settings to show)
@@ -211,7 +211,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAiUsage((v) => !v)}
-            title="Show how many AI Draft and Ask AI calls each quote has used"
+            title="Show how many AI Draft and Ask AI calls each proposal has used"
             className={cn(
               "flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
               showAiUsage
@@ -227,7 +227,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
               onClick={() => setArmSecs(armed ? 0 : 30)}
               title={armed
                 ? "Click to turn delete off now"
-                : "Enable deleting quotes for 30 seconds (Draft or Declined only)"}
+                : "Enable deleting proposals for 30 seconds (Draft or Declined only)"}
               className={cn(
                 "flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
                 armed
@@ -244,7 +244,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
             className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            New Quote
+            New Proposal
           </button>
         </div>
       </div>
@@ -254,11 +254,11 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
         <select
           value={filterOwner}
           onChange={(e) => setFilterOwner(e.target.value)}
-          title="Whose quotes to show — teammates' quotes open read-only"
+          title="Whose proposals to show — teammates' proposals open read-only"
           className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="mine">My Quotes</option>
-          <option value="all">All Quotes</option>
+          <option value="mine">My Proposals</option>
+          <option value="all">All Proposals</option>
           {teamUsers.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
@@ -267,7 +267,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search quotes…"
+            placeholder="Search proposals…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
@@ -304,17 +304,17 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">
             {visibleQuotes.length === 0
-              ? "No quotes yet — create your first quote."
+              ? "No proposals yet — create your first proposal."
               : filterOwner === "mine"
-              ? "You haven't created any quotes yet — switch the selector to All Quotes to see your team's, or create your first one."
-              : "No quotes match your filters."}
+              ? "You haven't created any proposals yet — switch the selector to All Proposals to see your team's, or create your first one."
+              : "No proposals match your filters."}
           </p>
           {visibleQuotes.length === 0 && (
             <button
               onClick={() => setModalOpen(true)}
               className="mt-4 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
             >
-              New Quote
+              New Proposal
             </button>
           )}
         </div>
@@ -323,17 +323,17 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <SortHeader label="Quote #" col="number" sort={sort} onSort={toggle} />
+                <SortHeader label="Proposal #" col="number" sort={sort} onSort={toggle} />
                 <SortHeader label="Client" col="client" sort={sort} onSort={toggle} />
                 <SortHeader label="Title" col="title" sort={sort} onSort={toggle} />
                 <SortHeader label="Status" col="status" sort={sort} onSort={toggle} />
                 <SortHeader label="Valid Until" col="valid_until" sort={sort} onSort={toggle} />
-                <SortHeader label="Created by" col="created_by" sort={sort} onSort={toggle} title="Only the creator (and the tenant owner) can edit a quote — everyone else sees it read-only" />
+                <SortHeader label="Created by" col="created_by" sort={sort} onSort={toggle} title="Only the creator (and the tenant owner) can edit a proposal — everyone else sees it read-only" />
                 <SortHeader label="Created" col="created" sort={sort} onSort={toggle} />
                 {showAiUsage && (
                   <>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="AI Draft calls (outline + sections) charged to this quote">AI Draft</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="Ask AI calls charged to this quote">Ask AI</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="AI Draft calls (outline + sections) charged to this proposal">AI Draft</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground" title="Ask AI calls charged to this proposal">Ask AI</th>
                   </>
                 )}
                 <th className="px-4 py-3" />
@@ -343,7 +343,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
               {sorted.map((q) => (
                 <tr
                   key={q.id}
-                  onClick={() => router.push(`/quotes/${q.id}`)}
+                  onClick={() => router.push(`/proposals/${q.id}`)}
                   className="hover:bg-muted/30 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-mono text-xs font-medium">{q.quote_number}</td>
@@ -396,7 +396,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                       <button
                         onClick={(e) => { e.stopPropagation(); duplicateQuote(q.id); }}
                         disabled={duplicatingId === q.id}
-                        title="Duplicate quote"
+                        title="Duplicate proposal"
                         className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                       >
                         {duplicatingId === q.id
@@ -409,8 +409,8 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                           onClick={(e) => { e.stopPropagation(); deleteQuote(q); }}
                           disabled={deletingId === q.id}
                           title={q.status === "draft" || q.status === "declined"
-                            ? "Delete quote (permanent)"
-                            : "Only Draft or Declined quotes can be deleted"}
+                            ? "Delete proposal (permanent)"
+                            : "Only Draft or Declined proposals can be deleted"}
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors disabled:opacity-50",
                             q.status === "draft" || q.status === "declined"
@@ -438,7 +438,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
         clients={clients}
         templates={templates}
         onClose={() => setModalOpen(false)}
-        onCreated={(id) => { setModalOpen(false); router.push(`/quotes/${id}`); }}
+        onCreated={(id) => { setModalOpen(false); router.push(`/proposals/${id}`); }}
       />
     </>
   );

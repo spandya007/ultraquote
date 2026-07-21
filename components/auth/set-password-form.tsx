@@ -140,7 +140,7 @@ export function SetPasswordForm() {
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="text-center space-y-1">
-        <h1 className="text-2xl font-bold">{isRecovery ? "Choose a new password" : "Welcome to UltraQuote"}</h1>
+        <h1 className="text-2xl font-bold">{isRecovery ? "Choose a new password" : "Welcome to SmartProps"}</h1>
         <p className="text-sm text-muted-foreground">
           {isRecovery ? (
             <>Enter a new password for <span className="font-medium text-foreground">{email}</span>.</>

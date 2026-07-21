@@ -33,7 +33,7 @@ export default function PrivacyRequestPage() {
   return (
     <main className="min-h-screen bg-background text-foreground flex justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
-        <p className="text-sm font-semibold tracking-wide text-primary">UltraQuote</p>
+        <p className="text-sm font-semibold tracking-wide text-primary">SmartProps</p>
         <h1 className="mt-2 text-3xl font-bold">Privacy &amp; Data Requests</h1>
         <p className="mt-3 text-muted-foreground">
           You can ask us to access, correct, or delete the personal information we hold about you.

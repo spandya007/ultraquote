@@ -48,9 +48,9 @@ export async function POST() {
   try {
     await sendMail({
       to,
-      subject: "UltraQuote — SMTP test email ✅",
+      subject: "SmartProps — SMTP test email ✅",
       text:
-        `This is a test email from the UltraQuote /admin diagnostic.\n\n` +
+        `This is a test email from the SmartProps /admin diagnostic.\n\n` +
         `If you're reading this, beta-signup notifications will be delivered.\n\n` +
         `Host: ${cfg.host}:${cfg.port}\nFrom: ${cfg.from}\nTo: ${to}`,
     });

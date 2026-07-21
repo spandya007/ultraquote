@@ -8,8 +8,8 @@ import { HelpCircle } from "lucide-react";
 // the Help page itself and on the (dense, already tooltip-rich) quote editor.
 function topicFor(path: string): string | null {
   if (path.startsWith("/help")) return null;
-  if (/^\/quotes\/[^/]+/.test(path)) return null; // quote editor
-  if (path.startsWith("/quotes")) return "quotes";
+  if (/^\/proposals\/[^/]+/.test(path)) return null; // proposal editor
+  if (path.startsWith("/proposals")) return "proposals";
   if (path.startsWith("/clients")) return "clients";
   if (path.startsWith("/products")) return "products";
   if (path.startsWith("/templates")) return "templates";

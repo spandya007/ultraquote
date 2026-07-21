@@ -16,18 +16,18 @@ ol li { font-family: Arial; }
 </style>
 <div data-custom-class="body">
 <div data-custom-class="title"><h1>TERMS OF SERVICE</h1></div>
-<div data-custom-class="subtitle"><strong>Last updated</strong> <strong>June 19, 2026</strong></div>
+<div data-custom-class="subtitle"><strong>Last updated</strong> <strong>July 21, 2026</strong></div>
 <br>
 <div data-custom-class="heading_1"><h2>AGREEMENT TO OUR LEGAL TERMS</h2></div>
-<div data-custom-class="body_text">We are Sameer Pandya, doing business as UltraQuote ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a company registered in California, United States at 2005 Laurel Canyon Court, Fremont, CA 94539.</div>
+<div data-custom-class="body_text">We are SmartProps LLC ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a company registered in California, United States.</div>
 <br>
-<div data-custom-class="body_text">We operate the website <a target="_blank" data-custom-class="link" href="https://app.ultraquote.io">https://app.ultraquote.io</a> (the "<strong>Site</strong>"), as well as any other related products and services that refer or link to these legal terms (the "<strong>Legal Terms</strong>") (collectively, the "<strong>Services</strong>").</div>
+<div data-custom-class="body_text">We operate the website <a target="_blank" data-custom-class="link" href="https://app.smartprops.io">https://app.smartprops.io</a> (the "<strong>Site</strong>"), as well as any other related products and services that refer or link to these legal terms (the "<strong>Legal Terms</strong>") (collectively, the "<strong>Services</strong>").</div>
 <br>
-<div data-custom-class="body_text">UltraQuote is a cloud-based, multi-tenant software-as-a-service (SaaS) platform that enables businesses to build, manage, and send professional proposals and price quotes to their clients. Users can maintain a product/service catalog, create multi-scenario quotes, author proposal documents, preview and generate PDFs, and send proposals for electronic signature. The service is accessed through a web browser and stores customer-provided data (such as client contact details and proposal content) to provide these features.</div>
+<div data-custom-class="body_text">SmartProps is a cloud-based, multi-tenant software-as-a-service (SaaS) platform that enables businesses to build, manage, and send professional proposals and price quotes to their clients. Users can maintain a product/service catalog, create multi-scenario quotes, author proposal documents, preview and generate PDFs, and send proposals for electronic signature. The service is accessed through a web browser and stores customer-provided data (such as client contact details and proposal content) to provide these features.</div>
 <br>
-<div data-custom-class="body_text">You can contact us by phone at 510-250-1688, email at <a target="_blank" data-custom-class="link" href="mailto:hello@ultraquote.io">hello@ultraquote.io</a>, or by mail to 2005 Laurel Canyon Court, Fremont, CA 94539, United States.</div>
+<div data-custom-class="body_text">You can contact us by email at <a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a>.</div>
 <br>
-<div data-custom-class="body_text">These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("<strong>you</strong>"), and Sameer Pandya, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.</div>
+<div data-custom-class="body_text">These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("<strong>you</strong>"), and SmartProps LLC, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.</div>
 <br>
 <div data-custom-class="body_text">We will notify users by posting the updated Legal Terms on this page with a new "Last updated" date. For material changes, we may also notify users by email. Your continued use of the Services after the updated terms become effective constitutes acceptance of the changes.</div>
 <br>
@@ -82,7 +82,7 @@ ol li { font-family: Arial; }
 <br>
 <div data-custom-class="body_text">Except as set out in this section or elsewhere in our Legal Terms, no part of the Services and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.</div>
 <br>
-<div data-custom-class="body_text">If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: <a target="_blank" data-custom-class="link" href="mailto:hello@ultraquote.io">hello@ultraquote.io</a>.</div>
+<div data-custom-class="body_text">If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: <a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a>.</div>
 <br>
 <div data-custom-class="body_text">We reserve all rights not expressly granted to you in and to the Services, Content, and Marks. Any breach of these Intellectual Property Rights will constitute a material breach of our Legal Terms and your right to use our Services will terminate immediately.</div>
 <div data-custom-class="heading_2"><h3>Your submissions and contributions</h3></div>
@@ -149,7 +149,7 @@ ol li { font-family: Arial; }
 <div data-custom-class="body_text">We reserve the right, but not the obligation, to: (1) monitor the Services for violations of these Legal Terms; (2) take appropriate legal action against anyone who, in our sole discretion, violates the law or these Legal Terms; (3) refuse, restrict access to, limit the availability of, or disable any of your Contributions or any portion thereof; (4) remove from the Services or otherwise disable all files and content that are excessive in size or are in any way burdensome to our systems; and (5) otherwise manage the Services in a manner designed to protect our rights and property and to facilitate the proper functioning of the Services.</div>
 <br>
 <div data-custom-class="heading_1" id="ppyes"><h2>11. PRIVACY POLICY</h2></div>
-<div data-custom-class="body_text">We care about data privacy and security. Please review our Privacy Policy: <strong><a target="_blank" data-custom-class="link" href="https://app.ultraquote.io/privacy-policy">https://app.ultraquote.io/privacy-policy</a></strong>. By using the Services, you agree to be bound by our Privacy Policy, which is incorporated into these Legal Terms. Please be advised the Services are hosted in the United States. By continuing to use the Services, you consent to have your data transferred to and processed in the United States.</div>
+<div data-custom-class="body_text">We care about data privacy and security. Please review our Privacy Policy: <strong><a target="_blank" data-custom-class="link" href="https://app.smartprops.io/privacy-policy">https://app.smartprops.io/privacy-policy</a></strong>. By using the Services, you agree to be bound by our Privacy Policy, which is incorporated into these Legal Terms. Please be advised the Services are hosted in the United States. By continuing to use the Services, you consent to have your data transferred to and processed in the United States.</div>
 <br>
 <div data-custom-class="heading_1" id="copyrightyes"><h2>12. COPYRIGHT INFRINGEMENTS</h2></div>
 <div data-custom-class="body_text">We respect the intellectual property rights of others. If you believe that any material available on or through the Services infringes upon any copyright you own or control, please immediately notify us using the contact information provided below (a "Notification"). A copy of your Notification will be sent to the person who posted or stored the material addressed in the Notification. Please be advised that pursuant to applicable law you may be held liable for damages if you make material misrepresentations in a Notification.</div>
@@ -204,7 +204,7 @@ ol li { font-family: Arial; }
 <div data-custom-class="body_text">These Legal Terms and any policies or operating rules posted by us on the Services or in respect to the Services constitute the entire agreement and understanding between you and us. Our failure to exercise or enforce any right or provision of these Legal Terms shall not operate as a waiver of such right or provision. These Legal Terms operate to the fullest extent permissible by law. We may assign any or all of our rights and obligations to others at any time. We shall not be responsible or liable for any loss, damage, delay, or failure to act caused by any cause beyond our reasonable control. If any provision or part of a provision of these Legal Terms is determined to be unlawful, void, or unenforceable, that provision or part of the provision is deemed severable from these Legal Terms and does not affect the validity and enforceability of any remaining provisions. There is no joint venture, partnership, employment or agency relationship created between you and us as a result of these Legal Terms or use of the Services.</div>
 <br>
 <div data-custom-class="heading_1" id="addclause"><h2>25. BETA AND EVALUATION SERVICE</h2></div>
-<div data-custom-class="body_text">UltraQuote is currently provided on a free demo, evaluation, and beta basis. The Services are provided "AS IS" and "AS AVAILABLE," may contain errors or be interrupted, and may change or be discontinued at any time without notice. You use the Services at your own risk and should not rely on them as your sole system of record.</div>
+<div data-custom-class="body_text">SmartProps is currently provided on a free demo, evaluation, and beta basis. The Services are provided "AS IS" and "AS AVAILABLE," may contain errors or be interrupted, and may change or be discontinued at any time without notice. You use the Services at your own risk and should not rely on them as your sole system of record.</div>
 <br>
 <div data-custom-class="heading_1" id="addclauseb"><h2>26. NON-BINDING ELECTRONIC SIGNATURES DURING EVALUATION</h2></div>
 <div data-custom-class="body_text">The Services include electronic-signature features (provided via a third-party e-signature provider). During the demo, evaluation, and beta period, any proposal, quote, or document signed through the Services is provided for testing and evaluation purposes only and is NOT intended to create a legally binding contract or enforceable obligation between you and your clients or any other party. Do not use the Services to execute agreements you intend to be legally binding during this period. You are solely responsible for independently executing any binding agreement through appropriate legal means.</div>
@@ -215,12 +215,8 @@ ol li { font-family: Arial; }
 <div data-custom-class="heading_1" id="contact"><h2>28. CONTACT US</h2></div>
 <div data-custom-class="body_text">In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:</div>
 <br>
-<div data-custom-class="body_text"><strong>Sameer Pandya</strong></div>
-<div data-custom-class="body_text"><strong>2005 Laurel Canyon Court</strong></div>
-<div data-custom-class="body_text"><strong>Fremont, CA 94539</strong></div>
-<div data-custom-class="body_text"><strong>United States</strong></div>
-<div data-custom-class="body_text"><strong>Phone: 510-250-1688</strong></div>
-<div data-custom-class="body_text"><strong><a target="_blank" data-custom-class="link" href="mailto:hello@ultraquote.io">hello@ultraquote.io</a></strong></div>
+<div data-custom-class="body_text"><strong>SmartProps LLC</strong></div>
+<div data-custom-class="body_text"><strong><a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a></strong></div>
 <br>
 <div data-custom-class="body_text">These Terms of Service were created using Termly's <a href="https://termly.io/products/terms-and-conditions-generator/" target="_blank" rel="noopener external" data-custom-class="link">Terms and Conditions Generator</a>.</div>
 </div>`;

@@ -4,7 +4,7 @@ import { subscriptionStatus, SUB_STATUS_CLS } from "@/lib/access/subscription";
 import type { SubscriptionTerm } from "@/types";
 
 // Settings → Subscription: read-only status for the tenant OWNER. Dates are
-// managed by the platform admin (UltraQuote), so this only displays state.
+// managed by the platform admin (SmartProps), so this only displays state.
 // See docs/subscription-and-access-lifecycle-design.md (§7).
 function fmt(d: string | null): string {
   return d ? new Date(`${d}T00:00:00.000Z`).toLocaleDateString(undefined, {
@@ -56,7 +56,7 @@ export function SubscriptionCard({
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Subscription dates are managed by UltraQuote. To renew or change your plan, contact UltraQuote.{" "}
+          Subscription dates are managed by SmartProps. To renew or change your plan, contact SmartProps.{" "}
           <a href="/help#subscription" className="underline hover:text-foreground">Learn more</a>.
         </p>
       </div>

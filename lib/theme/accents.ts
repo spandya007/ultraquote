@@ -3,7 +3,7 @@
 // `swatch` is only the picker dot color in the Appearance card.
 
 export const ACCENTS = [
-  { id: "default",  name: "Default",  swatch: "#2563eb" },
+  { id: "default",  name: "Default",  swatch: "#4d7c0f" },
   { id: "violet",   name: "Violet",   swatch: "#7c3aed" },
   { id: "forest",   name: "Forest",   swatch: "#16a34a" },
   { id: "sunset",   name: "Sunset",   swatch: "#d97706" },
@@ -13,7 +13,7 @@ export const ACCENTS = [
 
 export type AccentId = (typeof ACCENTS)[number]["id"];
 
-export const ACCENT_STORAGE_KEY = "ultraquote.accent";
+export const ACCENT_STORAGE_KEY = "smartprops.accent";
 export const DEFAULT_ACCENT: AccentId = "default";
 
 export function isAccentId(v: string | null | undefined): v is AccentId {

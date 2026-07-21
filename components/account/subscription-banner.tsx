@@ -23,7 +23,7 @@ function fmt(d: string): string {
 export function SubscriptionBanner(props: Props) {
   // Dismiss is per end-date so a renewal (new end date) re-arms the banner.
   // Grace is NOT dismissible — it's an active read-only state, not a reminder.
-  const storageKey = `ultraquote.subBanner.dismissed.${props.endDate}`;
+  const storageKey = `smartprops.subBanner.dismissed.${props.endDate}`;
   const [dismissed, setDismissed] = useState(true); // default hidden until we read storage (avoids flash)
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function SubscriptionBanner(props: Props) {
 
   if (dismissed) return null;
 
-  const renew = props.isOwner ? " Contact UltraQuote to renew." : "";
+  const renew = props.isOwner ? " Contact SmartProps to renew." : "";
 
   if (props.mode === "grace") {
     return (
@@ -51,7 +51,7 @@ export function SubscriptionBanner(props: Props) {
     <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
       <span>
         <span className="font-medium">
-          Your UltraQuote subscription ends in {props.daysToExpiry}{" "}
+          Your SmartProps subscription ends in {props.daysToExpiry}{" "}
           {props.daysToExpiry === 1 ? "day" : "days"}
         </span>{" "}
         ({fmt(props.endDate)}).{renew}

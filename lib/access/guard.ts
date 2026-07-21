@@ -28,7 +28,7 @@ export async function requireWriteAccess(): Promise<
     const message =
       state.status === "grace"
         ? "Your subscription has lapsed — the account is read-only until it's renewed."
-        : "Your access to UltraQuote is currently disabled.";
+        : "Your access to SmartProps is currently disabled.";
     return {
       response: NextResponse.json({ error: message, accessStatus: state.status }, { status: 403 }),
     };

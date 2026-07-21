@@ -13,7 +13,7 @@ test.describe("access lifecycle gate", () => {
 
   test("the expired owner cannot reach the quotes page directly", async ({ page }) => {
     await login(page, EXPIRED_OWNER);
-    await page.goto("/quotes");
+    await page.goto("/proposals");
     // Still gated — bounced to the block page, never the quotes list.
     await expect(page).toHaveURL(/\/account\/suspended/);
   });

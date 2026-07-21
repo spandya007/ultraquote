@@ -11,7 +11,7 @@ export default function DisabledPage() {
         </div>
         <h1 className="text-xl font-semibold">Access disabled</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Your access to UltraQuote has been turned off by your account owner. Please contact your
+          Your access to SmartProps has been turned off by your account owner. Please contact your
           administrator if you think this is a mistake.
         </p>
         <div className="mt-6">

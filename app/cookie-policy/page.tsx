@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { COOKIE_POLICY_HTML } from "./cookie-html";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — UltraQuote",
-  description: "How UltraQuote uses cookies and similar technologies (essential and functional only).",
+  title: "Cookie Policy — SmartProps",
+  description: "How SmartProps uses cookies and similar technologies (essential and functional only).",
 };
 
 // Public page (no auth) — Cookie Policy. Middleware allowlists /cookie-policy.

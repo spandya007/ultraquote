@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
   // Grounding: the quote's own structured data (client/services/totals).
   const input = await loadSerializeInput(supabase, body.quoteId);
-  if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!input) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
   const quoteContext = quoteContextMarkdown(input);
 
   // Author role + voice from the tenant's brand profile (tenant → org → neutral).

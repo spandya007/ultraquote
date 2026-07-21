@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { PRIVACY_POLICY_HTML } from "./policy-html";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — UltraQuote",
-  description: "How UltraQuote accesses, collects, stores, uses, and shares your personal information.",
+  title: "Privacy Policy — SmartProps",
+  description: "How SmartProps accesses, collects, stores, uses, and shares your personal information.",
 };
 
 // Public page (no auth) — the Termly-generated Privacy Policy. Middleware

@@ -16,6 +16,15 @@ const nextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
+  // The Quotes → Proposals rename moved the page route /quotes → /proposals.
+  // Redirect old links (bookmarks, past emails) to the new path. The /api/quotes
+  // API path is unchanged (internal, not user-facing).
+  async redirects() {
+    return [
+      { source: "/quotes", destination: "/proposals", permanent: true },
+      { source: "/quotes/:id", destination: "/proposals/:id", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

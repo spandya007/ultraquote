@@ -22,7 +22,7 @@ function QuoteTable({ quotes }: { quotes: DossierQuote[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="px-3 py-2 font-medium">Quote</th>
+            <th className="px-3 py-2 font-medium">Proposal</th>
             <th className="px-3 py-2 font-medium">Client</th>
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium text-right">Value</th>
@@ -76,9 +76,9 @@ export function TenantDossierView({
 
   const risks: { tone: "danger" | "warning" | "info"; text: string }[] = [];
   if (flagged.signedQuotes.length)
-    risks.push({ tone: "danger", text: `${flagged.signedQuotes.length} signed quote(s) — executed contracts that will be permanently destroyed.` });
+    risks.push({ tone: "danger", text: `${flagged.signedQuotes.length} signed proposal(s) — executed contracts that will be permanently destroyed.` });
   if (flagged.inFlightQuotes.length)
-    risks.push({ tone: "warning", text: `${flagged.inFlightQuotes.length} quote(s) sent and awaiting client signature.` });
+    risks.push({ tone: "warning", text: `${flagged.inFlightQuotes.length} proposal(s) sent and awaiting client signature.` });
   if (counts.signatureSessionsOpen)
     risks.push({ tone: "warning", text: `${counts.signatureSessionsOpen} open signature session(s) in progress.` });
   if (counts.productsActive)
@@ -133,9 +133,9 @@ export function TenantDossierView({
           <Stat label="Clients" value={counts.clients} />
           <Stat label="Products (active)" value={`${counts.products} (${counts.productsActive})`} />
           <Stat label="Templates" value={counts.templates} />
-          <Stat label="Quotes" value={counts.quotesTotal} />
-          <Stat label="Signed quotes" value={flagged.signedQuotes.length} warn={flagged.signedQuotes.length > 0} />
-          <Stat label="In-flight quotes" value={flagged.inFlightQuotes.length} warn={flagged.inFlightQuotes.length > 0} />
+          <Stat label="Proposals" value={counts.quotesTotal} />
+          <Stat label="Signed proposals" value={flagged.signedQuotes.length} warn={flagged.signedQuotes.length > 0} />
+          <Stat label="In-flight proposals" value={flagged.inFlightQuotes.length} warn={flagged.inFlightQuotes.length > 0} />
           <Stat label="Open signing sessions" value={counts.signatureSessionsOpen} warn={counts.signatureSessionsOpen > 0} />
           <Stat label="Team members" value={dossier.users.length} />
         </div>
@@ -145,7 +145,7 @@ export function TenantDossierView({
       {flagged.signedQuotes.length > 0 && (
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-3 flex items-center gap-2 font-semibold text-base">
-            <ShieldAlert className="w-4 h-4 text-red-600" /> Signed quotes (executed contracts)
+            <ShieldAlert className="w-4 h-4 text-red-600" /> Signed proposals (executed contracts)
           </h2>
           <QuoteTable quotes={flagged.signedQuotes} />
         </section>
@@ -155,7 +155,7 @@ export function TenantDossierView({
       {flagged.inFlightQuotes.length > 0 && (
         <section className="rounded-lg border bg-card p-4">
           <h2 className="mb-3 flex items-center gap-2 font-semibold text-base">
-            <FileText className="w-4 h-4 text-amber-600" /> In-flight quotes (sent / viewed)
+            <FileText className="w-4 h-4 text-amber-600" /> In-flight proposals (sent / viewed)
           </h2>
           <QuoteTable quotes={flagged.inFlightQuotes} />
         </section>
@@ -204,8 +204,8 @@ export function TenantDossierView({
             ["Product categories", counts.productCategories],
             ["Product audit rows", counts.productAudit],
             ["Templates", counts.templates],
-            ["Quotes", counts.quotesTotal],
-            ["Quote scenarios", counts.quoteScenarios],
+            ["Proposals", counts.quotesTotal],
+            ["Proposal scenarios", counts.quoteScenarios],
             ["Line items", counts.quoteLineItems],
             ["Signers", counts.quoteSigners],
             ["Signature sessions", counts.signatureSessions],

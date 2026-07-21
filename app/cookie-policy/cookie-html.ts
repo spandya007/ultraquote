@@ -1,6 +1,6 @@
-// Cookie Policy for UltraQuote. NOTE: written by hand (not the verbatim Termly
+// Cookie Policy for SmartProps. NOTE: written by hand (not the verbatim Termly
 // export) because Termly's site-scan produced generic advertising/analytics/
-// cookie-banner boilerplate that does NOT match reality — UltraQuote uses ONLY
+// cookie-banner boilerplate that does NOT match reality — SmartProps uses ONLY
 // essential/functional cookies (auth session + UI preferences), no analytics,
 // no advertising, no third-party tracking, and no cookie consent banner. Keep
 // this consistent with the privacy policy. Styling matches the Termly pages.
@@ -17,12 +17,12 @@ th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-siz
 </style>
 <div data-custom-class="body">
 <div data-custom-class="title"><h1>COOKIE POLICY</h1></div>
-<div data-custom-class="subtitle"><strong>Last updated June 19, 2026</strong></div>
+<div data-custom-class="subtitle"><strong>Last updated July 21, 2026</strong></div>
 <br>
-<div data-custom-class="body_text">This Cookie Policy explains how Sameer Pandya, doing business as UltraQuote ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," and "<strong>our</strong>") uses cookies and similar technologies when you visit our website at <a target="_blank" data-custom-class="link" href="https://app.ultraquote.io">https://app.ultraquote.io</a> ("<strong>Website</strong>").</div>
+<div data-custom-class="body_text">This Cookie Policy explains how SmartProps LLC ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," and "<strong>our</strong>") uses cookies and similar technologies when you visit our website at <a target="_blank" data-custom-class="link" href="https://app.smartprops.io">https://app.smartprops.io</a> ("<strong>Website</strong>").</div>
 <br>
 <div data-custom-class="heading_1"><h2>What are cookies?</h2></div>
-<div data-custom-class="body_text">Cookies are small data files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work, or work more efficiently. Cookies set by the website owner (in this case, UltraQuote) are called "first-party cookies."</div>
+<div data-custom-class="body_text">Cookies are small data files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work, or work more efficiently. Cookies set by the website owner (in this case, SmartProps) are called "first-party cookies."</div>
 <br>
 <div data-custom-class="heading_1"><h2>How we use cookies</h2></div>
 <div data-custom-class="body_text">We use cookies and similar local storage <strong>only for essential and functional purposes</strong> — to operate the Website and remember your preferences. Specifically, we use them to:</div>
@@ -36,8 +36,8 @@ th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-siz
 <table>
 <thead><tr><th style="width:28%;">Type</th><th style="width:24%;">Provider</th><th>Purpose</th></tr></thead>
 <tbody>
-<tr><td>Authentication / session (essential)</td><td>UltraQuote (via Supabase)</td><td>Keeps you securely signed in and maintains your session as you navigate the app. The app does not function without these.</td></tr>
-<tr><td>Preferences (functional, browser local storage)</td><td>UltraQuote (first-party)</td><td>Remembers UI preferences such as theme, accent color, and panel/sidebar state. Stored in your browser's local storage; not transmitted for tracking.</td></tr>
+<tr><td>Authentication / session (essential)</td><td>SmartProps (via Supabase)</td><td>Keeps you securely signed in and maintains your session as you navigate the app. The app does not function without these.</td></tr>
+<tr><td>Preferences (functional, browser local storage)</td><td>SmartProps (first-party)</td><td>Remembers UI preferences such as theme, accent color, and panel/sidebar state. Stored in your browser's local storage; not transmitted for tracking.</td></tr>
 </tbody>
 </table>
 <div data-custom-class="body_text">Because these cookies are strictly necessary or functional, we do not display a cookie consent banner. Disabling essential cookies in your browser will prevent the Website from working (for example, you will not be able to stay signed in).</div>
@@ -57,5 +57,5 @@ th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; font-siz
 <div data-custom-class="body_text">We may update this Cookie Policy from time to time to reflect changes to the cookies we use or for operational, legal, or regulatory reasons. The date at the top of this Cookie Policy indicates when it was last updated. Please revisit it regularly to stay informed about our use of cookies.</div>
 <br>
 <div data-custom-class="heading_1"><h2>Where can I get further information?</h2></div>
-<div data-custom-class="body_text">If you have any questions about our use of cookies or other technologies, please email us at <a target="_blank" data-custom-class="link" href="mailto:hello@ultraquote.io">hello@ultraquote.io</a>. For more on how we handle personal information, see our <a data-custom-class="link" href="https://app.ultraquote.io/privacy-policy">Privacy Policy</a>.</div>
+<div data-custom-class="body_text">If you have any questions about our use of cookies or other technologies, please email us at <a target="_blank" data-custom-class="link" href="mailto:hello@smartprops.io">hello@smartprops.io</a>. For more on how we handle personal information, see our <a data-custom-class="link" href="https://app.smartprops.io/privacy-policy">Privacy Policy</a>.</div>
 </div>`;

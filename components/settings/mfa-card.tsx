@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast";
 type View = "loading" | "off" | "enrolling" | "codes" | "on";
 
 // Settings → Security: per-user, optional TOTP 2FA. Enroll shows a QR (issuer
-// "UltraQuote Builder") → verify a code → recovery codes shown ONCE.
+// "SmartProps") → verify a code → recovery codes shown ONCE.
 export function MfaCard() {
   const toast = useToast();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,13 +46,13 @@ export function MfaCard() {
     setBusy(true); setError(null);
     try {
       // On localhost (the dev project) suffix the issuer so the dev and prod
-      // authenticator entries are distinguishable; prod stays "UltraQuote Builder".
+      // authenticator entries are distinguishable; prod stays "SmartProps".
       const isDev = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
-      const issuer = isDev ? "UltraQuote Builder (Dev)" : "UltraQuote Builder";
+      const issuer = isDev ? "SmartProps (Dev)" : "SmartProps";
       const { data, error: e } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         issuer,
-        friendlyName: `UltraQuote (${new Date().toISOString()})`,
+        friendlyName: `SmartProps (${new Date().toISOString()})`,
       });
       if (e) throw e;
       setFactorId(data.id);
@@ -129,10 +129,10 @@ export function MfaCard() {
     });
   }
   function downloadCodes() {
-    const blob = new Blob([`UltraQuote Builder — two-factor recovery codes\nKeep these somewhere safe. Each code works once.\n\n${codes.join("\n")}\n`], { type: "text/plain" });
+    const blob = new Blob([`SmartProps — two-factor recovery codes\nKeep these somewhere safe. Each code works once.\n\n${codes.join("\n")}\n`], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "ultraquote-recovery-codes.txt";
+    a.href = url; a.download = "smartprops-recovery-codes.txt";
     a.click(); URL.revokeObjectURL(url);
   }
 
@@ -163,7 +163,7 @@ export function MfaCard() {
 
         {view === "enrolling" && (
           <>
-            <p className="text-sm">1. Scan this QR code in your authenticator app (it’ll appear as <span className="font-medium">UltraQuote Builder</span>):</p>
+            <p className="text-sm">1. Scan this QR code in your authenticator app (it’ll appear as <span className="font-medium">SmartProps</span>):</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qr} alt="2FA QR code" className="w-44 h-44 rounded-md border bg-white p-1" />
             <p className="text-xs text-muted-foreground">Can’t scan? Enter this key manually:</p>

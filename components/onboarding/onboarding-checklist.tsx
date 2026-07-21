@@ -11,7 +11,7 @@ interface Steps { logo: boolean; products: boolean; clients: boolean; quotes: bo
 // by real data. Auto-hides once every step is done; dismiss persists locally.
 export function OnboardingChecklist({ isOwner, steps }: { isOwner: boolean; steps: Steps }) {
   const [dismissed, setDismissed] = useState(true); // hidden until we read localStorage
-  useEffect(() => { setDismissed(localStorage.getItem("ultraquote.onboardingDismissed") === "true"); }, []);
+  useEffect(() => { setDismissed(localStorage.getItem("smartprops.onboardingDismissed") === "true"); }, []);
 
   if (!isOwner) return null;
 
@@ -19,14 +19,14 @@ export function OnboardingChecklist({ isOwner, steps }: { isOwner: boolean; step
     { label: "Add your company logo", href: "/settings", done: steps.logo },
     { label: "Add your products", href: "/products", done: steps.products },
     { label: "Add a client", href: "/clients", done: steps.clients },
-    { label: "Create your first quote", href: "/quotes", done: steps.quotes },
+    { label: "Create your first proposal", href: "/proposals", done: steps.quotes },
   ];
   const doneCount = items.filter(i => i.done).length;
   if (doneCount === items.length) return null;  // all set
   if (dismissed) return null;
 
   function dismiss() {
-    localStorage.setItem("ultraquote.onboardingDismissed", "true");
+    localStorage.setItem("smartprops.onboardingDismissed", "true");
     setDismissed(true);
   }
 

@@ -77,13 +77,13 @@ export async function POST(request: Request) {
   // Send the confirmation email via the app's SMTP.
   const { sent } = await sendMail({
     to: email,
-    subject: "Confirm your UltraQuote account",
+    subject: "Confirm your SmartProps account",
     text:
-      `Welcome to UltraQuote, ${fullName}!\n\n` +
+      `Welcome to SmartProps, ${fullName}!\n\n` +
       `Confirm your email to activate your workspace:\n${confirmUrl}\n\n` +
       `If you didn't sign up, you can ignore this email.`,
     html:
-      `<p>Welcome to UltraQuote, ${esc(fullName)}!</p>` +
+      `<p>Welcome to SmartProps, ${esc(fullName)}!</p>` +
       `<p>Confirm your email to activate your workspace:</p>` +
       `<p><a href="${confirmUrl}">Confirm my account</a></p>` +
       `<p style="color:#64748b;font-size:12px">If you didn't sign up, you can ignore this email.</p>`,

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!scenarios?.length) return NextResponse.json({ error: "Nothing to apply" }, { status: 400 });
 
   const { data: quote } = await db.from("quotes").select("id, tax_rate").eq("id", params.id).single();
-  if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!quote) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
   const taxRate = quote.tax_rate ?? 0;
 
   // Resolve (or create) the "Professional Services" category for new products.

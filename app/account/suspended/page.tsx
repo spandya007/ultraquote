@@ -15,9 +15,9 @@ export default function SuspendedPage({
   const title = expired ? "Subscription expired" : "Account suspended";
   const body = expired
     ? isOwner
-      ? "Your UltraQuote subscription has ended and the grace period has passed. Contact UltraQuote to renew and restore access for your team."
-      : "Your organization's UltraQuote subscription has ended. Please contact your account owner or UltraQuote to renew."
-    : "Access to this UltraQuote account has been suspended. Please contact UltraQuote for assistance.";
+      ? "Your SmartProps subscription has ended and the grace period has passed. Contact SmartProps to renew and restore access for your team."
+      : "Your organization's SmartProps subscription has ended. Please contact your account owner or SmartProps to renew."
+    : "Access to this SmartProps account has been suspended. Please contact SmartProps for assistance.";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
