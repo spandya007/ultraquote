@@ -106,7 +106,7 @@ npm run dev
 | | **Dev / Test** | **Prod** |
 |---|---|---|
 | Supabase project | ultraquote-dev (new, free) | `pibipcdkxtldjbrsdbua` |
-| App | `npm run dev` (localhost:3000) | Netlify (ultraquote.netlify.app) |
+| App | `npm run dev` (localhost:3000) | Netlify (app.smartprops.io) |
 | Env source | `.env.local` | Netlify env vars |
 | SMTP | built-in (or Zoho) | Zoho |
 | DocuSeal | sandbox / off | sandbox (→ prod key before real clients) |

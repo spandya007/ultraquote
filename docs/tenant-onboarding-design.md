@@ -119,9 +119,9 @@ explicit tenant delete is out of scope for this pass.
    "invalid or expired" state telling the user to ask for a re-send.
 
 **Manual Supabase config (one-time):** Auth → URL Configuration → add redirect
-URLs `https://ultraquote.netlify.app/auth/set-password` and
+URLs `https://app.smartprops.io/auth/set-password` and
 `http://localhost:3000/auth/set-password` (or the wildcard forms
-`https://ultraquote.netlify.app/**` + `http://localhost:3000/**`). Entry order
+`https://app.smartprops.io/**` + `http://localhost:3000/**`). Entry order
 in the allowlist does not matter.
 
 ## Flow C — tenant owner invites team members

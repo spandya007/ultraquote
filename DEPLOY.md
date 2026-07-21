@@ -73,7 +73,7 @@ checks the **whole repo**, so the root `next` version must stay patched
 
 1. Create a DocuSeal **cloud** account → **console.docuseal.com → API** → copy the API token → set `DOCUSEAL_API_TOKEN` (+ a random `DOCUSEAL_WEBHOOK_SECRET`) in Netlify.
 2. **console.docuseal.com → Webhooks** → add endpoint:
-   `https://ultraquote.netlify.app/api/webhooks/docuseal?secret=<DOCUSEAL_WEBHOOK_SECRET>`
+   `https://app.smartprops.io/api/webhooks/docuseal?secret=<DOCUSEAL_WEBHOOK_SECRET>`
    Subscribe to **form.viewed**, **form.completed**, **form.declined** (and submission.completed).
 3. In a quote's **Document**, place a **Signature Field** (type `/signature`, choose client or your company) → use **Send for signature**. DocuSeal emails the signer(s); the webhook flips the quote to `viewed` → `signed`.
    - Until `DOCUSEAL_API_TOKEN` is set, the Send button returns a clean 501.
