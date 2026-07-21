@@ -87,7 +87,7 @@ needs SPF/DKIM/DMARC passing first.
 - [x] **[verify]** ✅ **DONE** — test email from `hello@smartprops.io` reaches an external inbox (watch
       spam/reputation over the first few days).
 
-## Phase 2 — External service consoles (point them at the new domain) — mostly DONE (2026-07-20)
+## Phase 2 — External service consoles (point them at the new domain) ✅ DONE (2026-07-20)
 > These use the **new** callback/redirect URLs. Since there are no users, you can switch cleanly.
 >
 > ⚠️ **Two separate email paths — don't confuse them.** (1) **App-sent** email (beta/test/notification
@@ -99,14 +99,12 @@ needs SPF/DKIM/DMARC passing first.
       `app.smartprops.io` (`/auth/set-password`, `/auth/confirm`, `/**`, + localhost).
 - [x] **[you] Supabase → Auth email templates** (invite / reset / confirm): ✅ re-branded to SmartProps
       / links fixed. (This is the email **body** only — the sender line is the SMTP setting below.)
-- [ ] **[you] Supabase → Authentication → Emails → SMTP Settings (Custom SMTP)** — the **sender** of
-      invite/reset/confirm emails. Set **Sender email** = `hello@smartprops.io`, **Sender name** =
-      `SmartProps`, **Username** = `hello@smartprops.io`, **Password** = the Zoho **app password for the
-      smartprops mailbox** (Host/Port stay `smtp.zoho.com` / `465`). ⚠️ Zoho requires From == the
-      authenticated mailbox, so the **Username must be the smartprops mailbox** or it keeps sending from
-      ultraquote. Save — no deploy needed (Supabase-side). *(This was the "invite still shows
-      UltraQuote &lt;hello@ultraquote.io&gt;" bug on 2026-07-20 — the sender settings were still the old
-      values while everything else had switched.)*
+- [x] **[you] Supabase → Authentication → Emails → SMTP Settings (Custom SMTP)** — ✅ **DONE (2026-07-20)**
+      — sender switched to `hello@smartprops.io` (Sender email + Username → smartprops mailbox app
+      password); **verified**: a fresh invite arrived from the smartprops sender. ⚠️ Zoho requires
+      From == the authenticated mailbox. *(This was the "invite still shows
+      UltraQuote &lt;hello@ultraquote.io&gt;" bug — the sender settings were still the old values while
+      everything else had switched.)*
 - [x] **[you] Intuit / QBO developer console:** ✅ redirect URI
       `https://app.smartprops.io/api/integrations/qbo/callback` added under **Keys & credentials → Redirect
       URIs** (must equal `QBO_REDIRECT_URI` exactly).
