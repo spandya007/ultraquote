@@ -3,7 +3,7 @@
 // `swatch` is only the picker dot color in the Appearance card.
 
 export const ACCENTS = [
-  { id: "default",  name: "Default",  swatch: "#16a34a" },
+  { id: "default",  name: "Default",  swatch: "#4d7c0f" },
   { id: "violet",   name: "Violet",   swatch: "#7c3aed" },
   { id: "forest",   name: "Forest",   swatch: "#16a34a" },
   { id: "sunset",   name: "Sunset",   swatch: "#d97706" },

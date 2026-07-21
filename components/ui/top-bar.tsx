@@ -43,13 +43,12 @@ export function TopBar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        {/* The wordmark uses dark navy text — legible on the white bar in light
-            mode; on a subtle light plate in dark mode. Swap to a dedicated
-            light/white variant (logo-dark.svg) here if one is provided. */}
-        <span className="inline-flex items-center rounded-md dark:bg-white/90 dark:px-2 dark:py-0.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="SmartProps" className="h-8 sm:h-10 w-auto" />
-        </span>
+        {/* Theme-aware wordmark: dark-text logo on the light bar, light-text
+            variant on the dark bar. CSS swap (dark: variant) → no hydration flash. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="SmartProps" className="h-8 sm:h-10 w-auto block dark:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-dark.svg" alt="SmartProps" className="h-8 sm:h-10 w-auto hidden dark:block" />
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
