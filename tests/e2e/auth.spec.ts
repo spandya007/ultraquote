@@ -13,10 +13,9 @@ test.describe("authentication", () => {
     // Past all gates (MFA / access / legal) -> on the dashboard, not bounced
     // to /account/* or /auth/*.
     await expect(page).not.toHaveURL(/\/account\/|\/auth\/mfa|\/login/);
-    // Sidebar greets the user by full name with a time-of-day greeting
-    // ("Good morning/afternoon/evening, Eve Owner").
+    // Top bar account menu shows the signed-in user's full name.
     await expect(
-      page.getByText(/Good (morning|afternoon|evening), Eve Owner/i)
+      page.getByRole("button", { name: /Eve Owner/ })
     ).toBeVisible();
   });
 
