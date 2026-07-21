@@ -83,13 +83,13 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
               accent
             />
             <Stat label="Draft : sign ratio" value={ratio(s.draftPerSign)} sub="drafted proposals per signed doc" />
-            <Stat label="AI cost / drafted quote" value={s.costPerDraftedQuote === null ? "—" : usd(s.costPerDraftedQuote)} sub={`${oneDp(s.callsPerDraftedQuote)} calls avg`} />
+            <Stat label="AI cost / drafted proposal" value={s.costPerDraftedQuote === null ? "—" : usd(s.costPerDraftedQuote)} sub={`${oneDp(s.callsPerDraftedQuote)} calls avg`} />
             <Stat label="AI-drafted proposals" value={num(s.draftedQuotes)} sub={`${num(s.totalDraftCalls)} draft calls · ${usd(s.totalDraftCostUsd)}`} />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-lg border bg-card overflow-hidden">
-              <div className="px-4 py-2.5 border-b text-sm font-medium">Drafted quotes by current status</div>
+              <div className="px-4 py-2.5 border-b text-sm font-medium">Drafted proposals by current status</div>
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/30">
                   <tr>
@@ -120,7 +120,7 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
             <div className="rounded-lg border bg-card p-4 text-sm space-y-2">
               <div className="font-medium mb-1">How to read this</div>
               <p className="text-muted-foreground text-xs leading-relaxed">
-                <strong className="text-foreground">AI cost per signed doc</strong> = AI cost per drafted quote ×
+                <strong className="text-foreground">AI cost per signed doc</strong> = AI cost per drafted proposal ×
                 draft:sign ratio. It's the true AI cost against revenue, since we bill on <em>signed</em> docs but
                 spend on every <em>drafted</em> one. Compare it to the per-signed-doc cost budget (pricing §12) to
                 confirm the per-quote AI cap keeps margin healthy.

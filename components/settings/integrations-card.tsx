@@ -49,7 +49,7 @@ export function IntegrationsCard({
   }, [returnCode]);
 
   async function disconnect(provider: ProviderKey) {
-    if (!window.confirm("Disconnect QuickBooks? New signed quotes will stop creating invoices.")) return;
+    if (!window.confirm("Disconnect QuickBooks? New signed proposals will stop creating invoices.")) return;
     setDisconnecting(provider);
     try {
       const res = await fetch(`/api/integrations/${provider}/disconnect`, { method: "POST" });

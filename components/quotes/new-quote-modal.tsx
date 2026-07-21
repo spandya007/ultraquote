@@ -64,12 +64,12 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
 
       const json = await res.json();
 
-      if (!res.ok) throw new Error(json.error ?? "Failed to create quote");
+      if (!res.ok) throw new Error(json.error ?? "Failed to create proposal");
 
       toast.success("Proposal created — opening editor…");
       onCreated(json.id);
     } catch (e: unknown) {
-      let msg = (e as { message?: string })?.message ?? "Failed to create quote";
+      let msg = (e as { message?: string })?.message ?? "Failed to create proposal";
       // Browsers throw a raw "Failed to fetch" on network errors — make it clear.
       if (/failed to fetch/i.test(msg)) msg = "Network error — please check your connection and try again.";
       setError(msg);

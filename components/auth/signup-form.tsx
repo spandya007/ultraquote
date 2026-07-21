@@ -59,7 +59,7 @@ export function SignupForm() {
     <div className="w-full max-w-md space-y-6">
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold">Create your SmartProps workspace</h1>
-        <p className="text-sm text-muted-foreground">Start building quotes and proposals in minutes.</p>
+        <p className="text-sm text-muted-foreground">Start building proposals in minutes.</p>
       </div>
       <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6 shadow-sm space-y-4">
         {error && (

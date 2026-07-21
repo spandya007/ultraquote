@@ -918,7 +918,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <PresenceIndicator others={presenceOthers} noun="quote" />
+          <PresenceIndicator others={presenceOthers} noun="proposal" />
           {/* Status is SYSTEM-MANAGED (read-only): draft → sent (Send button) →
               viewed/signed/declined (e-signature webhook); expired is derived
               from the Valid Until date. Signed is terminal — use Duplicate. */}
@@ -1034,7 +1034,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
           {/* Main tab bar */}
           <div className="flex items-center gap-1 px-6 pt-4 border-b bg-background shrink-0">
             <button
-              title="Build pricing: products, line items, and scenario options for the quote"
+              title="Build pricing: products, line items, and scenario options for the proposal"
               onClick={() => switchTab("lineitems")}
               className={cn(
                 "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors",
@@ -1126,7 +1126,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring resize-y disabled:opacity-60"
               />
               {!canEdit && (
-                <p className="text-xs text-muted-foreground">View only — you can&apos;t edit this quote.</p>
+                <p className="text-xs text-muted-foreground">View only — you can&apos;t edit this proposal.</p>
               )}
             </div>
           </div>
@@ -1228,9 +1228,9 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cost</th>}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground" title="One-time setup/onboarding fee per unit — added to the scenario's one-time total">Setup</th>
-                    <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount — percent or fixed $ off the line; shown to the client on the quote">Disc</th>
+                    <th className="text-right px-2 py-2 font-medium text-muted-foreground" title="Discount — percent or fixed $ off the line; shown to the client on the proposal">Disc</th>
                     {hasTaxable && (
-                      <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the quote's tax rate)">Tax</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground" title="Tax for this line (taxable items × the proposal's tax rate)">Tax</th>
                     )}
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Total</th>
                     {showMargins && <th className="text-right px-4 py-2 font-medium text-muted-foreground">Margin</th>}
@@ -1497,7 +1497,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                 <label className="text-xs text-muted-foreground">Tax Rate</label>
                 <p
                   className="text-sm px-3 py-1.5 rounded-md border bg-muted/30 text-muted-foreground"
-                  title="The company tax rate is set in Settings → Company Settings and applies to all quotes"
+                  title="The company tax rate is set in Settings → Company Settings and applies to all proposals"
                 >
                   {(taxRate * 100).toFixed(2)}% <span className="text-xs">· set in Settings</span>
                 </p>
@@ -1623,7 +1623,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
         </aside>
         ) : (
           <div className="shrink-0 border-l bg-muted/5 flex flex-col items-center py-2">
-            <button onClick={toggleRight} title="Show quote details" className="p-1.5 rounded hover:bg-muted text-muted-foreground">
+            <button onClick={toggleRight} title="Show proposal details" className="p-1.5 rounded hover:bg-muted text-muted-foreground">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </div>
@@ -1725,7 +1725,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
           <div className="flex-1 overflow-hidden bg-muted/20 p-4">
             <iframe
               src={`/api/quotes/${quote.id}/preview`}
-              title="Quote preview"
+              title="Proposal preview"
               className="w-full h-full bg-white rounded-lg shadow-xl border"
             />
           </div>

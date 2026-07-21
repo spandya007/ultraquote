@@ -180,7 +180,7 @@ export function OrgClient({
                   <th className="px-4 py-3 text-center font-medium text-muted-foreground" title="Users">
                     <Users className="w-3.5 h-3.5 inline" />
                   </th>
-                  <th className="px-4 py-3 text-center font-medium text-muted-foreground" title="Quotes">
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground" title="Proposals">
                     <FileText className="w-3.5 h-3.5 inline" />
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
