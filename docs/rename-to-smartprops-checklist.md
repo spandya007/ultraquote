@@ -184,12 +184,14 @@ needs SPF/DKIM/DMARC passing first.
       (documented in `entity.ts`). Same for prose copy in `lib/help/content.ts` (rename Category A).
 
 ### 4b. Legal content updates
-- [ ] **[you]** If SmartProps is the current trading name → **file the DBA/fictitious-business-name.**
-- [ ] **[code]** In the legal docs update the product name, **"doing business as" line**, all
-      `app.ultraquote.io` / `hello@` / `privacy@` URLs, and the **"Last updated" date** (via the §4a
-      constant where possible).
-- [ ] **[code]** Since there are no users, no need to re-trigger the accept-terms gate for anyone — but
-      confirm the gate still passes for the first real signup.
+- [ ] **[you]** ⚠️ STILL OPEN — if SmartProps is the current trading name → **file the DBA/fictitious-business-name** with the county/state. (The docs now SAY "doing business as SmartProps"; the filing is the real-world step.)
+- [x] **[code]** ✅ **DONE (2026-07-21, commit `05c6531`)** — Terms/Privacy/Cookie HTML + page metadata:
+      product name → SmartProps, "doing business as SmartProps", all `app.ultraquote.io` → `app.smartprops.io`,
+      `hello@`/`privacy@ultraquote.io` → `smartprops.io`, "Last updated" → July 21, 2026. Legal party stays
+      Sameer Pandya (sole proprietor). Build green.
+- [x] **[code]** ✅ No re-acceptance needed (no signed-up users). ⚠️ **At cutover:** confirm the "Last
+      updated" date matches the actual go-live day (currently set to 2026-07-21), and that the accept-terms
+      gate passes for the first real signup.
 - [ ] **[note]** **Future entity change** (LLC/Inc., assessment §6): once §4a lands, the code side is a
       one-line edit + terms re-acceptance. The real work is external — new Stripe account under the
       entity (do Stripe under the final entity from the start), Intuit/QBO app re-review, domain
