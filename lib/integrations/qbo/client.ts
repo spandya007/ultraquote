@@ -126,7 +126,7 @@ export async function getDefaultIncomeAccountId(tenantId: string): Promise<strin
 // denotes sub-items). Sanitize + fall back so we never send an invalid name.
 export function sanitizeItemName(name: string): string {
   const cleaned = name.replace(/:/g, "-").replace(/\s+/g, " ").trim().slice(0, 100);
-  return cleaned || "UltraQuote Services";
+  return cleaned || "SmartProps Services";
 }
 
 // Find-or-create a Service item by (sanitized) name. Used per distinct product

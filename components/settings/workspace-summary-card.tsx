@@ -25,7 +25,7 @@ export function WorkspaceSummaryCard({ dossier }: { dossier: TenantDossier }) {
         <h2 className="font-semibold">Your workspace</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        A summary of what&apos;s stored in your UltraQuote account. Keep this in mind before requesting
+        A summary of what&apos;s stored in your SmartProps account. Keep this in mind before requesting
         account deletion — save copies of anything you need to keep (you can download individual quotes
         as PDFs).
       </p>

@@ -2159,7 +2159,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                         // Drop blocks we don't support in the proposal/PDF:
                         // Video/Audio/File never render in the PDF; Quote/Code
                         // Block/Check List are new in 0.51 and either confuse
-                        // ("Quote" vs an UltraQuote quote) or aren't wanted here.
+                        // ("Quote" vs an SmartProps quote) or aren't wanted here.
                         ...getDefaultReactSlashMenuItems(editor).filter(
                           (item) => !["Video", "Audio", "File", "Quote", "Code Block", "Check List", "Toggle List"].includes((item as { title?: string }).title ?? "")
                         ),

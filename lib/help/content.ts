@@ -21,8 +21,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     icon: LayoutDashboard,
     sections: [
       {
-        heading: "What UltraQuote does",
-        blocks: [p("UltraQuote helps you create, send, and track professional proposals (quotes) for your clients — from pricing through e-signature.")],
+        heading: "What SmartProps does",
+        blocks: [p("SmartProps helps you create, send, and track professional proposals (quotes) for your clients — from pricing through e-signature.")],
       },
       {
         heading: "How a quote is structured",
@@ -228,7 +228,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Exporting & importing templates",
         blocks: [
-          p("On the Templates page, each template has an Export button that downloads it as a .uqtemplate.json file — handy for backing up a template or sharing a polished one with another UltraQuote workspace."),
+          p("On the Templates page, each template has an Export button that downloads it as a .uqtemplate.json file — handy for backing up a template or sharing a polished one with another SmartProps workspace."),
           p("Use Import template (top of the page) to add a template from a .uqtemplate.json file. It’s created as a new template in your workspace."),
           p("Note: exported templates carry the document layout and text, but any embedded images that were uploaded to your workspace won’t transfer to another workspace — re-add those after importing."),
         ],
@@ -396,7 +396,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         ownerOnly: true,
         blocks: [
           p("Settings → Subscription shows your plan’s start and end dates. Everyone on your team shares the same subscription period — when you add a new user, their access runs to the same end date as everyone else’s."),
-          p("You’ll see a reminder banner when your subscription is within 7 days of ending. Subscription dates are managed by UltraQuote — to renew or change your plan, contact UltraQuote."),
+          p("You’ll see a reminder banner when your subscription is within 7 days of ending. Subscription dates are managed by SmartProps — to renew or change your plan, contact SmartProps."),
         ],
       },
       {
@@ -409,7 +409,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "If your team can’t sign in",
         blocks: [
-          p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, a user was disabled on the Team page (see Your team & permissions), or UltraQuote has suspended the account. Contact UltraQuote if your whole team is locked out."),
+          p("Access can be paused for a few reasons — the screen will say which: your subscription has ended, a user was disabled on the Team page (see Your team & permissions), or SmartProps has suspended the account. Contact SmartProps if your whole team is locked out."),
         ],
       },
       {
@@ -422,8 +422,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "If your workspace is scheduled for deletion",
         blocks: [
-          p("If your UltraQuote workspace is scheduled for permanent deletion, a red banner appears across the top showing the deletion date. Your workspace stays fully usable until then, so you can finish anything in progress and save copies of what you need."),
-          p("Before the date: download any quotes you want to keep as PDFs (open a quote → Preview/Download PDF). If you need a full copy of your data, or the deletion is a mistake, contact hello@ultraquote.io right away to cancel it. On the deletion date the workspace and all its data are permanently removed and can’t be recovered."),
+          p("If your SmartProps workspace is scheduled for permanent deletion, a red banner appears across the top showing the deletion date. Your workspace stays fully usable until then, so you can finish anything in progress and save copies of what you need."),
+          p("Before the date: download any quotes you want to keep as PDFs (open a quote → Preview/Download PDF). If you need a full copy of your data, or the deletion is a mistake, contact hello@smartprops.io right away to cancel it. On the deletion date the workspace and all its data are permanently removed and can’t be recovered."),
         ],
       },
     ],

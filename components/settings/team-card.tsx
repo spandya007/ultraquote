@@ -71,7 +71,7 @@ export function TeamCard() {
   }
 
   async function setMemberEnabled(target: User, enabled: boolean) {
-    if (!enabled && !window.confirm(`Disable ${target.full_name || target.email}? They'll be blocked from UltraQuote until you re-enable them. Their quotes are kept.`)) return;
+    if (!enabled && !window.confirm(`Disable ${target.full_name || target.email}? They'll be blocked from SmartProps until you re-enable them. Their quotes are kept.`)) return;
     setActionId(target.id);
     try {
       const res = await fetch(`/api/team/members/${target.id}/status`, {

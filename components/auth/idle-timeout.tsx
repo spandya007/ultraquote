@@ -16,8 +16,8 @@ const IDLE_LIMIT_MS = 30 * 60 * 1000;   // 30 min total
 const WARN_MS = 2 * 60 * 1000;          // warn for the final 2 min
 
 const WRITE_THROTTLE_MS = 5000;
-const KEY = "ultraquote.lastActivity";
-const LOGOUT_KEY = "ultraquote.idleLogout";
+const KEY = "smartprops.lastActivity";
+const LOGOUT_KEY = "smartprops.idleLogout";
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
 
 export function IdleTimeout() {

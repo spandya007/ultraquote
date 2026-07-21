@@ -79,7 +79,7 @@ export function ConfirmForm() {
 
   return (
     <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm space-y-4 text-center">
-      <h1 className="text-xl font-bold">UltraQuote</h1>
+      <h1 className="text-xl font-bold">SmartProps</h1>
       <p className="text-sm text-muted-foreground">
         Click below to continue securely.
       </p>

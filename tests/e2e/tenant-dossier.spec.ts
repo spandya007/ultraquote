@@ -18,7 +18,7 @@ test.describe("tenant dossier (pre-deletion review)", () => {
 
     // The downloadable report renders standalone HTML.
     await page.goto(`/admin/tenants/${ACTIVE_TENANT_ID}/report`);
-    await expect(page.getByText(/Your UltraQuote workspace summary/i)).toBeVisible();
+    await expect(page.getByText(/Your SmartProps workspace summary/i)).toBeVisible();
     await expect(page.getByText("Managed Workstation").first()).toBeVisible();
   });
 

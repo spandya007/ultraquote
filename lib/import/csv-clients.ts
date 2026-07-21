@@ -2,7 +2,7 @@
  * CSV import pipeline for clients.
  *
  * System-neutral: headers are matched case-insensitively against an alias map
- * (covering UltraQuote's documented template plus common CRM export spellings).
+ * (covering SmartProps's documented template plus common CRM export spellings).
  * Only a Company Name column is mandatory. One row = one client. Re-import
  * dedupes by company name (handled in the API route).
  */

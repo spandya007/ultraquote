@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "UltraQuote Builder",
-    short_name: "UltraQuote",
+    name: "SmartProps",
+    short_name: "SmartProps",
     description: "Professional proposals for Managed Service Providers",
     start_url: "/",
     display: "standalone",

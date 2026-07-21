@@ -168,7 +168,7 @@ export function BetaSignupsCard({ signups }: { signups: BetaSignupRow[] }) {
                     <td className="px-4 py-3">
                       <div>{row.contact_name}</div>
                       <a
-                        href={`mailto:${row.email}?subject=${encodeURIComponent("Your UltraQuote beta invite")}`}
+                        href={`mailto:${row.email}?subject=${encodeURIComponent("Your SmartProps beta invite")}`}
                         className="mt-0.5 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
                         <Mail className="w-3 h-3" /> {row.email}

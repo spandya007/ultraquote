@@ -123,7 +123,7 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
 
       const blocks = parsed?.document_content;
       if (!parsed?.ultraquote_template || !Array.isArray(blocks)) {
-        toast.error("Not an UltraQuote template file (missing document content).");
+        toast.error("Not a SmartProps template file (missing document content).");
         return;
       }
 

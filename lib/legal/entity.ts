@@ -35,22 +35,24 @@ export interface LegalEntity {
   appDomain: string;
 }
 
-// CURRENT values (pre-rename). Flip these to SmartProps / smartprops.io during
-// the rename cutover; flip `legalName` (+ drop `dba`) if/when an entity is formed.
+// SmartProps values (post-rename 2026-07). `legalName` stays the sole proprietor
+// until an entity is formed (then set it to e.g. "SmartProps LLC" + `dba: null`).
 export const ENTITY: LegalEntity = {
   legalName: "Sameer Pandya",
-  dba: "UltraQuote",
-  productName: "UltraQuote",
+  dba: "SmartProps",
+  productName: "SmartProps",
   addressLines: ["2005 Laurel Canyon Court", "Fremont, CA 94539", "United States"],
   phone: "510-250-1688",
-  contactEmail: "hello@ultraquote.io",
-  privacyEmail: "privacy@ultraquote.io",
-  appUrl: "https://app.ultraquote.io",
-  appDomain: "app.ultraquote.io",
+  contactEmail: "hello@smartprops.io",
+  // No privacy@ mailbox yet (only hello@ / sales@ exist) — route privacy requests
+  // to hello@ for now; switch to privacy@smartprops.io once that inbox/alias exists.
+  privacyEmail: "hello@smartprops.io",
+  appUrl: "https://app.smartprops.io",
+  appDomain: "app.smartprops.io",
 };
 
 /**
- * The standard legal-party phrasing, e.g. "Sameer Pandya (doing business as UltraQuote)".
+ * The standard legal-party phrasing, e.g. "Sameer Pandya (doing business as SmartProps)".
  * Once an entity is formed and `dba` is null, this returns just the legal name.
  */
 export function legalParty(): string {

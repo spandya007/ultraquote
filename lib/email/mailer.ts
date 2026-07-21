@@ -2,7 +2,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 
 // Lightweight transactional mailer over the existing Zoho SMTP account.
 // Env (set in Netlify + .env.local):
-//   SMTP_USER  — the authenticated mailbox (e.g. hello@ultraquote.io)
+//   SMTP_USER  — the authenticated mailbox (e.g. hello@smartprops.io)
 //   SMTP_PASS  — a Zoho app password for that mailbox
 //   SMTP_HOST  — optional, defaults to smtp.zoho.com
 //   SMTP_PORT  — optional, defaults to 465 (SSL)

@@ -22,8 +22,8 @@ export default async function AcceptTermsPage() {
       <div className="w-full max-w-md rounded-lg border bg-background p-8 shadow-sm">
         <h1 className="text-xl font-semibold">Before you continue</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          To use UltraQuote, please review and accept our Terms of Service and Privacy Policy.
-          UltraQuote is currently offered as a free evaluation — these terms explain how the
+          To use SmartProps, please review and accept our Terms of Service and Privacy Policy.
+          SmartProps is currently offered as a free evaluation — these terms explain how the
           service is provided and how we handle data.
         </p>
 

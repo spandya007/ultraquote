@@ -116,8 +116,8 @@ export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { 
           <Menu className="w-5 h-5" />
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md" />
-        <span className="font-semibold truncate">{brandName || "UltraQuote"}</span>
+        <img src="/icon-192.png" alt="SmartProps" className="w-7 h-7 rounded-md" />
+        <span className="font-semibold truncate">{brandName || "SmartProps"}</span>
       </div>
 
       {/* Backdrop when the mobile drawer is open */}
@@ -136,7 +136,7 @@ export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { 
       {rail ? (
         <div className="px-2 py-3 border-b flex flex-col items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-192.png" alt="UltraQuote" className="w-8 h-8 rounded-md" />
+          <img src="/icon-192.png" alt="SmartProps" className="w-8 h-8 rounded-md" />
           <button onClick={toggleCollapsed} title="Expand sidebar" className="p-1 rounded hover:bg-muted text-muted-foreground">
             <PanelLeftOpen className="w-4 h-4" />
           </button>
@@ -161,9 +161,9 @@ export function Sidebar({ brandName, logoUrl, showAdmin, showOrg, userName }: { 
           </div>
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon-192.png" alt="UltraQuote" className="w-7 h-7 rounded-md shrink-0" />
+            <img src="/icon-192.png" alt="SmartProps" className="w-7 h-7 rounded-md shrink-0" />
             <span className="text-xs font-semibold text-muted-foreground tracking-wide">
-              UltraQuote Builder for
+              SmartProps for
             </span>
           </div>
           {logoUrl ? (

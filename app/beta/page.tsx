@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import { BetaClient } from "./beta-client";
 
 export const metadata: Metadata = {
-  title: "Request beta access — UltraQuote",
+  title: "Request beta access — SmartProps",
   description:
-    "UltraQuote is in private beta — build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
+    "SmartProps is in private beta — build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
   openGraph: {
-    title: "You're invited to the UltraQuote private beta",
+    title: "You're invited to the SmartProps private beta",
     description:
       "Build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
-    url: "https://app.ultraquote.io/beta",
-    siteName: "UltraQuote",
+    url: "https://app.smartprops.io/beta",
+    siteName: "SmartProps",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "You're invited to the UltraQuote private beta",
+    title: "You're invited to the SmartProps private beta",
     description:
       "Build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta.",
   },

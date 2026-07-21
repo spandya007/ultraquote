@@ -2,7 +2,7 @@
  * CSV import pipeline for product catalogs.
  *
  * System-neutral: headers are matched case-insensitively against an alias map
- * (covering UltraQuote's documented template plus common Zomentum / Autotask /
+ * (covering SmartProps's documented template plus common Zomentum / Autotask /
  * ConnectWise / QuickBooks export spellings). Only a product-name column is
  * mandatory. Rows are grouped into one product with one pricing tier per row —
  * by `Zomentum Id` when that (undocumented, legacy) column is present,

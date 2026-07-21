@@ -12,8 +12,8 @@ export default async function LoginPage({
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-192.png" alt="UltraQuote" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-sm" />
-          <h1 className="text-3xl font-bold tracking-tight">UltraQuote Builder</h1>
+          <img src="/icon-192.png" alt="SmartProps" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-sm" />
+          <h1 className="text-3xl font-bold tracking-tight">SmartProps</h1>
           <p className="text-muted-foreground mt-2">Sign in to your account</p>
         </div>
         {idle && (

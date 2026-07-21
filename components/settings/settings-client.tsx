@@ -285,9 +285,9 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
             value={name}
             readOnly
             className={`${inputCls()} bg-muted/50 cursor-not-allowed text-muted-foreground`}
-            title="Managed by UltraQuote"
+            title="Managed by SmartProps"
           />
-          <p className="text-xs text-muted-foreground">Managed by UltraQuote — contact us to change.</p>
+          <p className="text-xs text-muted-foreground">Managed by SmartProps — contact us to change.</p>
         </div>
 
         <div className="space-y-1">
@@ -308,9 +308,9 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
               value={email}
               readOnly
               className={`${inputCls()} bg-muted/50 cursor-not-allowed text-muted-foreground`}
-              title="Managed by UltraQuote"
+              title="Managed by SmartProps"
             />
-            <p className="text-xs text-muted-foreground">Managed by UltraQuote.</p>
+            <p className="text-xs text-muted-foreground">Managed by SmartProps.</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Phone</label>
