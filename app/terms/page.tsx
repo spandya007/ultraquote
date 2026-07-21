@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { TERMS_HTML } from "./terms-html";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — UltraQuote",
-  description: "The terms governing your access to and use of UltraQuote.",
+  title: "Terms of Service — SmartProps",
+  description: "The terms governing your access to and use of SmartProps.",
 };
 
 // Public page (no auth) — the Termly-generated Terms of Service. Middleware
