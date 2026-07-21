@@ -87,12 +87,26 @@ needs SPF/DKIM/DMARC passing first.
 - [x] **[verify]** ✅ **DONE** — test email from `hello@smartprops.io` reaches an external inbox (watch
       spam/reputation over the first few days).
 
-## Phase 2 — External service consoles (point them at the new domain) ✅ DONE (2026-07-20)
+## Phase 2 — External service consoles (point them at the new domain) — mostly DONE (2026-07-20)
 > These use the **new** callback/redirect URLs. Since there are no users, you can switch cleanly.
+>
+> ⚠️ **Two separate email paths — don't confuse them.** (1) **App-sent** email (beta/test/notification
+> + self-serve signup confirm) goes through `lib/email/mailer.ts` → Netlify `SMTP_*` env (Phase 5).
+> (2) **Supabase Auth** email (invite / password-reset / confirm) goes through **Supabase's OWN Custom
+> SMTP config** in the dashboard — NOT the app env vars, NOT the code. The invite's "From" name+address
+> is set there, so a code rebrand (Phase 3) will NOT change it.
 - [x] **[you] Supabase Auth → URL Configuration:** ✅ Site URL + redirect allowlist updated for
       `app.smartprops.io` (`/auth/set-password`, `/auth/confirm`, `/**`, + localhost).
 - [x] **[you] Supabase → Auth email templates** (invite / reset / confirm): ✅ re-branded to SmartProps
-      / links fixed.
+      / links fixed. (This is the email **body** only — the sender line is the SMTP setting below.)
+- [ ] **[you] Supabase → Authentication → Emails → SMTP Settings (Custom SMTP)** — the **sender** of
+      invite/reset/confirm emails. Set **Sender email** = `hello@smartprops.io`, **Sender name** =
+      `SmartProps`, **Username** = `hello@smartprops.io`, **Password** = the Zoho **app password for the
+      smartprops mailbox** (Host/Port stay `smtp.zoho.com` / `465`). ⚠️ Zoho requires From == the
+      authenticated mailbox, so the **Username must be the smartprops mailbox** or it keeps sending from
+      ultraquote. Save — no deploy needed (Supabase-side). *(This was the "invite still shows
+      UltraQuote &lt;hello@ultraquote.io&gt;" bug on 2026-07-20 — the sender settings were still the old
+      values while everything else had switched.)*
 - [x] **[you] Intuit / QBO developer console:** ✅ redirect URI
       `https://app.smartprops.io/api/integrations/qbo/callback` added under **Keys & credentials → Redirect
       URIs** (must equal `QBO_REDIRECT_URI` exactly).
