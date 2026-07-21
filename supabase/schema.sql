@@ -911,10 +911,10 @@ returns trigger language plpgsql security definer as $$
 begin
   if auth.uid() is not null then
     if new.name is distinct from old.name then
-      raise exception 'Company name is managed by UltraQuote and cannot be changed here.';
+      raise exception 'Company name is managed by SmartProps and cannot be changed here.';
     end if;
     if new.email is distinct from old.email then
-      raise exception 'Contact email is managed by UltraQuote and cannot be changed here.';
+      raise exception 'Contact email is managed by SmartProps and cannot be changed here.';
     end if;
   end if;
   return new;
