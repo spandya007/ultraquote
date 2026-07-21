@@ -44,9 +44,7 @@ export const ENTITY: LegalEntity = {
   addressLines: ["2005 Laurel Canyon Court", "Fremont, CA 94539", "United States"],
   phone: "510-250-1688",
   contactEmail: "hello@smartprops.io",
-  // No privacy@ mailbox yet (only hello@ / sales@ exist) — route privacy requests
-  // to hello@ for now; switch to privacy@smartprops.io once that inbox/alias exists.
-  privacyEmail: "hello@smartprops.io",
+  privacyEmail: "privacy@smartprops.io",
   appUrl: "https://app.smartprops.io",
   appDomain: "app.smartprops.io",
 };
