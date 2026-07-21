@@ -22,7 +22,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "What SmartProps does",
-        blocks: [p("SmartProps helps you create, send, and track professional proposals (proposals) for your clients — from pricing through e-signature.")],
+        blocks: [p("SmartProps helps you create, send, and track professional proposals for your clients — from pricing through e-signature.")],
       },
       {
         heading: "How a proposal is structured",
