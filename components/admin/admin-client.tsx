@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, UserPlus, XCircle, Search } from "lucide-react";
+import { AlertTriangle, AtSign, Building2, CalendarClock, Loader2, Mail, RotateCw, Settings2, Trash2, UserPlus, XCircle, Search } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 import type { SubscriptionTerm, TenantInvite } from "@/types";
@@ -77,17 +77,18 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
   const [actionId, setActionId] = useState<string | null>(null);
   const [manageRow, setManageRow] = useState<AdminTenantRow | null>(null);
   const [emailInvite, setEmailInvite] = useState<TenantInvite | null>(null);
+  const [deleteRow, setDeleteRow] = useState<AdminTenantRow | null>(null);
 
   // The console doesn't live-update (acceptances happen in the invitee's own
   // browser), so poll the server while the tab is open. Skip while the user is
   // mid-action: a modal open, an in-flight invite/action, or the tab hidden.
   useEffect(() => {
     const id = setInterval(() => {
-      if (document.hidden || manageRow || emailInvite || inviting || actionId) return;
+      if (document.hidden || manageRow || emailInvite || deleteRow || inviting || actionId) return;
       router.refresh();
     }, 25_000);
     return () => clearInterval(id);
-  }, [router, manageRow, emailInvite, inviting, actionId]);
+  }, [router, manageRow, emailInvite, deleteRow, inviting, actionId]);
 
   // Preview the computed end date for the invite form.
   const invitePreviewEnd =
@@ -246,6 +247,10 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               // email corrected before the owner accepts.
               const editableInvite =
                 !row.owner_email && row.invite && row.invite.status !== "accepted" ? row.invite : null;
+              // Empty shell = no active owner AND no quotes. Only these get a
+              // list-level Delete; real tenants use the Details → Danger zone
+              // (dossier review + grace window) instead.
+              const emptyShell = !row.owner_email && row.quote_count === 0;
               return (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="px-6 py-3">
@@ -360,6 +365,15 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
                         <AtSign className="w-3 h-3" /> Change email
                       </button>
                     )}
+                    {emptyShell && (
+                      <button
+                        onClick={() => setDeleteRow(row)}
+                        className="ml-1.5 inline-flex items-center gap-1 rounded-md border border-destructive/40 text-destructive px-2 py-1 text-xs hover:bg-destructive/10"
+                        title="Permanently delete this empty tenant (no owner, no quotes)"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -389,6 +403,71 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
           onSaved={() => { setEmailInvite(null); router.refresh(); }}
         />
       )}
+
+      {deleteRow && (
+        <DeleteTenantModal
+          row={deleteRow}
+          onClose={() => setDeleteRow(null)}
+          onDeleted={() => { setDeleteRow(null); router.refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeleteTenantModal({
+  row, onClose, onDeleted,
+}: { row: AdminTenantRow; onClose: () => void; onDeleted: () => void }) {
+  const toast = useToast();
+  const [confirmName, setConfirmName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const nameMatches = confirmName.trim() === row.name.trim();
+
+  async function del() {
+    if (!nameMatches) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${row.id}/purge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmName }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || "Delete failed"); return; }
+      toast.success(`Deleted ${json.tenantName ?? row.name}`);
+      onDeleted();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl border bg-card shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b">
+          <AlertTriangle className="w-4 h-4 text-destructive" />
+          <h2 className="font-semibold">Delete tenant</h2>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Permanently delete <span className="font-medium text-foreground">{row.name}</span> and everything
+            under it (invites, settings, any pending logins). This tenant has no active owner and no quotes.{" "}
+            <span className="font-medium text-foreground">This cannot be undone.</span>
+          </p>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Type the tenant name to confirm</label>
+            <input value={confirmName} onChange={(e) => setConfirmName(e.target.value)}
+              className={inputCls} placeholder={row.name} autoFocus />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          <button type="button" onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:bg-muted">Cancel</button>
+          <button onClick={del} disabled={busy || !nameMatches}
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete permanently
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
