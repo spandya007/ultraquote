@@ -48,7 +48,7 @@ export function TopBar({
             light/white variant (logo-dark.svg) here if one is provided. */}
         <span className="inline-flex items-center rounded-md dark:bg-white/90 dark:px-2 dark:py-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="SmartProps" className="h-6 sm:h-7 w-auto" />
+          <img src="/logo.svg" alt="SmartProps" className="h-8 sm:h-10 w-auto" />
         </span>
       </div>
 
