@@ -16,7 +16,7 @@ export default async function TemplatesPage() {
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
     db.from("users").select("role").eq("id", user?.id ?? "").maybeSingle(),
-    // For the "New quote from this template" modal.
+    // For the "New proposal from this template" modal.
     db.from("clients").select("id, company_name, contact_name, contact_email").eq("is_active", true).order("company_name"),
   ]);
 

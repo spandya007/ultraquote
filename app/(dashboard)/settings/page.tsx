@@ -77,7 +77,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your company profile and quote defaults.
+          Manage your company profile and proposal defaults.
         </p>
       </div>
 

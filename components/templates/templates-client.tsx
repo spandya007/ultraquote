@@ -38,7 +38,7 @@ interface Props {
   currentUserId: string;
   /** Tenant owner may edit any template; others only their own. */
   isOwner: boolean;
-  /** Active clients — for the "New quote from this template" modal. */
+  /** Active clients — for the "New proposal from this template" modal. */
   clients: ClientOption[];
 }
 
@@ -54,7 +54,7 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
   const [importing, setImporting] = useState(false);
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  // Template-first flow: open the New Quote modal with this template preselected.
+  // Template-first flow: open the New Proposal modal with this template preselected.
   const [quoteFromTemplateId, setQuoteFromTemplateId] = useState<string | null>(null);
 
   // Pull the latest server data when this page is shown (bypasses the App Router
@@ -153,7 +153,7 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
         <div>
           <h1 className="text-2xl font-bold">Templates</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Reusable proposal documents you can apply to any quote.
+            Reusable proposal documents you can apply to any proposal.
           </p>
         </div>
         <button
@@ -178,7 +178,7 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
           <BookTemplate className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">No templates yet.</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Create one from a quote (open its <strong>Document</strong> tab →
+            Create one from a proposal (open its <strong>Document</strong> tab →
             <strong> Save as template</strong>), or <strong>Import template</strong> from a file using the button above.
           </p>
         </div>
@@ -215,10 +215,10 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setQuoteFromTemplateId(t.id)}
-                        title="Create a new quote that starts from this template's document"
+                        title="Create a new proposal that starts from this template's document"
                         className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                       >
-                        <Plus className="w-3.5 h-3.5" /> New quote
+                        <Plus className="w-3.5 h-3.5" /> New proposal
                       </button>
                       <button
                         onClick={() => exportTemplate(t)}
@@ -264,7 +264,7 @@ export function TemplatesClient({ initialTemplates, currentUserId, isOwner, clie
         templates={templates.map(t => ({ id: t.id, name: t.name }))}
         initialTemplateId={quoteFromTemplateId ?? undefined}
         onClose={() => setQuoteFromTemplateId(null)}
-        onCreated={(id) => { setQuoteFromTemplateId(null); router.push(`/quotes/${id}`); }}
+        onCreated={(id) => { setQuoteFromTemplateId(null); router.push(`/proposals/${id}`); }}
       />
     </>
   );

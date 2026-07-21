@@ -22,7 +22,7 @@ function QuoteTable({ quotes }: { quotes: DossierQuote[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="px-3 py-2 font-medium">Quote</th>
+            <th className="px-3 py-2 font-medium">Proposal</th>
             <th className="px-3 py-2 font-medium">Client</th>
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium text-right">Value</th>

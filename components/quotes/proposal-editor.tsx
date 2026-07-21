@@ -1421,8 +1421,8 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
   }
 
   // ── Save current document as a template ─────────────────────────────────────
-  // (Applying templates happens at quote creation — New Quote modal "Start
-  // from", or /templates → "New quote" — not mid-document.)
+  // (Applying templates happens at quote creation — New Proposal modal "Start
+  // from", or /templates → "New proposal" — not mid-document.)
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [tplOpen, setTplOpen] = useState(false);
   const [tplBusy, setTplBusy] = useState(false);
@@ -2094,7 +2094,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                     Save current document
                   </button>
                   <p className="text-[11px] text-muted-foreground">
-                    New quotes can start from it (New Quote → “Start from”).
+                    New proposals can start from it (New Proposal → “Start from”).
                   </p>
                 </div>
               </div>

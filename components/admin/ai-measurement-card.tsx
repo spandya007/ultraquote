@@ -11,13 +11,13 @@ export interface AiMeasurementSummary {
   draftedQuotes: number;       // distinct quotes that had ≥1 draft_* call in the window
   totalDraftCalls: number;     // draft_* calls across those quotes (in the window)
   totalDraftCostUsd: number;   // draft_* cost across those quotes (in the window)
-  // Current-status breakdown of the drafted quotes (effective status; expired derived).
+  // Current-status breakdown of the drafted proposals (effective status; expired derived).
   byStatus: { status: QuoteStatus; quotes: number; draftCalls: number; costUsd: number }[];
   signedQuotes: number;        // current status === 'signed'
   sentQuotes: number;          // ever left draft (sent/viewed/signed/declined/expired)
   openQuotes: number;          // still 'draft'
   // Ratios / unit costs — null when the denominator is 0 (not enough data yet).
-  draftPerSign: number | null;       // drafted quotes per signed doc (the win-rate lever in §13.1)
+  draftPerSign: number | null;       // drafted proposals per signed doc (the win-rate lever in §13.1)
   draftPerSent: number | null;
   costPerSignedDoc: number | null;   // = costPerDraftedQuote × draftPerSign
   costPerDraftedQuote: number | null;
@@ -71,7 +71,7 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
 
       {s.draftedQuotes === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground text-sm">
-          No AI-drafted quotes recorded yet. (Populates once quotes use AI Draft; confirm migrations 024–026 are applied.)
+          No AI-drafted proposals recorded yet. (Populates once quotes use AI Draft; confirm migrations 024–026 are applied.)
         </div>
       ) : (
         <div className="space-y-4">
@@ -82,9 +82,9 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
               sub={s.signedQuotes === 0 ? "no signed docs yet" : `${num(s.signedQuotes)} signed`}
               accent
             />
-            <Stat label="Draft : sign ratio" value={ratio(s.draftPerSign)} sub="drafted quotes per signed doc" />
+            <Stat label="Draft : sign ratio" value={ratio(s.draftPerSign)} sub="drafted proposals per signed doc" />
             <Stat label="AI cost / drafted quote" value={s.costPerDraftedQuote === null ? "—" : usd(s.costPerDraftedQuote)} sub={`${oneDp(s.callsPerDraftedQuote)} calls avg`} />
-            <Stat label="AI-drafted quotes" value={num(s.draftedQuotes)} sub={`${num(s.totalDraftCalls)} draft calls · ${usd(s.totalDraftCostUsd)}`} />
+            <Stat label="AI-drafted proposals" value={num(s.draftedQuotes)} sub={`${num(s.totalDraftCalls)} draft calls · ${usd(s.totalDraftCostUsd)}`} />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -94,7 +94,7 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
                 <thead className="border-b bg-muted/30">
                   <tr>
                     <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
-                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Quotes</th>
+                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Proposals</th>
                     <th className="px-4 py-2 text-right font-medium text-muted-foreground">Draft calls</th>
                     <th className="px-4 py-2 text-right font-medium text-muted-foreground">AI cost</th>
                   </tr>
@@ -126,8 +126,8 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
                 confirm the per-quote AI cap keeps margin healthy.
               </p>
               <ul className="text-muted-foreground text-xs space-y-1 mt-2">
-                <li>• <strong className="text-foreground">Sent-out:</strong> {num(s.sentQuotes)} of {num(s.draftedQuotes)} drafted quotes left draft{s.draftPerSent !== null ? ` (${ratio(s.draftPerSent)} draft:sent).` : "."}</li>
-                <li>• <strong className="text-foreground">Still open:</strong> {num(s.openQuotes)} drafted quotes never sent — their AI spend has earned nothing yet.</li>
+                <li>• <strong className="text-foreground">Sent-out:</strong> {num(s.sentQuotes)} of {num(s.draftedQuotes)} drafted proposals left draft{s.draftPerSent !== null ? ` (${ratio(s.draftPerSent)} draft:sent).` : "."}</li>
+                <li>• <strong className="text-foreground">Still open:</strong> {num(s.openQuotes)} drafted proposals never sent — their AI spend has earned nothing yet.</li>
               </ul>
             </div>
           </div>

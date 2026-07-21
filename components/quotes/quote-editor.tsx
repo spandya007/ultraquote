@@ -189,9 +189,9 @@ const STATUS_HINTS: Record<QuoteStatus, string> = {
   draft:    "Draft — status updates automatically once you send for signature",
   sent:     "Sent — updates automatically as signers view and sign",
   viewed:   "A signer has viewed the document — updates automatically",
-  signed:   "Signed is final — use Duplicate on the Quotes page to start a new draft version",
+  signed:   "Signed is final — use Duplicate on the Proposals page to start a new draft version",
   declined: "Declined by a signer — edit the document and re-send to start a new round",
-  expired:  "Past its Valid Until date — extend the date to reactivate this quote",
+  expired:  "Past its Valid Until date — extend the date to reactivate this proposal",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -459,7 +459,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
 
   async function openSend() {
     if (quote.valid_until && new Date(`${quote.valid_until}T23:59:59`) < new Date()) {
-      toast.error("This quote's Valid Until date has passed — extend it (right panel) before sending.");
+      toast.error("This proposal's Valid Until date has passed — extend it (right panel) before sending.");
       return;
     }
     // Flush the latest document so the signing copy is current.
@@ -526,7 +526,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Duplicate failed");
       toast.success(`Created ${data.quote_number}`);
-      window.location.href = `/quotes/${data.id}`;
+      window.location.href = `/proposals/${data.id}`;
     } catch (e) {
       toast.error((e as Error).message);
       setDuplicating(false);
@@ -546,7 +546,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
   async function refreshPricesFromCatalog() {
     if (!canEdit) return;
     if (!window.confirm(
-      "Update all catalog-linked line items in this quote to the current catalog prices (unit cost, unit price, and setup fee)? Your quantities, discounts, and free-text items are kept."
+      "Update all catalog-linked line items in this proposal to the current catalog prices (unit cost, unit price, and setup fee)? Your quantities, discounts, and free-text items are kept."
     )) return;
 
     setRefreshingPrices(true);
@@ -627,7 +627,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       }).eq("id", quote.id);
 
       if (error) {
-        toast.error("Failed to save quote");
+        toast.error("Failed to save proposal");
         setQuoteSaveState("idle");
       } else {
         setQuoteSaveState("saved");
@@ -669,7 +669,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
   // ── Scenarios ────────────────────────────────────────────────────────────
 
   async function addScenario() {
-    if (scenarios.length >= 5) { toast.error("A quote can have a maximum of 5 scenarios"); return; }
+    if (scenarios.length >= 5) { toast.error("A proposal can have a maximum of 5 scenarios"); return; }
     const { data } = await db.from("quote_scenarios").insert({
       quote_id:   quote.id,
       name:       `Scenario ${String.fromCharCode(65 + scenarios.length)}`,
@@ -894,7 +894,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
       {/* Top bar */}
       <header className="flex items-center gap-4 px-6 py-3 border-b bg-background shrink-0">
         <button
-          onClick={() => router.push("/quotes")}
+          onClick={() => router.push("/proposals")}
           className="p-1.5 rounded hover:bg-muted transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -906,7 +906,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
             <input
               value={quote.title ?? ""}
               onChange={(e) => setQuote(q => ({ ...q, title: e.target.value }))}
-              placeholder="Untitled Quote"
+              placeholder="Untitled Proposal"
               disabled={!canEdit}
               className="text-lg font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 flex-1 min-w-0 disabled:opacity-100"
             />
@@ -1482,7 +1482,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
           <div className="p-5 space-y-6">
           <fieldset disabled={!canEdit} className="contents">
           <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quote Details</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Proposal Details</h3>
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Valid Until</label>

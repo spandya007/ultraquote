@@ -11,9 +11,9 @@ test.describe("quote authoring", () => {
     // mode, where globalSetup doesn't re-run between individual re-runs.
     const title = `E2E Smoke ${Date.now()}`;
 
-    // New Quote modal -> pick the seeded client + title -> create.
-    await page.goto("/quotes");
-    await page.getByRole("button", { name: "New Quote" }).first().click();
+    // New Proposal modal -> pick the seeded client + title -> create.
+    await page.goto("/proposals");
+    await page.getByRole("button", { name: "New Proposal" }).first().click();
     await page
       .locator('select:has(option:has-text("Select a client"))')
       .selectOption({ index: 1 }); // 1 = the seeded Globex client (0 = placeholder)
@@ -26,14 +26,14 @@ test.describe("quote authoring", () => {
       page.waitForResponse(
         (r) => r.url().includes("/api/quotes") && r.request().method() === "POST" && r.ok()
       ),
-      page.getByRole("button", { name: "Create Quote" }).click(),
+      page.getByRole("button", { name: "Create Proposal" }).click(),
     ]);
-    await page.goto("/quotes");
+    await page.goto("/proposals");
     await page.getByRole("row", { name: new RegExp(title) }).click();
 
     // Editor ready when the catalog button renders (heavy route compiles on
     // first hit in dev — allow extra time).
-    await page.waitForURL(/\/quotes\/[0-9a-f-]{36}/, { timeout: 30_000 });
+    await page.waitForURL(/\/proposals\/[0-9a-f-]{36}/, { timeout: 30_000 });
     await expect(page.getByRole("button", { name: "Add from catalog" })).toBeVisible({ timeout: 30_000 });
 
     // Add the seeded catalog product via the spotlight search.

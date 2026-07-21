@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle() as { data: { id: string } | null };
     if (dup) {
       return NextResponse.json(
-        { error: "A quote with this title already exists. Please choose a different title." },
+        { error: "A proposal with this title already exists. Please choose a different title." },
         { status: 409 }
       );
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     p_tenant_id: tenant_id,
   }) as { data: string | null; error: { message: string } | null };
   if (numErr || !quote_number) {
-    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate quote number" }, { status: 500 });
+    return NextResponse.json({ error: numErr?.message ?? "Failed to allocate proposal number" }, { status: 500 });
   }
 
   // Insert quote — pass explicit quote_number so trigger WHEN clause is skipped
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     .single() as { data: { id: string; quote_number: string } | null; error: { message: string } | null };
 
   if (quoteErr || !quote) {
-    return NextResponse.json({ error: quoteErr?.message ?? "Failed to create quote" }, { status: 500 });
+    return NextResponse.json({ error: quoteErr?.message ?? "Failed to create proposal" }, { status: 500 });
   }
 
   // Create default scenario

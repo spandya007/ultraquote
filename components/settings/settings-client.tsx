@@ -136,7 +136,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
   const [savingProfile, setSavingProfile] = useState(false);
 
   // ── Quote defaults state ──────────────────────────────────────────────────
-  const [prefix,       setPrefix]       = useState(settings?.quote_number_prefix    ?? "QUOTE");
+  const [prefix,       setPrefix]       = useState(settings?.quote_number_prefix    ?? "PROP");
   const [taxRate,      setTaxRate]      = useState(
     settings?.default_tax_rate != null ? (settings.default_tax_rate * 100).toFixed(2) : ""
   );
@@ -181,7 +181,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
 
   async function saveDefaults() {
     const parsedDays = parseInt(validDays) || 30;
-    const prefixClean = prefix.trim().toUpperCase() || "QUOTE";
+    const prefixClean = prefix.trim().toUpperCase() || "PROP";
 
     setSavingDefaults(true);
     const { error } = await db.from("tenant_settings").upsert({
@@ -192,8 +192,8 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
       default_font:          font,
     }, { onConflict: "tenant_id" });
     setSavingDefaults(false);
-    if (error) toast.error("Failed to save quote defaults");
-    else toast.success("Quote defaults saved");
+    if (error) toast.error("Failed to save proposal defaults");
+    else toast.success("Proposal defaults saved");
 
     // Sync display state (capitalised prefix)
     setPrefix(prefixClean);
@@ -347,7 +347,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
             placeholder="0.00"
           />
           <p className="text-xs text-muted-foreground">
-            Your company tax rate — applied uniformly to taxable items on all quotes.
+            Your company tax rate — applied uniformly to taxable items on all proposals.
           </p>
         </div>
 
@@ -365,21 +365,21 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
         </fieldset>
       </SectionCard>
 
-      {/* ── Quote Defaults ── */}
-      <SectionCard icon={<SlidersHorizontal className="w-4 h-4" />} title="Quote Defaults">
+      {/* ── Proposal Defaults ── */}
+      <SectionCard icon={<SlidersHorizontal className="w-4 h-4" />} title="Proposal Defaults">
         <fieldset disabled={!isOwner} className="contents">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Quote Number Prefix</label>
+            <label className="text-sm font-medium">Proposal Number Prefix</label>
             <input
               value={prefix}
               onChange={e => setPrefix(e.target.value.toUpperCase())}
               className={inputCls()}
-              placeholder="QUOTE"
+              placeholder="PROP"
               maxLength={10}
             />
             <p className="text-xs text-muted-foreground">
-              e.g. &quot;{prefix || "QUOTE"}-2026-001&quot;
+              e.g. &quot;{prefix || "PROP"}-2026-001&quot;
             </p>
           </div>
           <div className="space-y-1">
@@ -394,7 +394,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
               className={inputCls()}
               placeholder="30"
             />
-            <p className="text-xs text-muted-foreground">Days until quote expires</p>
+            <p className="text-xs text-muted-foreground">Days until proposal expires</p>
           </div>
         </div>
 
@@ -407,7 +407,7 @@ export function SettingsClient({ tenantId, tenant, settings, isOwner, orgVoiceDe
               className={inputCls()}
               placeholder="Net 30"
             />
-            <p className="text-xs text-muted-foreground">Shown on generated quotes</p>
+            <p className="text-xs text-muted-foreground">Shown on generated proposals</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Proposal Font</label>

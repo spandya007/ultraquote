@@ -19,7 +19,7 @@ export function OnboardingChecklist({ isOwner, steps }: { isOwner: boolean; step
     { label: "Add your company logo", href: "/settings", done: steps.logo },
     { label: "Add your products", href: "/products", done: steps.products },
     { label: "Add a client", href: "/clients", done: steps.clients },
-    { label: "Create your first quote", href: "/quotes", done: steps.quotes },
+    { label: "Create your first proposal", href: "/proposals", done: steps.quotes },
   ];
   const doneCount = items.filter(i => i.done).length;
   if (doneCount === items.length) return null;  // all set

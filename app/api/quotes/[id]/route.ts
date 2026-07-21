@@ -28,7 +28,7 @@ export async function DELETE(
   const { data: me } = await db
     .from("users").select("role").eq("id", user.id).single() as { data: { role: string } | null };
   if (me?.role !== "owner") {
-    return NextResponse.json({ error: "Only the workspace owner can delete quotes." }, { status: 403 });
+    return NextResponse.json({ error: "Only the workspace owner can delete proposals." }, { status: 403 });
   }
 
   // Load the quote's stored status (RLS scopes to the tenant).
@@ -38,7 +38,7 @@ export async function DELETE(
       error: { message: string } | null;
     };
   if (loadErr || !quote) {
-    return NextResponse.json({ error: loadErr?.message ?? "Quote not found" }, { status: 404 });
+    return NextResponse.json({ error: loadErr?.message ?? "Proposal not found" }, { status: 404 });
   }
 
   if (!DELETABLE.has(quote.status)) {

@@ -23,7 +23,7 @@ export async function GET(
   }
 
   const input = await loadSerializeInput(supabase, params.id);
-  if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!input) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
 
   // Per-document header/footer toggle (defaults on if column/row missing).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

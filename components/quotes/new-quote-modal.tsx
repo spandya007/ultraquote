@@ -66,7 +66,7 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
 
       if (!res.ok) throw new Error(json.error ?? "Failed to create quote");
 
-      toast.success("Quote created — opening editor…");
+      toast.success("Proposal created — opening editor…");
       onCreated(json.id);
     } catch (e: unknown) {
       let msg = (e as { message?: string })?.message ?? "Failed to create quote";
@@ -91,7 +91,7 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
       <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
         <div className="bg-background rounded-xl border shadow-2xl w-full max-w-md">
           <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">New Quote</h2>
+            <h2 className="text-lg font-semibold">New Proposal</h2>
             <button onClick={handleClose} className="p-1 rounded hover:bg-muted">
               <X className="w-5 h-5" />
             </button>
@@ -144,7 +144,7 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
             )}
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Quote Title</label>
+              <label className="text-sm font-medium">Proposal Title</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -178,7 +178,7 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
               disabled={saving || !clientId}
               className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {saving ? "Creating…" : "Create Quote"}
+              {saving ? "Creating…" : "Create Proposal"}
             </button>
           </div>
         </div>

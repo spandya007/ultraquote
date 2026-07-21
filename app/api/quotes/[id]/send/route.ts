@@ -31,7 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const input = await loadSerializeInput(supabase, params.id);
-  if (!input) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!input) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
 
   const body = (await request.json().catch(() => ({}))) as Body;
 

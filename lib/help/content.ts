@@ -22,12 +22,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "What SmartProps does",
-        blocks: [p("SmartProps helps you create, send, and track professional proposals (quotes) for your clients — from pricing through e-signature.")],
+        blocks: [p("SmartProps helps you create, send, and track professional proposals (proposals) for your clients — from pricing through e-signature.")],
       },
       {
-        heading: "How a quote is structured",
+        heading: "How a proposal is structured",
         blocks: [
-          p("Every quote has two parts that work together:"),
+          p("Every proposal has two parts that work together:"),
           ul([
             "Pricing scenarios — one or more priced options (each with its own line items) so a client can compare, e.g. Good / Better / Best.",
             "The proposal document — the written narrative (cover letter, scope, terms) where you can also place live pricing tables.",
@@ -39,28 +39,28 @@ export const HELP_TOPICS: HelpTopic[] = [
         blocks: [
           p("The home page summarizes your business at a glance:"),
           ul([
-            "Open pipeline value and monthly recurring revenue from open quotes",
+            "Open pipeline value and monthly recurring revenue from open proposals",
             "Win rate and active clients",
-            "Quotes expiring soon (within 14 days) and your most recent quotes",
+            "Proposals expiring soon (within 14 days) and your most recent proposals",
           ]),
         ],
       },
     ],
   },
   {
-    id: "quotes",
-    title: "Building a quote",
+    id: "proposals",
+    title: "Building a proposal",
     icon: FileText,
     sections: [
       {
-        heading: "Creating a quote",
-        blocks: [p("Quotes → New Quote → pick a client. Optionally choose a template under “Start from” to begin with a ready-made document. Quote numbers are assigned automatically (e.g. CMIT-2026-001).")],
+        heading: "Creating a proposal",
+        blocks: [p("Proposals → New Proposal → pick a client. Optionally choose a template under “Start from” to begin with a ready-made document. Proposal numbers are assigned automatically (e.g. CMIT-2026-001).")],
       },
       {
         heading: "Scenarios",
         blocks: [
           p("In the Pricing Scenarios tab you can add up to 5 scenarios, rename them, and star one as Recommended."),
-          p("Each scenario is a self-contained set of line items, so you can offer different packages within the same quote."),
+          p("Each scenario is a self-contained set of line items, so you can offer different packages within the same proposal."),
         ],
       },
       {
@@ -87,22 +87,22 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Refresh prices from catalog",
         blocks: [
-          p("Line items remember the product’s price and setup fee from the moment you added them, so a sent quote’s numbers never change underneath you."),
-          p("If you update a product in the catalog and want an existing quote to pick up the new prices, open the quote → Pricing Scenarios → “Refresh prices from catalog.” It re-pulls current unit cost, price, and setup for every catalog-linked line; your quantities, discounts, and free-text items are kept."),
+          p("Line items remember the product’s price and setup fee from the moment you added them, so a sent proposal’s numbers never change underneath you."),
+          p("If you update a product in the catalog and want an existing proposal to pick up the new prices, open the proposal → Pricing Scenarios → “Refresh prices from catalog.” It re-pulls current unit cost, price, and setup for every catalog-linked line; your quantities, discounts, and free-text items are kept."),
         ],
       },
       {
-        heading: "Seeing AI usage per quote",
+        heading: "Seeing AI usage per proposal",
         blocks: [
-          p("On the Quotes list, click “Show AI usage” to add two columns showing how many AI Draft and Ask AI actions each quote has used — a quick way to see which quotes lean on the AI and to keep an eye on the per-quote fair-use limit."),
+          p("On the Proposals list, click “Show AI usage” to add two columns showing how many AI Draft and Ask AI actions each proposal has used — a quick way to see which proposals lean on the AI and to keep an eye on the per-proposal fair-use limit."),
         ],
       },
       {
-        heading: "Deleting quotes",
+        heading: "Deleting proposals",
         ownerOnly: true,
         blocks: [
-          p("Deleting is owner-only and off by default. On the Quotes list, click “Enable delete” to turn it on for 30 seconds (a countdown shows); it then turns itself back off. While it’s on, a Delete button appears on each row and you can remove several quotes within the window."),
-          p("Only Draft or Declined quotes can be deleted — quotes that are sent, viewed, signed, or expired are kept (a signed quote is a real record, and an expired one was a real offer). Deleting a quote permanently removes it along with all of its scenarios, line items, and signing records. This cannot be undone."),
+          p("Deleting is owner-only and off by default. On the Proposals list, click “Enable delete” to turn it on for 30 seconds (a countdown shows); it then turns itself back off. While it’s on, a Delete button appears on each row and you can remove several proposals within the window."),
+          p("Only Draft or Declined proposals can be deleted — proposals that are sent, viewed, signed, or expired are kept (a signed proposal is a real record, and an expired one was a real offer). Deleting a proposal permanently removes it along with all of its scenarios, line items, and signing records. This cannot be undone."),
         ],
       },
     ],
@@ -153,7 +153,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "AI Draft — write proposal sections for you",
         blocks: [
-          p("The ✦ AI Draft button (Document toolbar) writes proposal content grounded in this quote — your pricing scenarios, the client, your Proposal Voice (Settings), and your Client Notes. You don’t need a pricing table in the document for the AI to know your pricing; it reads the scenarios directly."),
+          p("The ✦ AI Draft button (Document toolbar) writes proposal content grounded in this proposal — your pricing scenarios, the client, your Proposal Voice (Settings), and your Client Notes. You don’t need a pricing table in the document for the AI to know your pricing; it reads the scenarios directly."),
           p("Set the length once at the top of the menu — Short, Standard, or Detailed — and it applies to every draft you generate. Then choose how much to draft:"),
           ul([
             "Draft full proposal — the guided path: set the style (tone, optional emphasis, optionally a past proposal to match), review an AI-proposed section outline you can rename / reorder / add / remove, then draft the whole thing. It drafts section by section, showing progress (e.g. “Drafting 3/6…”).",
@@ -161,8 +161,8 @@ export const HELP_TOPICS: HelpTopic[] = [
             "Custom section — type any heading you like (e.g. “Implementation Plan”) and draft it.",
           ]),
           p("Every draft is shown for review first — Insert or Discard — and inserted text is fully editable. Full-proposal drafts end with a call to action to e-sign; if you’ve added multiple-choice or acceptance blocks, it also asks the client to accept those options/terms."),
-          p("The AI only uses the services and prices on your quote — it never invents line items, prices, or dates, and leaves bracketed notes like “[confirm: timeline]” where a detail is unknown."),
-          p("Fair-use limit: AI drafting is capped per quote (around 25 AI actions, roughly three full-proposal drafts). If you reach it you’ll see a note to keep refining the draft manually. The count follows a quote when you duplicate it, so duplicating doesn’t reset the limit. Ask AI and the other pricing tools aren’t affected."),
+          p("The AI only uses the services and prices on your proposal — it never invents line items, prices, or dates, and leaves bracketed notes like “[confirm: timeline]” where a detail is unknown."),
+          p("Fair-use limit: AI drafting is capped per proposal (around 25 AI actions, roughly three full-proposal drafts). If you reach it you’ll see a note to keep refining the draft manually. The count follows a proposal when you duplicate it, so duplicating doesn’t reset the limit. Ask AI and the other pricing tools aren’t affected."),
         ],
       },
       {
@@ -175,7 +175,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Client Notes (internal)",
         blocks: [
-          p("Each quote has a Client Notes tab (next to Pricing Scenarios and Document) for notes from talking to the client — pain points, goals, budget signals, timing. AI Draft reads these to target the proposal to the client’s situation."),
+          p("Each proposal has a Client Notes tab (next to Pricing Scenarios and Document) for notes from talking to the client — pain points, goals, budget signals, timing. AI Draft reads these to target the proposal to the client’s situation."),
           p("These notes are internal: they are never shown to the client and never appear in the proposal or PDF."),
         ],
       },
@@ -205,25 +205,25 @@ export const HELP_TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "What templates are",
-        blocks: [p("A template is a reusable proposal document — boilerplate like your cover letter, scope language, and standard terms — that you start new quotes from instead of writing from scratch. Templates store the document narrative only, not pricing.")],
+        blocks: [p("A template is a reusable proposal document — boilerplate like your cover letter, scope language, and standard terms — that you start new proposals from instead of writing from scratch. Templates store the document narrative only, not pricing.")],
       },
       {
         heading: "Saving a document as a template",
-        blocks: [p("Open a quote’s Document tab → Save as template → give it a name. It’s then available to everyone in your workspace.")],
+        blocks: [p("Open a proposal’s Document tab → Save as template → give it a name. It’s then available to everyone in your workspace.")],
       },
       {
-        heading: "Starting a quote from a template",
+        heading: "Starting a proposal from a template",
         blocks: [
-          p("Templates are applied when you create a quote — two ways:"),
+          p("Templates are applied when you create a proposal — two ways:"),
           ul([
-            "New Quote → “Start from” → pick a template",
-            "Templates page → the “New quote” button on a template card (the New Quote box opens with that template preselected)",
+            "New Proposal → “Start from” → pick a template",
+            "Templates page → the “New proposal” button on a template card (the New Proposal box opens with that template preselected)",
           ]),
         ],
       },
       {
         heading: "Editing templates",
-        blocks: [p("Anyone can use any template to start a quote. Only the template’s creator (or the tenant owner) can rename, edit, or delete it — others see it as view-only.")],
+        blocks: [p("Anyone can use any template to start a proposal. Only the template’s creator (or the tenant owner) can rename, edit, or delete it — others see it as view-only.")],
       },
       {
         heading: "Exporting & importing templates",
@@ -237,16 +237,16 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: "sending",
-    title: "Sending & quote status",
+    title: "Sending & proposal status",
     icon: Send,
     sections: [
       {
-        heading: "Quote statuses",
+        heading: "Proposal statuses",
         blocks: [
           p("Status is managed automatically — there’s no dropdown to set it:"),
           ul([
             "Draft → Sent (when you send for signature) → Viewed → Signed or Declined",
-            "Expired is shown automatically once a sent/viewed quote passes its Valid Until date — extend the date to reactivate it",
+            "Expired is shown automatically once a sent/viewed proposal passes its Valid Until date — extend the date to reactivate it",
             "Signed is final; use Duplicate to start a new version",
           ]),
         ],
@@ -257,14 +257,14 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         heading: "Header & footer",
-        blocks: [p("Each quote has a PDF Options toggle for a running header (company name + quote number) and footer (confidentiality line + page numbers) on every page after the cover.")],
+        blocks: [p("Each proposal has a PDF Options toggle for a running header (company name + proposal number) and footer (confidentiality line + page numbers) on every page after the cover.")],
       },
       {
         heading: "Send for signature",
         blocks: [
           p("Add a signature where a party signs — toolbar Insert menu → Building blocks → Signature — then “Send for signature.” Each signer (the client, and your company if you counter-sign) receives an email to sign electronically."),
-          p("Collecting two client signatures: set a signature (or initials) block’s signer to “Secondary contact,” and the Send dialog shows a Secondary signer section (prefilled from the client’s secondary contact). Both client-side signers are emailed; the quote completes once everyone has signed."),
-          p("As they view and sign, the quote status updates automatically, and the signed PDF is captured when complete."),
+          p("Collecting two client signatures: set a signature (or initials) block’s signer to “Secondary contact,” and the Send dialog shows a Secondary signer section (prefilled from the client’s secondary contact). Both client-side signers are emailed; the proposal completes once everyone has signed."),
+          p("As they view and sign, the proposal status updates automatically, and the signed PDF is captured when complete."),
         ],
       },
     ],
@@ -276,7 +276,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "Using the catalog",
-        blocks: [p("Everyone can search the product catalog and pull items into quotes. Managing the catalog (adding, editing, importing) is done by the tenant owner.")],
+        blocks: [p("Everyone can search the product catalog and pull items into proposals. Managing the catalog (adding, editing, importing) is done by the tenant owner.")],
       },
       {
         heading: "Adding & editing products",
@@ -318,7 +318,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Adding a client",
         blocks: [
           p("Clients → Add Client. Enter the company name and a primary contact (name, email, phone). You can also add a Secondary Contact and a structured address (street, suite, city, state, ZIP, country), plus internal notes. Any team member can add a new client."),
-          p("Secondary Contact is optional and is primarily for a second signer — when a deal needs two signatures from the client side, add the second person here and you can route a signature to them at send time (see Sending & quote status)."),
+          p("Secondary Contact is optional and is primarily for a second signer — when a deal needs two signatures from the client side, add the second person here and you can route a signature to them at send time (see Sending & proposal status)."),
         ],
       },
       {
@@ -337,15 +337,15 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Editing or deactivating a client",
         ownerOnly: true,
-        blocks: [p("The tenant owner can edit an existing client’s details or deactivate one that’s no longer active (deactivated clients drop off the default list, but their past quotes are kept). Members can add new clients but not change existing ones — editing a shared client would affect everyone’s quotes for them.")],
+        blocks: [p("The tenant owner can edit an existing client’s details or deactivate one that’s no longer active (deactivated clients drop off the default list, but their past proposals are kept). Members can add new clients but not change existing ones — editing a shared client would affect everyone’s proposals for them.")],
       },
       {
         heading: "Client logo & co-branding",
         blocks: [p("Upload a client’s logo in the client drawer, then place it in a proposal with the {{client.logo}} field so the document is co-branded with both your logo and theirs.")],
       },
       {
-        heading: "Using clients on quotes",
-        blocks: [p("Every quote is tied to one client, chosen when you create it. The client’s details automatically fill the {{client.*}} fields you place in the proposal document.")],
+        heading: "Using clients on proposals",
+        blocks: [p("Every proposal is tied to one client, chosen when you create it. The client’s details automatically fill the {{client.*}} fields you place in the proposal document.")],
       },
     ],
   },
@@ -362,17 +362,17 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         heading: "Roles: owner vs member",
         blocks: [
-          p("Quotes and templates are owned by whoever created them. You can fully edit your own; a teammate’s opens read-only (with a Duplicate button to make your own editable copy). The tenant owner can edit everything."),
+          p("Proposals and templates are owned by whoever created them. You can fully edit your own; a teammate’s opens read-only (with a Duplicate button to make your own editable copy). The tenant owner can edit everything."),
           ul([
             "Owner-only: managing products, company settings, and editing existing clients",
-            "Members can: create/edit their own quotes & templates, use the catalog, and add new clients",
+            "Members can: create/edit their own proposals & templates, use the catalog, and add new clients",
           ]),
         ],
       },
       {
-        heading: "Working on a quote together",
+        heading: "Working on a proposal together",
         blocks: [
-          p("If a teammate has the same quote open, a chip shows “X is also in this quote.” Changes they save to scenarios and line items appear in your editor within a second or two."),
+          p("If a teammate has the same proposal open, a chip shows “X is also in this proposal.” Changes they save to scenarios and line items appear in your editor within a second or two."),
           p("Saves are last-write-wins, so coordinate (or duplicate) rather than co-typing the same document at once."),
         ],
       },
@@ -380,7 +380,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Pausing a user (Enable / Disable)",
         ownerOnly: true,
         blocks: [
-          p("On Settings → Team you can Disable any team member to immediately block their access — useful when someone leaves or is away — without deleting them or their quotes. Toggle them back to Enable to restore access instantly. You can’t disable yourself (the owner)."),
+          p("On Settings → Team you can Disable any team member to immediately block their access — useful when someone leaves or is away — without deleting them or their proposals. Toggle them back to Enable to restore access instantly. You can’t disable yourself (the owner)."),
           p("Disabling is different from revoking an invite: revoke is for people who haven’t accepted yet; disable is for active users. (For subscription expiry and account access, see Subscription & access.)"),
         ],
       },
@@ -403,7 +403,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "After the end date (read-only grace)",
         ownerOnly: true,
         blocks: [
-          p("If your subscription lapses, your team isn’t locked out immediately. For a short grace period everyone can still view quotes and data but can’t create, edit, or send — a red banner shows how long you have. Renewing restores full access; if the grace period passes without renewal, access is paused until you renew."),
+          p("If your subscription lapses, your team isn’t locked out immediately. For a short grace period everyone can still view proposals and data but can’t create, edit, or send — a red banner shows how long you have. Renewing restores full access; if the grace period passes without renewal, access is paused until you renew."),
         ],
       },
       {
@@ -416,14 +416,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Your workspace summary",
         ownerOnly: true,
         blocks: [
-          p("Settings → Your workspace shows a quick summary of everything stored in your account — clients, active products, quotes (including how many are signed and how many are sent/awaiting signature), and team members. It’s a handy at-a-glance check of what you have, especially before requesting any account changes."),
+          p("Settings → Your workspace shows a quick summary of everything stored in your account — clients, active products, proposals (including how many are signed and how many are sent/awaiting signature), and team members. It’s a handy at-a-glance check of what you have, especially before requesting any account changes."),
         ],
       },
       {
         heading: "If your workspace is scheduled for deletion",
         blocks: [
           p("If your SmartProps workspace is scheduled for permanent deletion, a red banner appears across the top showing the deletion date. Your workspace stays fully usable until then, so you can finish anything in progress and save copies of what you need."),
-          p("Before the date: download any quotes you want to keep as PDFs (open a quote → Preview/Download PDF). If you need a full copy of your data, or the deletion is a mistake, contact hello@smartprops.io right away to cancel it. On the deletion date the workspace and all its data are permanently removed and can’t be recovered."),
+          p("Before the date: download any proposals you want to keep as PDFs (open a proposal → Preview/Download PDF). If you need a full copy of your data, or the deletion is a mistake, contact hello@smartprops.io right away to cancel it. On the deletion date the workspace and all its data are permanently removed and can’t be recovered."),
         ],
       },
     ],
@@ -441,8 +441,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         heading: "Proposal font",
         ownerOnly: true,
         blocks: [
-          p("Settings → Quote Defaults → Proposal Font sets the typeface for your proposals — choose Sans-serif (Helvetica/Arial), Serif (Times New Roman), or Monospace (Courier). It’s a company-wide setting that applies to every quote."),
-          p("The font shows everywhere the proposal is rendered: while editing the Document, in the Preview and downloaded PDF, and in the e-signature document. Reload an open quote after changing it. (The choice is limited to these three so it renders reliably in both the PDF and the signing document.)"),
+          p("Settings → Proposal Defaults → Proposal Font sets the typeface for your proposals — choose Sans-serif (Helvetica/Arial), Serif (Times New Roman), or Monospace (Courier). It’s a company-wide setting that applies to every proposal."),
+          p("The font shows everywhere the proposal is rendered: while editing the Document, in the Preview and downloaded PDF, and in the e-signature document. Reload an open proposal after changing it. (The choice is limited to these three so it renders reliably in both the PDF and the signing document.)"),
         ],
       },
       {

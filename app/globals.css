@@ -127,7 +127,7 @@
 }
 
 /* Brand-font WYSIWYG: match the editor canvas to the tenant's chosen proposal
-   font (Settings → Quote Defaults). Mirrors the PDF serializer's bodyFontStack;
+   font (Settings → Proposal Defaults). Mirrors the PDF serializer's bodyFontStack;
    'sans' keeps BlockNote's default font (no override). */
 [data-doc-font="serif"] .bn-editor {
   font-family: "Times New Roman", Times, serif;

@@ -71,7 +71,7 @@ interface Props {
   isOwner: boolean;
   /** Teammates (for the created-by filter), current user excluded. */
   teamUsers: { id: string; name: string }[];
-  /** Active templates for the New Quote "Start from" selector. */
+  /** Active templates for the New Proposal "Start from" selector. */
   templates: { id: string; name: string }[];
 }
 
@@ -150,7 +150,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to duplicate");
       toast.success(`Created ${data.quote_number}`);
-      router.push(`/quotes/${data.id}`);
+      router.push(`/proposals/${data.id}`);
     } catch (e) {
       toast.error((e as Error).message);
       setDuplicatingId(null);
@@ -198,9 +198,9 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{filterOwner === "mine" ? "My Quotes" : "Quotes"}</h1>
+          <h1 className="text-2xl font-bold">{filterOwner === "mine" ? "My Proposals" : "Proposals"}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {filtered.length} of {visibleQuotes.length} quotes
+            {filtered.length} of {visibleQuotes.length} proposals
             {hiddenDrafts > 0 && (
               <span className="ml-2 text-xs">
                 · {hiddenDrafts} older draft{hiddenDrafts === 1 ? "" : "s"} hidden (inactive &gt;{validDays} days — raise “Default Valid Days” in Settings to show)
@@ -244,7 +244,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
             className="flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            New Quote
+            New Proposal
           </button>
         </div>
       </div>
@@ -257,8 +257,8 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           title="Whose quotes to show — teammates' quotes open read-only"
           className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="mine">My Quotes</option>
-          <option value="all">All Quotes</option>
+          <option value="mine">My Proposals</option>
+          <option value="all">All Proposals</option>
           {teamUsers.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
@@ -306,7 +306,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
             {visibleQuotes.length === 0
               ? "No quotes yet — create your first quote."
               : filterOwner === "mine"
-              ? "You haven't created any quotes yet — switch the selector to All Quotes to see your team's, or create your first one."
+              ? "You haven't created any proposals yet — switch the selector to All Proposals to see your team's, or create your first one."
               : "No quotes match your filters."}
           </p>
           {visibleQuotes.length === 0 && (
@@ -314,7 +314,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
               onClick={() => setModalOpen(true)}
               className="mt-4 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
             >
-              New Quote
+              New Proposal
             </button>
           )}
         </div>
@@ -323,7 +323,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
           <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <SortHeader label="Quote #" col="number" sort={sort} onSort={toggle} />
+                <SortHeader label="Proposal #" col="number" sort={sort} onSort={toggle} />
                 <SortHeader label="Client" col="client" sort={sort} onSort={toggle} />
                 <SortHeader label="Title" col="title" sort={sort} onSort={toggle} />
                 <SortHeader label="Status" col="status" sort={sort} onSort={toggle} />
@@ -343,7 +343,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
               {sorted.map((q) => (
                 <tr
                   key={q.id}
-                  onClick={() => router.push(`/quotes/${q.id}`)}
+                  onClick={() => router.push(`/proposals/${q.id}`)}
                   className="hover:bg-muted/30 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-mono text-xs font-medium">{q.quote_number}</td>
@@ -438,7 +438,7 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
         clients={clients}
         templates={templates}
         onClose={() => setModalOpen(false)}
-        onCreated={(id) => { setModalOpen(false); router.push(`/quotes/${id}`); }}
+        onCreated={(id) => { setModalOpen(false); router.push(`/proposals/${id}`); }}
       />
     </>
   );

@@ -98,7 +98,7 @@ export function BetaClient() {
           <div className="logo"><span className="mark">SP</span> SmartProps</div>
           <span className="pill">● You&apos;re invited — private beta</span>
           <h1>Send proposals your clients sign in minutes.</h1>
-          <p>The all-in-one platform to build quotes, draft polished proposals with AI, and collect e-signatures — for one team or a whole organization.</p>
+          <p>The all-in-one platform to build proposals, draft polished proposals with AI, and collect e-signatures — for one team or a whole organization.</p>
         </div>
 
         <div className="body">
@@ -112,8 +112,8 @@ export function BetaClient() {
           <div className="benefits">
             <div className="ben">
               <div className="ic">⚡</div>
-              <h3>Quote in minutes</h3>
-              <p>Build multi-option quotes from your catalog with tiers, discounts, tax &amp; margins — calculated instantly.</p>
+              <h3>Proposals in minutes</h3>
+              <p>Build multi-option proposals from your catalog with tiers, discounts, tax &amp; margins — calculated instantly.</p>
             </div>
             <div className="ben">
               <div className="ic">✍️</div>

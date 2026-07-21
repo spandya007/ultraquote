@@ -229,7 +229,7 @@ export function AdminClient({ tenants }: { tenants: AdminTenantRow[] }) {
               <th className="px-3 py-2.5 font-medium">Organization</th>
               <th className="px-3 py-2.5 font-medium">Owner</th>
               <th className="px-3 py-2.5 font-medium text-right" title="Billing basis: active users in the tenant">Users</th>
-              <th className="px-3 py-2.5 font-medium text-right">Quotes</th>
+              <th className="px-3 py-2.5 font-medium text-right">Proposals</th>
               <th className="px-3 py-2.5 font-medium">Created</th>
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th className="px-3 py-2.5 font-medium">Subscription</th>
