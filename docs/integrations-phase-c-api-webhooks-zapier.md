@@ -240,3 +240,87 @@ Ship **C1 webhooks + the C2 API-key auth + `/api/v1/webhooks` sub/unsub + `GET /
 one milestone → a customer can already do "proposal signed → anything" through Zapier's generic Webhooks
 trigger, and it validates the event model + key model before investing in the full REST surface and the
 branded Zapier app.
+
+---
+
+# Appendix A — MCP server (AI-chat / agent consumption layer)
+
+**The pitch: "build proposals by chatting with your AI."** An MCP (Model Context Protocol) server exposes
+the proposal workflow as typed tools an AI can call, so a chat session in Claude / Claude Desktop /
+Cursor / any MCP client can drive the whole flow: *"Create a proposal for Acme from this thread, use the
+Managed Services package + a security add-on scenario, draft the exec summary in our voice, preview it."*
+
+## A.1 Framing — a third consumption layer on the SAME C2 API
+MCP is **mostly a thin, typed wrapper over the Phase C REST API** (§3) plus the existing AI-draft
+endpoint. Same API investment, three clients: **Zapier** (no-code), **raw REST** (devs), **MCP**
+(AI/agents). So this is **Phase C+** — sequence it after C2; do NOT build it before the API exists.
+
+## A.2 Hosting model
+| Mode | Transport | Auth | Who | Notes |
+|---|---|---|---|---|
+| **Remote (productized)** | Streamable HTTP MCP at `https://app.smartprops.io/api/mcp` | **OAuth 2.1** | Everyone — add as a **claude.ai connector** / Claude Desktop / Cursor by URL | Multi-tenant: OAuth maps the connecting user → their tenant. Reuse the **QBO OAuth plumbing** (authorize/callback/token, HMAC state). |
+| **Local (dev / power-user)** | stdio | **Phase C API key** | Technical users running it themselves | Small `@smartprops/mcp` npm pkg started with `SMARTPROPS_API_KEY`. **Cheapest to ship first**; validates the tools before OAuth. |
+
+Recommend **local-first** (fast, proves the tool set on the API key) → **remote/OAuth** as the
+productized claude.ai-connector experience.
+
+## A.3 Surface — tools / resources / prompts
+**Tools** (JSON-schema'd; each wraps a `/api/v1` call or an existing endpoint):
+| Tool | Wraps | Scope |
+|---|---|---|
+| `find_client`, `list_clients` | `GET /api/v1/clients` | read |
+| `search_catalog`, `list_products` | `GET /api/v1/products` | read |
+| `get_proposal` (state, scenarios, totals, status, pdf_url) | `GET /api/v1/proposals/:id` | read |
+| `create_client` | `POST /api/v1/clients` | write |
+| `create_proposal` (draft: client + title) | `POST /api/v1/proposals` (the deferred C2 write) | write |
+| `add_scenario`, `add_line_item` | proposal-mutation endpoints | write |
+| `draft_section` | **existing `/api/ai/draft`** (AI drafts a section, brand-voice grounded) | write |
+| `preview_pdf` | `/api/quotes/[id]/preview` \| `/pdf` | read |
+| ⚠️ `send_for_signature` | `/api/quotes/[id]/send` | **send** (gated — see A.4) |
+
+**Resources** (read-only context the model can pull): active templates, the tenant's Proposal Voice,
+the product catalog.
+**Prompts** (optional): a guided "new proposal" prompt (intake → outline → draft), mirroring the in-app
+AI-draft flow.
+
+## A.4 ⚠️ Safety model for AI-initiated actions (the crux)
+Sending a **legally-binding e-signature request** must never be a silent one-shot from an AI.
+- **Scopes:** `read` / `write` / **`send`** — `send_for_signature` requires the separate **`send`** scope,
+  **off by default**. Draft-and-preview works without it.
+- **Two-step send:** `prepare_send` returns a human-readable summary + a short-lived confirmation token;
+  `send_for_signature` requires that token. Combined with the MCP tool annotation
+  **`destructiveHint: true`** (also set `readOnlyHint`/`idempotentHint` appropriately) so MCP clients
+  surface a confirmation prompt.
+- **AI fair-use:** `draft_section` counts against the **25-call/quote cap** (`aiDraftLimitBlock`), same as
+  in-app.
+- **Audit:** log every MCP tool call (tenant / key-or-user / tool / args-summary) — reuse the `ai_usage` /
+  audit patterns. Surface in `/admin`.
+
+## A.5 Auth → tenant + isolation
+Remote: OAuth grant → session → tenant. Local: API key → tenant (§3.2). Either way the request is **not**
+a Supabase auth user → **RLS does not apply** → every tool uses service-role + the **mandatory explicit
+tenant filter** (same #1 rule as §3.2 / §5). Extend `npm run test:rls` to cover MCP paths.
+
+## A.6 Entitlement & positioning
+Gate behind the same `'integrations'` / `'api_access'` feature (§6) — a premium, AI-native lever.
+Market as **"proposals by chat"** — reinforces the existing AI-drafting brand. Treat as
+**differentiation + forward-bet + power-user** value; MCP adoption is early for SMB MSPs today but
+climbing fast (Claude, Cursor, ChatGPT connectors).
+
+## A.7 Reuse map (MCP-specific)
+| Need | Reuse |
+|---|---|
+| MCP server | `@modelcontextprotocol/sdk` (TS); tools wrap `/api/v1` + `/api/ai/draft` |
+| Remote OAuth | QBO OAuth pattern (`lib/integrations/qbo/oauth.ts`, `oauth-state.ts`) |
+| Local auth | Phase C API keys (§3.1) |
+| Send-safety | MCP tool annotations (`destructiveHint`) + a `prepare_send`→confirm token |
+| AI drafting | existing `/api/ai/draft` + `aiDraftLimitBlock` cap |
+| Gating | `lib/billing/entitlements.ts` |
+
+## A.8 Open decisions (MCP)
+1. **Local-first (API key, stdio) vs remote-first (OAuth, claude.ai connector)** — recommend local-first.
+2. **Remote auth** — OAuth 2.1 (proper) vs API-key-over-HTTP (simpler, less native to MCP clients).
+3. **v1 tool set** — read + draft only (safest) vs include create/mutate vs include gated send.
+4. **Send gating mechanism** — tool annotation only, two-step token only, or both (recommend both).
+5. **Distribution** — publish as a claude.ai connector + list in the MCP registry, or keep unlisted first.
+6. **Overlap** — position vs the in-app AI drafting (MCP = bring-your-own-AI / cross-tool; in-app = turnkey).
