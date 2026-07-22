@@ -1,0 +1,242 @@
+# Integrations Phase C — Public API + Outbound Webhooks + Zapier/Make
+
+Status: **DESIGN / not started** (2026-07-22). The "force multiplier" from
+`docs/integrations-connectors-design.md` §4/§6: instead of hand-building every connector, ship one
+integration surface and let customers self-serve the long tail (Pipedrive, Xero, Slack, ConnectWise,
+Google Sheets, HubSpot, …) via Zapier/Make with zero bespoke work from us.
+
+Relationship to the other phases: **Phase A (QBO) is DONE + tested** (`docs/integrations-phase-a-plan.md`);
+**Phase B (native HubSpot)** was planned (`docs/integrations-phase-b-plan.md`) but this doc argues to
+**defer** it — Zapier covers HubSpot too. Keep QBO native (deep invoice sync); everything else = Phase C.
+
+---
+
+## 0. Goal & non-goals
+**Goal:** one build unlocks thousands of integrations and kills "do you integrate with X?" sales
+objections. Metered as a **paid-tier lever** (pricing §11).
+
+**Non-goals:** deep, exact, two-way sync (invoice line items, CRM deal-stage pipelines, tax authority).
+Those stay **native** (QBO ✅). Phase C is the shallow-but-broad complement.
+
+## 1. The three layers
+| Layer | What | Enables |
+|---|---|---|
+| **C1 — Outbound webhooks** | Signed JSON POSTed on lifecycle events | "When a proposal is signed → do anything" (via Zapier's generic *Webhooks* trigger, even before a branded app) |
+| **C2 — Public REST API** | `/api/v1/*` + per-tenant API keys | Read proposals/clients/products; create clients (Zapier *actions*, custom scripts) |
+| **C3 — Zapier / Make app** | Branded app on top of C1+C2 | One-click, no raw-webhook config; discoverable in the Zapier catalog |
+
+Ship in that order — C1 is the smallest build and immediately useful.
+
+---
+
+## 2. Layer C1 — Outbound webhooks
+
+### 2.1 Events (v1)
+Fire from **server-side** code we already control (so no DB triggers needed for v1):
+
+| Event | Emit point (existing code) |
+|---|---|
+| `proposal.sent` | `app/api/quotes/[id]/send/route.ts` (sets `status='sent'`) |
+| `proposal.viewed` | `app/api/webhooks/docuseal/route.ts` (maps `form.viewed`) |
+| `proposal.signed` | `app/api/webhooks/docuseal/route.ts` (fully signed → `status='signed'`; same point that calls `createInvoiceOnSigned`) |
+| `proposal.declined` | `app/api/webhooks/docuseal/route.ts` (`form.declined`) |
+
+**v2 (deferred):** `client.created/updated` — clients are inserted **client-side via Supabase**, not a
+server route, so emitting requires either a Postgres trigger (`pg_net`) or routing client creation
+through an API. Left out of v1 to keep it server-emit-only. `proposal.created` similar (created via
+`/api/quotes` — that one *is* a route, so it's a cheap add if wanted).
+
+### 2.2 Payload (versioned)
+```jsonc
+{
+  "id": "evt_01J...",              // unique — idempotency key for the consumer
+  "type": "proposal.signed",
+  "api_version": "2026-07-01",
+  "created_at": "2026-07-22T18:03:00Z",
+  "tenant_id": "…",
+  "data": {
+    "proposal": {
+      "id": "…", "number": "PROP-2026-014", "title": "…", "status": "signed",
+      "client": { "id": "…", "company_name": "…", "contact_email": "…" },
+      "totals": { "monthly": 1200, "one_time": 3400, "currency": "USD" },
+      "valid_until": "…", "signed_at": "…", "pdf_url": "…"
+    }
+  }
+}
+```
+Totals resolved from the recommended (→selected→first) scenario via the existing `calcTotals`/`lineRev`/
+`lineSetup` in `lib/pdf/serialize.ts` — same source the QBO invoice uses, so numbers are consistent.
+
+### 2.3 Data model — migration `032_tenant_webhooks.sql`
+```sql
+-- Registered endpoints (secrets → service-role only, like tenant_integrations)
+create table public.tenant_webhooks (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null references public.tenants(id) on delete cascade,
+  url          text not null,
+  secret       text not null,          -- HMAC signing key, AES-256-GCM encrypted (lib/integrations/crypto.ts)
+  events       text[] not null default '{}',   -- subscribed types
+  enabled      boolean not null default true,
+  source       text not null default 'user',   -- 'user' | 'zapier' | 'make'
+  created_by   uuid,
+  last_status  text, last_delivery_at timestamptz,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+-- Delivery log — retries + observability. Idempotency via (webhook_id, event_id).
+create table public.webhook_deliveries (
+  id            uuid primary key default gen_random_uuid(),
+  webhook_id    uuid not null references public.tenant_webhooks(id) on delete cascade,
+  event_id      text not null,
+  event_type    text not null,
+  payload       jsonb not null,
+  status        text not null default 'pending',   -- pending | success | failed | dead
+  attempts      int not null default 0,
+  response_code int, response_body text,
+  next_retry_at timestamptz,
+  created_at    timestamptz not null default now(),
+  delivered_at  timestamptz
+);
+alter table public.tenant_webhooks   enable row level security;  -- NO policies (service-role only)
+alter table public.webhook_deliveries enable row level security; -- NO policies
+create index webhook_deliveries_retry_idx on public.webhook_deliveries (status, next_retry_at);
+```
+
+### 2.4 Dispatcher
+- **Emit:** at each event point, build the payload, look up enabled `tenant_webhooks` subscribed to the
+  type, insert a `webhook_deliveries` row per endpoint, then attempt an **immediate best-effort POST**
+  (short timeout, never blocks/breaks the send route or DocuSeal webhook — same swallow pattern as
+  `createInvoiceOnSigned`).
+- **Sign:** headers `X-SmartProps-Event`, `X-SmartProps-Delivery` (delivery id), and
+  `X-SmartProps-Signature: sha256=HMAC(secret, timestamp + "." + rawBody)` + `X-SmartProps-Timestamp`.
+  Consumers verify (documented). Reuse an HMAC helper (cf. `lib/integrations/oauth-state.ts`).
+- **Retry:** failed/pending deliveries retried by a **scheduled runner** (`/api/webhooks/dispatch/run`,
+  cron-gated) with exponential backoff (1m→5m→30m→2h→6h), max ~6 attempts → `dead`. Reuses the
+  **`app/api/admin/deletions/run` + cron** pattern (Netlify functions are short-lived, so a persistent
+  queue = the `webhook_deliveries` table + a cron drain).
+- **Idempotency:** stable `event_id`; consumers dedupe. Re-sends of a proposal produce new events.
+
+### 2.5 Settings UI
+Under **Settings → Integrations** (existing card): "Webhooks" section — add endpoint (URL + pick events),
+regenerate secret (shown once), enable/disable, delete, and a recent-deliveries health list
+(status/response code, "resend"). Owner-only + `'integrations'` entitlement.
+
+---
+
+## 3. Layer C2 — Public REST API
+
+### 3.1 API keys — migration `033_tenant_api_keys.sql`
+Hashed like `mfa_recovery_codes` (SHA-256, service-role only — `lib/auth/recovery-codes.ts` pattern):
+```sql
+create table public.tenant_api_keys (
+  id          uuid primary key default gen_random_uuid(),
+  tenant_id   uuid not null references public.tenants(id) on delete cascade,
+  name        text not null,
+  key_hash    text not null,          -- sha256(full key); full key shown ONCE
+  key_prefix  text not null,          -- e.g. "sp_live_ab12" for display/identification
+  scopes      text[] not null default '{read}',  -- read | write
+  created_by  uuid, last_used_at timestamptz,
+  created_at  timestamptz not null default now(), revoked_at timestamptz
+);
+alter table public.tenant_api_keys enable row level security;  -- NO policies (service-role only)
+create unique index tenant_api_keys_hash_idx on public.tenant_api_keys (key_hash);
+```
+Key format `sp_live_<32 random>`; generated + shown once (copy/download), revocable.
+
+### 3.2 Auth
+`Authorization: Bearer sp_live_…` → SHA-256 → look up `tenant_api_keys` (not revoked) → resolve
+`{ tenantId, scopes }` or **401**. Helper `authenticateApiKey(req)`. Update `last_used_at` (throttled).
+⚠️ The key is **not** a Supabase auth user, so **RLS does not apply** — every query uses the
+service-role client with an **explicit `.eq('tenant_id', tenantId)`**. This is the #1 correctness rule
+(a missing tenant filter = cross-tenant leak); centralize it in a scoped query helper.
+
+### 3.3 Endpoints (`/api/v1`, additive-only versioning)
+| Method | Path | Scope | Notes |
+|---|---|---|---|
+| GET | `/api/v1/proposals` | read | list; filters: `status`, `client_id`, `updated_since`; paginated |
+| GET | `/api/v1/proposals/:id` | read | detail + scenarios/line items/totals/client/pdf_url |
+| GET | `/api/v1/clients` | read | list |
+| POST | `/api/v1/clients` | write | create (mirror the client-drawer fields + validation) |
+| GET | `/api/v1/products` | read | catalog |
+| POST | `/api/v1/webhooks` / DELETE `:id` | write | **for Zapier REST-hook subscribe/unsubscribe** (writes `tenant_webhooks` with `source='zapier'`) |
+| POST | `/api/v1/proposals` | write | **deferred (v2)** — create a draft proposal; larger surface |
+
+### 3.4 Rate limiting & docs
+- Per-key limit (e.g. 100 req/min). ⚠️ No Redis in-stack — needs a store: a small `api_rate_counters`
+  table (window bucket) or a hosted limiter (Upstash). **Open decision** (§7).
+- Publish an OpenAPI spec + a short docs page (feeds the Zapier app + customer scripts).
+
+### 3.5 Settings UI
+**Settings → Integrations → API keys**: generate (name + scopes → shown once), list (prefix +
+last-used), revoke. Owner-only + entitlement.
+
+---
+
+## 4. Layer C3 — Zapier / Make app
+Built on C1 (triggers) + C2 (actions), **Zapier Platform CLI** (JS), auth = **API Key**.
+- **Triggers (REST Hooks):** *New Signed Proposal*, *New Sent Proposal*, *Proposal Declined*. Zapier's
+  subscribe/unsubscribe call `POST/DELETE /api/v1/webhooks` (creates a `tenant_webhooks` row pointing at
+  Zapier's target URL, `source='zapier'`). Optional polling fallback via `GET /api/v1/proposals?updated_since=`.
+- **Actions:** *Create Client*, *Find Client*, (v2: *Create Proposal*).
+- **Publish:** start **private/unlisted** (share an invite link) → submit for Zapier review to list
+  publicly once stable.
+- **Make.com:** either a custom app (same API/webhooks) or document the generic HTTP + webhook modules.
+
+---
+
+## 5. Security model (summary)
+- API keys: SHA-256 hashed, shown once, prefixed, scoped (read/write), revocable, `last_used_at`.
+- Webhooks: HMAC-signed payloads + timestamp (replay window); secrets encrypted at rest.
+- **Tenant isolation without RLS:** API-key requests use service-role + mandatory explicit tenant filter
+  (scoped helper). Covered by RLS/tenant tests (extend `npm run test:rls`).
+- Secrets tables: RLS-enabled, **no policies** (service-role only) — same as `tenant_integrations` /
+  `mfa_recovery_codes` / `platform_admins`.
+- Rate limiting per key; abuse circuit-breaker.
+
+## 6. Entitlement & pricing
+Gate behind the existing **`'integrations'`** feature (or a dedicated **`'api_access'`** key) via
+`plan_features` + `userHasFeature`/`tenantHasFeature` (`lib/billing/entitlements.ts`). Natural
+paid-tier lever (pricing §11). Non-entitled owners see the locked upsell (same pattern as the
+Integrations card).
+
+## 7. Open decisions
+1. **v1 events** — proposal lifecycle only, or add `proposal.created`/`client.created` (the latter needs
+   a DB trigger since clients are created client-side)?
+2. **Dispatch model** — immediate best-effort POST + retry cron (proposed) vs queue-only via cron.
+3. **Rate-limit store** — `api_rate_counters` table vs Upstash vs best-effort.
+4. **API write surface** — clients only (v1) vs also proposals (v2).
+5. **Feature key** — reuse `'integrations'` vs new `'api_access'` (finer-grained gating/pricing).
+6. **Zapier** — private/unlisted first vs straight to public review; build Make app now or later.
+7. **Defer native HubSpot?** — recommended yes (Zapier covers it); revisit if a customer needs deep
+   deal-stage sync.
+
+## 8. Reuse map (what's already there)
+| Need | Reuse |
+|---|---|
+| Encrypt webhook secrets | `lib/integrations/crypto.ts` (AES-256-GCM) |
+| Hash API keys | `lib/auth/recovery-codes.ts` (SHA-256) + `mfa_recovery_codes` table pattern |
+| Secrets table (RLS, no policies) | `tenant_integrations` / `platform_admins` pattern |
+| Event emit points | send route + `app/api/webhooks/docuseal/route.ts` (where QBO already fires) |
+| Proposal totals for payloads | `calcTotals`/`lineRev`/`lineSetup` in `lib/pdf/serialize.ts` |
+| Scheduled retry runner | `app/api/admin/deletions/run` + cron pattern |
+| Entitlement gating | `lib/billing/entitlements.ts` + `plan_features` |
+| Settings home | Settings → Integrations card |
+| HMAC signing | `lib/integrations/oauth-state.ts` helper style |
+
+## 9. Build phases & effort
+- **C1 — Webhooks** *(moderate)*: migration 032, dispatcher + HMAC, emit at send/docuseal points, retry
+  cron, Settings UI. **Immediately useful via generic Zapier Webhooks** — ship this first.
+- **C2 — API + keys** *(moderate–large)*: migration 033, `authenticateApiKey`, scoped query helper,
+  `/api/v1` read endpoints + create-client + webhook sub/unsub, rate limiting, OpenAPI + docs, key UI.
+- **C3 — Zapier app** *(separate track)*: Zapier CLI app (triggers/actions/auth), review/publish;
+  Make optional. Gated on their review cadence.
+
+~60–70% of C1/C2 leans on existing patterns (crypto, hashing, secrets tables, emit points, cron). The
+genuinely new work is the dispatcher + retry semantics, the API-key auth + strict tenant scoping, and
+the Zapier app (external platform).
+
+## 10. Suggested first slice
+Ship **C1 webhooks + the C2 API-key auth + `/api/v1/webhooks` sub/unsub + `GET /api/v1/proposals`** as
+one milestone → a customer can already do "proposal signed → anything" through Zapier's generic Webhooks
+trigger, and it validates the event model + key model before investing in the full REST surface and the
+branded Zapier app.
