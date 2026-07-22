@@ -3,13 +3,13 @@
 import { useState } from "react";
 
 // Public beta-signup landing page (/beta). Self-contained: scoped CSS under
-// `.uq-beta`, always light/branded. Palette: "Signal" (Blue #2563EB primary +
-// Teal #0EA5A4 accent) — see marketing-materials/BRAND-PALETTE.md. The CTA band
+// `.uq-beta`, always light/branded. Palette: SmartProps green (Lime #4d7c0f primary +
+// Leaf #65a30d accent) — see marketing-materials/BRAND-PALETTE.md. The CTA band
 // holds a real form that posts to /api/beta-signup (captures Company name —
 // needed to send the invite — plus name + email).
 
 const STYLES = `
-.uq-beta{--brand:#2563eb;--teal:#0ea5a4;--teal-dark:#0f5f5c;--teal-50:#ecfeff;--teal-100:#ccfbf1;--ink:#0b1f3a;--muted:#475569;--line:#e2e8f0;--ok:#16a34a;color:var(--ink);line-height:1.55}
+.uq-beta{--brand:#4d7c0f;--teal:#65a30d;--teal-dark:#3f6212;--teal-50:#f0f7e0;--teal-100:#dcf0c2;--ink:#0b1f3a;--muted:#475569;--line:#e2e8f0;--ok:#4d7c0f;color:var(--ink);line-height:1.55}
 .uq-beta *{box-sizing:border-box}
 .uq-beta .sheet{max-width:880px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -34px rgba(11,31,58,.45)}
 .uq-beta .band{background:linear-gradient(135deg,var(--brand),var(--teal));color:#fff;padding:34px 40px 30px}
@@ -143,7 +143,7 @@ export function BetaClient() {
                 <div className="h">You&apos;re on the list — thank you! 🎉</div>
                 <div className="p">
                   We&apos;ll review your request and send your invite to <strong>{form.email}</strong> within 24 hours.
-                  Questions? Email <a href="mailto:hello@smartprops.io" style={{ color: "#7dd3fc" }}>hello@smartprops.io</a>.
+                  Questions? Email <a href="mailto:hello@smartprops.io" style={{ color: "#a9d66b" }}>hello@smartprops.io</a>.
                 </div>
               </div>
             ) : (
@@ -181,7 +181,7 @@ export function BetaClient() {
         </div>
 
         <footer>
-          <div>© 2026 SmartProps · Proposals &amp; quoting for modern teams</div>
+          <div>© 2026 SmartProps · Proposals &amp; pricing for modern teams</div>
           <div><a href="mailto:hello@smartprops.io">hello@smartprops.io</a></div>
         </footer>
       </div>
