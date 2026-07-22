@@ -129,6 +129,25 @@ Under **Settings → Integrations** (existing card): "Webhooks" section — add 
 regenerate secret (shown once), enable/disable, delete, and a recent-deliveries health list
 (status/response code, "resend"). Owner-only + `'integrations'` entitlement.
 
+### 2.6 Quick test — no Zapier needed
+**Zapier is NOT required to test C1.** C1 delivers a signed JSON POST to *any* HTTPS URL; a Zapier app is a
+separate future slice. For a smoke test, point it at a free catch-all bin:
+
+1. **Run migration `032`** on the target Supabase project (prod, since deploy previews use the prod DB).
+2. Open **https://webhook.site** → copy your unique receiver URL.
+3. On the live site → **Settings → Integrations → Webhooks → Add endpoint** → paste the URL, tick the
+   events, save → **copy the signing secret** from the one-time popup.
+4. Open a proposal → **Send for signature** → within a second, `proposal.sent` appears on webhook.site.
+   Check the `X-SmartProps-*` headers + JSON body (`data.proposal.totals` should match the proposal).
+5. **Verify the signature:** with the raw body + `X-SmartProps-Timestamp` header from webhook.site,
+   `printf '%s' "$TS.$BODY" | openssl dgst -sha256 -hmac "$SECRET"` must equal the
+   `X-SmartProps-Signature` value after `sha256=`.
+6. **DocuSeal-driven events** (`viewed`/`signed`/`declined`) only fire where DocuSeal's webhook is
+   configured to call (prod, `app.smartprops.io`) — open the signing link + complete/decline to see them.
+   They won't arrive on a deploy-preview URL.
+7. **Retry drain:** `curl -X POST "https://app.smartprops.io/api/webhooks/dispatch/run?secret=$CRON_SECRET"`.
+   For automatic retries, point an external cron (~every 5 min) at that endpoint.
+
 ---
 
 ## 3. Layer C2 — Public REST API
