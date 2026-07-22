@@ -1,5 +1,27 @@
 # Execution checklist: UltraQuote → SmartProps + smartprops.io
 
+> ## ✅ REBRAND COMPLETE + LIVE ON PROD (2026-07-21)
+> Verified live: **app** `https://app.smartprops.io` (title "SmartProps") · **marketing**
+> `https://smartprops.io` ("SmartProps — Proposals & Pricing"). Old `app.ultraquote.io` /
+> `ultraquote.io` / `www` **removed** (dead, not redirected — owner's choice). Netlify site slug
+> renamed to `smartprops.netlify.app` and the `app.smartprops.io` CNAME repointed to it (verified).
+>
+> **Shipped:** name, lime brand color (`--primary` 86 78% 27% / dark 82 78% 45%), light+dark logos +
+> favicons, top brand bar, Quotes→Proposals (route + all UI copy), "quote/quoting"→proposals/pricing
+> everywhere user-facing (incl. /beta + marketing site + brochure/one-pager/deck), legal docs
+> (**SmartProps LLC**, email-only), `lib/legal/entity.ts` source of truth, migration 031, Phase 5 env,
+> Supabase Auth / QBO / DocuSeal on smartprops, CLAUDE.md rebrand banner. Marketing materials
+> regenerated (PDFs + PPTX). CI green; merged to `main`.
+>
+> **⏳ Only remaining item (real-world, owner):** **form SmartProps LLC** — the live legal docs name it
+> as the contracting party.
+>
+> **By-design / optional leftovers (not user-facing):** GitHub repo still `spandya007/ultraquote`;
+> `supabase/config.toml` project_id + `tests/e2e` `@ultraquote.test` fixtures; the template file-format
+> id (`ultraquote_template` / `.uqtemplate.json`, kept for import back-compat).
+>
+> _The phase-by-phase boxes below are the historical execution plan; treat this banner as the status of record._
+
 Companion to `docs/rename-to-smartprops-assessment.md` (read that for the *why*; this is the *how*).
 
 **Key simplifying constraint (2026-07-17): NO clients have signed up yet.** Downtime is acceptable, so
