@@ -451,7 +451,7 @@ function DeleteTenantModal({
         <div className="px-6 py-5 space-y-4">
           <p className="text-sm text-muted-foreground">
             Permanently delete <span className="font-medium text-foreground">{row.name}</span> and everything
-            under it (invites, settings, any pending logins). This tenant has no active owner and no quotes.{" "}
+            under it (invites, settings, any pending logins). This tenant has no active owner and no proposals.{" "}
             <span className="font-medium text-foreground">This cannot be undone.</span>
           </p>
           <div className="space-y-1">

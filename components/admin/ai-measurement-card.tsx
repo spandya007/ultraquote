@@ -65,13 +65,13 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">last {s.windowDays} days</span>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Real draft:sign ratio &amp; AI cost per outcome, from the usage ledger joined to quote status. Replaces the
+        Real draft:sign ratio &amp; AI cost per outcome, from the usage ledger joined to proposal status. Replaces the
         guessed inputs in the pricing model.
       </p>
 
       {s.draftedQuotes === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground text-sm">
-          No AI-drafted proposals recorded yet. (Populates once quotes use AI Draft; confirm migrations 024–026 are applied.)
+          No AI-drafted proposals recorded yet. (Populates once proposals use AI Draft; confirm migrations 024–026 are applied.)
         </div>
       ) : (
         <div className="space-y-4">
@@ -123,7 +123,7 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
                 <strong className="text-foreground">AI cost per signed doc</strong> = AI cost per drafted proposal ×
                 draft:sign ratio. It's the true AI cost against revenue, since we bill on <em>signed</em> docs but
                 spend on every <em>drafted</em> one. Compare it to the per-signed-doc cost budget (pricing §12) to
-                confirm the per-quote AI cap keeps margin healthy.
+                confirm the per-proposal AI cap keeps margin healthy.
               </p>
               <ul className="text-muted-foreground text-xs space-y-1 mt-2">
                 <li>• <strong className="text-foreground">Sent-out:</strong> {num(s.sentQuotes)} of {num(s.draftedQuotes)} drafted proposals left draft{s.draftPerSent !== null ? ` (${ratio(s.draftPerSent)} draft:sent).` : "."}</li>
@@ -132,7 +132,7 @@ export function AiMeasurementCard({ summary: s }: { summary: AiMeasurementSummar
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Window = quotes with AI draft activity in the last {s.windowDays} days, bucketed by their current status
+            Window = proposals with AI draft activity in the last {s.windowDays} days, bucketed by their current status
             (which may have changed since). Cost is the snapshot estimate from the ledger.
           </p>
         </div>

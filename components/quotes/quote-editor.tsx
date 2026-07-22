@@ -1012,7 +1012,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
         <div className="flex items-center gap-2 px-6 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 shrink-0">
           <Eye className="w-4 h-4 shrink-0" />
           <span>
-            Read-only — this quote was created by{" "}
+            Read-only — this proposal was created by{" "}
             <span className="font-medium">{creatorName ?? "another team member"}</span>.
             To work with it, duplicate it into your own copy.
           </span>
@@ -1121,7 +1121,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                 placeholder={
                   "e.g. Mike's biggest concern is after-hours break-ins at the loading dock — current cameras are\n" +
                   "low-res and not recording reliably. Wants remote viewing on his phone. Needs NDAA-compliant gear\n" +
-                  "for an upcoming gov contract. Budget ~\$8k. Decision by end of month; competitor quoted analog."
+                  "for an upcoming gov contract. Budget ~\$8k. Decision by end of month; competitor priced analog."
                 }
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring resize-y disabled:opacity-60"
               />
@@ -1536,7 +1536,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
               <span className="text-sm">
                 Header &amp; footer
                 <span className="block text-xs text-muted-foreground mt-0.5">
-                  Company name, quote number, confidentiality line, and page numbers on every page after the cover.
+                  Company name, proposal number, confidentiality line, and page numbers on every page after the cover.
                 </span>
               </span>
             </label>
@@ -1779,7 +1779,7 @@ export function QuoteEditor({ quote: initialQuote, tenant, companyTaxRate, compa
                 <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 px-3 py-2 text-sm">
                   <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
-                    This quote was <strong>already sent</strong>. Re-sending voids the previously
+                    This proposal was <strong>already sent</strong>. Re-sending voids the previously
                     emailed signing links and starts a fresh signing round with the current document.
                   </span>
                 </div>

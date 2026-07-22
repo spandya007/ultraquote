@@ -103,7 +103,7 @@ export function BetaClient() {
 
         <div className="body">
           <p className="lead">
-            Quoting today means juggling a spreadsheet, a Word template, and a separate signing tool — slow, error-prone,
+            Proposal writing today means juggling a spreadsheet, a Word template, and a separate signing tool — slow, error-prone,
             and easy to lose track of. <strong>SmartProps replaces all three</strong> with a single branded workflow:
             build multi-option pricing, let AI draft the proposal in your brand voice, send it for a legally-binding
             signature, and watch it move from sent → viewed → signed in real time.

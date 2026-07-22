@@ -12,7 +12,7 @@ export function DeletionBanner({ scheduledAt }: { scheduledAt: string }) {
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>
         <strong>Your workspace is scheduled for permanent deletion on {when}.</strong> Please save
-        copies of anything you need to keep before then — you can download individual quotes as PDFs.
+        copies of anything you need to keep before then — you can download individual proposals as PDFs.
         If you need a full copy of your data, or this is a mistake, contact{" "}
         <a href={`mailto:${ENTITY.contactEmail}`} className="underline">{ENTITY.contactEmail}</a> right away.
       </span>

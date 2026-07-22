@@ -138,7 +138,7 @@ export function NewQuoteModal({ open, clients, templates = [], initialTemplateId
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">
-                  The template&apos;s document becomes this quote&apos;s starting point.
+                  The template&apos;s document becomes this proposal&apos;s starting point.
                 </p>
               </div>
             )}

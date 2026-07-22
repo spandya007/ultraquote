@@ -2032,7 +2032,7 @@ export function ProposalEditor({ quoteId, isTemplate, readOnly, canExtractPricin
                   </div>
                 </div>
                 <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-violet-100">
-                  Grounded in this quote’s client &amp; pricing. You review before it’s inserted.
+                  Grounded in this proposal’s client &amp; pricing. You review before it’s inserted.
                 </p>
               </div>
             </>
