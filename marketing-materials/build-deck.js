@@ -194,41 +194,6 @@ steps.forEach((p, i) => {
 });
 
 // =========================================================================
-// 6. PRICING — detailed tiers
-// =========================================================================
-s = pres.addSlide();
-s.background = { color: WHITE };
-eyebrow(s, "Pricing", 0.9, 0.45);
-s.addText("You only pay for documents that get signed.", { x: 0.9, y: 0.8, w: 11.5, h: 0.7, fontFace: HF, bold: true, color: NAVY, fontSize: 28, margin: 0 });
-s.addText("Proposals are always unlimited. We meter only completed (fully-signed) documents.", { x: 0.9, y: 1.5, w: 11.5, h: 0.4, fontFace: BF, color: MUTED, fontSize: 14, margin: 0 });
-
-const plans = [
-  ["Pay-per-use", "$9", "/ signed doc", "$0 base · pay as you go", ["1 user", "Unlimited proposals", "All features", "No commitment"], false],
-  ["Starter", "$30", "/ mo", "5 signed docs / mo", ["1 user", "$3 / extra doc", "Unlimited proposals", "All features"], false],
-  ["Standard", "$50", "/ mo", "10 signed docs / mo", ["2 users", "$3 / extra doc", "Everything in Starter"], false],
-  ["Pro", "$80", "/ mo", "25 signed docs / mo", ["5 users", "$3 / extra doc", "Everything in Standard"], true],
-  ["Ultra", "$150", "/ mo", "50 signed docs / mo", ["10 users", "$3 / extra doc", "Best per-doc rate", "Everything in Pro"], false],
-];
-const N = plans.length, cardW = 2.2, gap = 0.31, step = cardW + gap;
-let plx = (W - (N * cardW + (N - 1) * gap)) / 2;
-plans.forEach((p) => {
-  const feat = p[5];
-  const y = feat ? 1.95 : 2.15, h = feat ? 4.35 : 4.0;
-  s.addShape(pres.shapes.RECTANGLE, { x: plx, y, w: cardW, h, fill: { color: feat ? NAVY : WHITE }, line: { color: feat ? NAVY : LINE, width: feat ? 0 : 1 }, shadow: shadow() });
-  if (!feat) s.addShape(pres.shapes.RECTANGLE, { x: plx, y, w: cardW, h: 0.08, fill: { color: TEAL } });
-  if (feat) s.addText("MOST POPULAR", { x: plx, y: y + 0.18, w: cardW, h: 0.3, align: "center", fontFace: BF, bold: true, color: "5EEAD4", fontSize: 9, charSpacing: 1.5, margin: 0 });
-  const ix = plx + 0.2, iw = cardW - 0.4;
-  const ty = feat ? y + 0.55 : y + 0.3;
-  s.addText(p[0], { x: ix, y: ty, w: iw, h: 0.4, fontFace: HF, bold: true, color: feat ? WHITE : NAVY, fontSize: 16, margin: 0 });
-  s.addText([{ text: p[1], options: { fontSize: 28, bold: true, color: feat ? WHITE : NAVY } }, { text: " " + p[2], options: { fontSize: 10.5, color: feat ? "94A3B8" : MUTED } }], { x: ix, y: ty + 0.42, w: iw, h: 0.55, fontFace: HF, margin: 0 });
-  s.addText(p[3], { x: ix, y: ty + 1.08, w: iw, h: 0.35, fontFace: BF, bold: true, color: feat ? "5EEAD4" : TEAL_DK, fontSize: 10.5, margin: 0 });
-  const items = p[4].map((it) => ({ text: it, options: { bullet: { code: "2713", indent: 12 }, color: feat ? "CBD5E1" : "1E293B", breakLine: true, paraSpaceAfter: 4 } }));
-  s.addText(items, { x: ix, y: ty + 1.5, w: iw, h: 1.9, fontFace: BF, fontSize: 10.5, margin: 0 });
-  plx += step;
-});
-s.addText("Flat $3 per completed document beyond your plan's monthly included docs — any plan, never a hard cap. Users are fixed per plan (no seat add-ons); AI proposal drafting is included on every plan. Annual billing (~2 months free). Pricing is being finalized during beta — contact hello@smartprops.io.", { x: 0.9, y: 6.55, w: 11.5, h: 0.6, fontFace: BF, italic: true, color: MUTED, fontSize: 11, align: "center", margin: 0 });
-
-// =========================================================================
 // 7. CLOSING CTA
 // =========================================================================
 s = pres.addSlide();
