@@ -4,11 +4,11 @@ import { BetaClient } from "./beta-client";
 export const metadata: Metadata = {
   title: "Request beta access — SmartProps",
   description:
-    "SmartProps is in private beta — build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
+    "SmartProps is in private beta — build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta.",
   openGraph: {
     title: "You're invited to the SmartProps private beta",
     description:
-      "Build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
+      "Build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta.",
     url: "https://app.smartprops.io/beta",
     siteName: "SmartProps",
     type: "website",

@@ -131,7 +131,6 @@ export function BetaClient() {
             <h2>★ Why join the beta now</h2>
             <ul>
               <li><span className="ck">✓</span><span><strong>Free during the beta</strong> — full access, no card required.</span></li>
-              <li><span className="ck">✓</span><span><strong>Founding-member pricing</strong> — locked in when we launch.</span></li>
               <li><span className="ck">✓</span><span><strong>A direct line to the team</strong> — your feedback shapes the roadmap.</span></li>
               <li><span className="ck">✓</span><span><strong>White-glove setup</strong> — we&apos;ll help import your catalog &amp; branding.</span></li>
             </ul>
