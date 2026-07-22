@@ -9,9 +9,11 @@ import { MfaCard } from "@/components/settings/mfa-card";
 import { SubscriptionCard } from "@/components/settings/subscription-card";
 import { WorkspaceSummaryCard } from "@/components/settings/workspace-summary-card";
 import { IntegrationsCard } from "@/components/settings/integrations-card";
+import { WebhooksCard } from "@/components/settings/webhooks-card";
 import { getTenantDossier } from "@/lib/admin/tenant-dossier";
 import { planHasFeature } from "@/lib/billing/entitlements";
 import { getTenantConnections } from "@/lib/integrations/store";
+import { listWebhooks } from "@/lib/webhooks/store";
 import { planLabel } from "@/lib/billing/features";
 
 export default async function SettingsPage({
@@ -71,6 +73,7 @@ export default async function SettingsPage({
   const integrationsEnabled = isOwner ? await planHasFeature(tenantPlan, "integrations") : false;
   const integrationConnections =
     isOwner && integrationsEnabled ? await getTenantConnections(tenantId) : [];
+  const webhooks = isOwner && integrationsEnabled ? await listWebhooks(tenantId) : [];
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-8">
@@ -115,6 +118,7 @@ export default async function SettingsPage({
           returnCode={integrationReturn}
         />
       )}
+      {isOwner && integrationsEnabled && <WebhooksCard webhooks={webhooks} />}
       <TeamCard />
       <ChangePasswordCard />
       <MfaCard />

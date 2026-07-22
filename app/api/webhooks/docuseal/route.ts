@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createInvoiceOnSigned } from "@/lib/integrations/qbo/invoice-on-signed";
+import { dispatchProposalEvent } from "@/lib/webhooks/dispatch";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,12 @@ export async function POST(request: NextRequest) {
   if (eventType === "form.viewed") {
     const signer = await matchSigner();
     if (signer && signer.status === "sent") await db.from("quote_signers").update({ status: "viewed" }).eq("id", signer.id);
-    if (session.status === "pending") await db.from("quotes").update({ status: "viewed" }).eq("id", quoteId).eq("status", "sent");
+    if (session.status === "pending") {
+      await db.from("quotes").update({ status: "viewed" }).eq("id", quoteId).eq("status", "sent");
+      // Only on the first sent→viewed transition, so repeated form.viewed events
+      // don't spam `proposal.viewed`.
+      await dispatchProposalEvent(quoteId, "proposal.viewed");
+    }
   } else if (eventType === "form.declined" || eventType === "submission.declined") {
     const reason: string | null = data.decline_reason || null;
     const signer = await matchSigner();
@@ -94,6 +100,7 @@ export async function POST(request: NextRequest) {
     await db.from("quotes").update({ status: "declined" }).eq("id", quoteId);
     // The reason is stored on the signer row and surfaced as a tooltip on the
     // Declined status badge in the quotes list.
+    await dispatchProposalEvent(quoteId, "proposal.declined");
   } else if (eventType === "form.completed" || eventType === "submission.completed") {
     const signer = await matchSigner();
     if (signer) await db.from("quote_signers").update({ status: "signed", signed_at: nowIso }).eq("id", signer.id);
@@ -112,6 +119,8 @@ export async function POST(request: NextRequest) {
       // Best-effort: push a QBO invoice if the tenant has QuickBooks connected.
       // Never throws (idempotent, self-contained). See lib/integrations/qbo.
       await createInvoiceOnSigned(db, quoteId);
+      // Fire the outbound `proposal.signed` webhook (best-effort).
+      await dispatchProposalEvent(quoteId, "proposal.signed");
     }
   }
 
