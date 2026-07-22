@@ -241,6 +241,23 @@ one milestone → a customer can already do "proposal signed → anything" throu
 trigger, and it validates the event model + key model before investing in the full REST surface and the
 branded Zapier app.
 
+## 11. Cost of testing / development (verified 2026-07-22 — prices shift, re-verify)
+**Building + testing all of Phase C is ~$0.** Only one optional paid item.
+
+| Piece | How to test | Cost |
+|---|---|---|
+| **C1 webhooks + C2 API** | `curl` / `webhook.site` / Postman | **Free** |
+| **Zapier app (C3)** | **Zapier Platform** dev env — test your own app's triggers/actions | **Free** |
+| Zapier *generic* "Webhooks by Zapier" trigger | (only if testing raw webhooks pre-app) | **Professional ~$19.99/mo annual / $29.99 monthly** (750 tasks). Free plan = 100 tasks / 2-step Zaps, **no Webhooks**. *Deferrable.* |
+| **MCP server** dev testing | **MCP Inspector** (open-source, no account) + **Claude Desktop** | **Free** |
+| MCP as a claude.ai **remote custom connector** | add the server URL as a connector | **Free plan allows 1 custom connector** — enough to test end-to-end |
+| More/heavier Claude use | — | Pro ~$20/mo · Max ~$100–200/mo · Team ~$20–25/seat (Std) / ~$100–125/seat (Premium, 5-seat min) · API = pay-as-you-go (cents for testing) |
+
+**Takeaway:** the whole build validates for free (curl + MCP Inspector + free-Claude 1-connector); the only
+paid item anywhere is Zapier's generic Webhooks trigger (~$20/mo), which you can skip until validating the
+branded Zapier app. Sources: Zapier pricing (nocode.mba, eesel.ai); Claude connectors/pricing
+(support.claude.com, ai-toolbox.co).
+
 ---
 
 # Appendix A — MCP server (AI-chat / agent consumption layer)
