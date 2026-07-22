@@ -105,7 +105,7 @@ export function BetaClient() {
           <p className="lead">
             Quoting today means juggling a spreadsheet, a Word template, and a separate signing tool — slow, error-prone,
             and easy to lose track of. <strong>SmartProps replaces all three</strong> with a single branded workflow:
-            build a multi-option quote, let AI draft the proposal in your brand voice, send it for a legally-binding
+            build multi-option pricing, let AI draft the proposal in your brand voice, send it for a legally-binding
             signature, and watch it move from sent → viewed → signed in real time.
           </p>
 
@@ -118,7 +118,7 @@ export function BetaClient() {
             <div className="ben">
               <div className="ic">✍️</div>
               <h3>Proposals that win</h3>
-              <p>AI drafts the whole proposal from your quote — in your brand voice — in a branded editor with live pricing tables. Not a flat PDF.</p>
+              <p>AI drafts the whole proposal from your pricing — in your brand voice — in a branded editor with live pricing tables. Not a flat PDF.</p>
             </div>
             <div className="ben">
               <div className="ic">🔏</div>
@@ -165,7 +165,7 @@ export function BetaClient() {
                   </div>
                   <div className="full">
                     <label htmlFor="bs-msg">Anything we should know? (optional)</label>
-                    <textarea id="bs-msg" value={form.message} onChange={set("message")} placeholder="Team size, what you quote today, etc." />
+                    <textarea id="bs-msg" value={form.message} onChange={set("message")} placeholder="Team size, what you sell today, etc." />
                   </div>
                   <input className="hp" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set("website")} />
                   <div className="submit-row">

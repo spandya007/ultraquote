@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "You're invited to the SmartProps private beta",
     description:
-      "Build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
+      "Build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta with founding-member pricing.",
     url: "https://app.smartprops.io/beta",
     siteName: "SmartProps",
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "You're invited to the SmartProps private beta",
     description:
-      "Build quotes, write polished proposals, and collect e-signatures in one place. Free during the beta.",
+      "Build pricing, write polished proposals, and collect e-signatures in one place. Free during the beta.",
   },
 };
 
