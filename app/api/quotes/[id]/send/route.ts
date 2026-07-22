@@ -4,6 +4,7 @@ import { loadSerializeInput } from "@/lib/pdf/load";
 import { buildSigningHtml } from "@/lib/pdf/serialize";
 import { docusealConfigured, createHtmlSubmission, archiveSubmission, signingUrlForSlug, type DocusealSubmitter } from "@/lib/docuseal";
 import { requireWriteAccess } from "@/lib/access/guard";
+import { dispatchProposalEvent } from "@/lib/webhooks/dispatch";
 
 export const runtime = "nodejs";
 
@@ -192,6 +193,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   await db.from("quotes").update({ status: "sent", sent_at: nowIso }).eq("id", params.id);
+
+  // Fire the outbound `proposal.sent` webhook (best-effort; never blocks the send).
+  await dispatchProposalEvent(params.id, "proposal.sent");
 
   return NextResponse.json({ ok: true, submissionId, signers: signerLinks });
 }

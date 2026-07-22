@@ -31,6 +31,14 @@ Ship in that order — C1 is the smallest build and immediately useful.
 
 ## 2. Layer C1 — Outbound webhooks
 
+> **✅ BUILT** (branch `feature/webhooks-c1`, 2026-07-22). Migration `032_tenant_webhooks.sql`;
+> `lib/webhooks/{events,sign,payload,store,dispatch,validate,guard}.ts` (+ `webhooks.test.ts`, 17 tests);
+> emit wired at `send` (`proposal.sent`) + `docuseal` webhook (`proposal.viewed/signed/declined`);
+> retry runner `POST /api/webhooks/dispatch/run` (CRON_SECRET-gated, mirrors `deletions/run`); CRUD routes
+> under `/api/webhooks/endpoints`; Settings → Integrations → **Webhooks** card (owner + `integrations`
+> entitlement). **To deploy:** run migration 032 (dev+prod) and point an external cron (~every 5 min) at
+> the dispatch/run endpoint. tsc + unit + `next build` green.
+
 ### 2.1 Events (v1)
 Fire from **server-side** code we already control (so no DB triggers needed for v1):
 
