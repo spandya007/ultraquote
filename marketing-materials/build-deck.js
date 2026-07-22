@@ -31,7 +31,7 @@ const shadow = () => ({ type: "outer", color: "0F172A", blur: 9, offset: 3, angl
 function logo(slide, x, y, dark, chipColor) {
   const chip = chipColor || BRAND;
   slide.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w: 0.5, h: 0.5, rectRadius: 0.08, fill: { color: chip } });
-  slide.addText("UQ", { x, y, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: HF, bold: true, color: chip === WHITE ? BRAND : WHITE, fontSize: 16, margin: 0 });
+  slide.addText("SP", { x, y, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: HF, bold: true, color: chip === WHITE ? BRAND : WHITE, fontSize: 16, margin: 0 });
   slide.addText("SmartProps", { x: x + 0.58, y, w: 3, h: 0.5, align: "left", valign: "middle", fontFace: HF, bold: true, color: dark ? WHITE : NAVY, fontSize: 19, margin: 0 });
 }
 
