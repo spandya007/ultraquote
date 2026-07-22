@@ -52,7 +52,9 @@ export function IdleTimeout() {
     };
     window.addEventListener("storage", onStorage);
 
-    const interval = setInterval(() => {
+    let interval: ReturnType<typeof setInterval>;
+
+    const checkIdle = () => {
       const stored = Number(localStorage.getItem(KEY));
       const last = Number.isFinite(stored) && stored > 0 ? stored : Date.now();
       const elapsed = Date.now() - last;
@@ -68,11 +70,27 @@ export function IdleTimeout() {
         warningRef.current = false;
         setWarnLeft(null);
       }
-    }, 1000);
+    };
+
+    interval = setInterval(checkIdle, 1000);
+
+    // Mobile browsers pause JS timers while the tab is backgrounded or the phone
+    // is locked, so the interval can't enforce the limit in the background. Re-check
+    // the instant the tab becomes visible/focused again — this catches a tab left
+    // open (e.g. overnight on a phone), which the interval alone would only notice
+    // on its next resumed tick. Fires BEFORE the user's first tap, so a stale tab
+    // logs out before any activity event resets the timer.
+    const onResume = () => { if (document.visibilityState === "visible") checkIdle(); };
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("focus", onResume);
+    window.addEventListener("pageshow", onResume);
 
     return () => {
       ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, onActivity));
       window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("focus", onResume);
+      window.removeEventListener("pageshow", onResume);
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
