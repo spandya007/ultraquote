@@ -152,6 +152,14 @@ separate future slice. For a smoke test, point it at a free catch-all bin:
 
 ## 3. Layer C2 — Public REST API
 
+> **✅ BUILT** (branch `feature/api-c2`, 2026-07-22). Migration `033_tenant_api_keys.sql`
+> (+ `api_rate_counters` + `api_rate_increment()`); `lib/api/{keys,scoped,ratelimit,handler,respond,serialize,openapi}.ts`
+> (+ `api.test.ts`, 12 tests incl. tenant-isolation). Endpoints under `/api/v1`: `proposals` (list + `:id`),
+> `clients` (GET/POST), `products` (GET), `webhooks` (POST/`:id` DELETE for Zapier), plus discovery root +
+> `/api/v1/openapi.json`. Owner key management `/api/keys` + Settings → Integrations → **API keys** card.
+> Shared owner+entitlement guard in `lib/access/integrations-owner.ts`. **Deferred:** `POST /proposals`
+> (v2), hosted docs page. **To deploy:** run migration 033 (dev+prod). tsc + unit + `next build` green.
+
 ### 3.1 API keys — migration `033_tenant_api_keys.sql`
 Hashed like `mfa_recovery_codes` (SHA-256, service-role only — `lib/auth/recovery-codes.ts` pattern):
 ```sql
@@ -196,6 +204,34 @@ service-role client with an **explicit `.eq('tenant_id', tenantId)`**. This is t
 ### 3.5 Settings UI
 **Settings → Integrations → API keys**: generate (name + scopes → shown once), list (prefix +
 last-used), revoke. Owner-only + entitlement.
+
+### 3.6 Quick test — verified on the deploy preview 2026-07-22
+No DocuSeal/cron dependency → C2 tests fully on a **deploy preview** (which uses the prod DB, so run
+migration `033` on prod first). `BASE` = the preview or prod origin; `KEY` = a generated `sp_live_…` key.
+
+```bash
+# Read
+curl -s -H "Authorization: Bearer $KEY" "$BASE/api/v1/proposals?limit=5" | jq
+curl -s -H "Authorization: Bearer $KEY" "$BASE/api/v1/proposals/<id>" | jq '.totals'   # match the app; no unit_cost/margin
+# Write (needs a read/write key)
+curl -s -X POST -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"company_name":"API Test Co"}' "$BASE/api/v1/clients" | jq          # 201 (writes real data — delete after)
+# Auth + scope
+curl -s -o /dev/null -w "%{http_code}\n" "$BASE/api/v1/proposals"           # 401 (no key)
+# …a READ-ONLY key POSTing a client → 403 forbidden
+```
+
+**Rate limit — must use a CONCURRENT burst** (sequential curls to a remote host span >1 min and the
+fixed window resets → false all-200s):
+```bash
+seq 1 130 | xargs -P 20 -I {} \
+  curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $KEY" \
+  "$BASE/api/v1/proposals" | sort | uniq -c
+# ✅ verified: ~"100 200" + "30 429"
+```
+The limiter **fails open** if `api_rate_increment` errors — if a burst returns all 200s, confirm the
+function exists: `select proname from pg_proc where proname='api_rate_increment';` (else re-run
+`033_tenant_api_keys.sql`, which is idempotent). Spec is public: `$BASE/api/v1` + `$BASE/api/v1/openapi.json`.
 
 ---
 
