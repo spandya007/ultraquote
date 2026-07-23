@@ -28,6 +28,17 @@ const nextConfig = {
       { source: "/quotes/:id", destination: "/proposals/:id", permanent: true },
     ];
   },
+  // Serve the OAuth discovery documents at their well-known paths (RFC 8414/9728)
+  // from normal API routes — Next's app dir doesn't route dot-directories. The
+  // :path* variants cover clients that suffix the resource path.
+  async rewrites() {
+    return [
+      { source: "/.well-known/oauth-protected-resource", destination: "/api/oauth/meta/protected-resource" },
+      { source: "/.well-known/oauth-protected-resource/:path*", destination: "/api/oauth/meta/protected-resource" },
+      { source: "/.well-known/oauth-authorization-server", destination: "/api/oauth/meta/authorization-server" },
+      { source: "/.well-known/oauth-authorization-server/:path*", destination: "/api/oauth/meta/authorization-server" },
+    ];
+  },
 };
 
 export default nextConfig;
