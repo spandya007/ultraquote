@@ -23,6 +23,12 @@ export interface McpContext {
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 const ok = (data: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(data, null, 2) }] });
 const err = (message: string): ToolResult => ({ content: [{ type: "text", text: message }], isError: true });
+// Log real (thrown) errors so they surface in the Netlify function log — tool
+// results are 200s, so a failing tool is otherwise invisible server-side.
+const caught = (tool: string, e: unknown): ToolResult => {
+  console.error(`[mcp] tool ${tool} threw:`, e);
+  return err(e instanceof Error ? e.message : String(e));
+};
 
 const PROPOSAL_COLS =
   "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at";
@@ -77,7 +83,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return ok({ data: (data ?? []).map((r: any) => serializeProposalSummary(r)), limit, offset });
       } catch (e) {
-        return err((e as Error).message);
+        return caught("list_proposals", e);
       }
     }
   );
@@ -125,7 +131,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         }
         return ok(serializeProposalDetail(quote, list, itemsByScenario, client));
       } catch (e) {
-        return err((e as Error).message);
+        return caught("get_proposal", e);
       }
     }
   );
@@ -150,7 +156,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return ok({ data: (data ?? []).map((r: any) => serializeClient(r)), limit, offset });
       } catch (e) {
-        return err((e as Error).message);
+        return caught("list_clients", e);
       }
     }
   );
@@ -186,7 +192,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         }
         return ok({ query, count: matches.length, data: matches });
       } catch (e) {
-        return err((e as Error).message);
+        return caught("find_client", e);
       }
     }
   );
@@ -212,7 +218,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return ok({ data: (data ?? []).map((r: any) => serializeProduct(r)), limit, offset });
       } catch (e) {
-        return err((e as Error).message);
+        return caught("list_products", e);
       }
     }
   );
@@ -255,7 +261,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         if (error) return err(error.message);
         return ok(serializeClient(data));
       } catch (e) {
-        return err((e as Error).message);
+        return caught("create_client", e);
       }
     }
   );

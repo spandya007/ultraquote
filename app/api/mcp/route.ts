@@ -41,13 +41,22 @@ export async function POST(req: Request) {
 
   // Fresh, tenant-scoped server + stateless transport per request (Netlify-safe:
   // no long-lived session; JSON responses instead of SSE).
-  const server = buildMcpServer({ db: new ScopedDb(auth.tenantId), scopes: auth.scopes });
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-    enableJsonResponse: true,
-  });
-  await server.connect(transport);
-  return transport.handleRequest(req);
+  try {
+    const server = buildMcpServer({ db: new ScopedDb(auth.tenantId), scopes: auth.scopes });
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+    await server.connect(transport);
+    return await transport.handleRequest(req);
+  } catch (e) {
+    // Surface transport-level failures in the Netlify log (otherwise an unhandled
+    // throw is an opaque 500). auth.source distinguishes the API-key vs OAuth path.
+    console.error(`[mcp] request failed (source=${auth.source}):`, e);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error" }, id: null }), {
+      status: 500, headers: { "Content-Type": "application/json" },
+    });
+  }
 }
 
 // Stateless JSON mode doesn't use the GET SSE stream; surface a clear 401/405.
