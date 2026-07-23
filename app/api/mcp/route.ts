@@ -4,6 +4,7 @@ import { tenantHasFeature } from "@/lib/billing/entitlements";
 import { enforceRateLimit } from "@/lib/api/ratelimit";
 import { ScopedDb } from "@/lib/api/scoped";
 import { buildMcpServer } from "@/lib/mcp/server";
+import { publicOrigin } from "@/lib/oauth/metadata";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 // On 401 we point clients at the OAuth protected-resource metadata so an MCP
 // client can discover the authorization server and start the OAuth flow.
 function unauthorized(req: Request) {
-  const origin = new URL(req.url).origin;
+  const origin = publicOrigin(req);
   return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null }), {
     status: 401,
     headers: {
