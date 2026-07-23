@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function LoginForm() {
+// Only allow same-origin relative redirects (starts with a single "/"), so a
+// crafted ?redirectTo can't send the user to another site after login.
+function safeRedirect(to?: string): string {
+  if (to && to.startsWith("/") && !to.startsWith("//")) return to;
+  return "/";
+}
+
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +32,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/");
+    router.push(safeRedirect(redirectTo));
     router.refresh();
   }
 

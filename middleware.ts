@@ -45,8 +45,15 @@ export async function middleware(request: NextRequest) {
   const isMarketingRoute = pathname === "/beta" || pathname.startsWith("/beta/");
   // Self-serve signup (creates a standalone tenant) — public, no session.
   const isSignupRoute = pathname === "/signup";
+  // OAuth discovery metadata (RFC 8414/9728) — MCP clients fetch these without a
+  // session (rewritten to /api/oauth/meta/* in next.config).
+  const isWellKnown = pathname.startsWith("/.well-known");
+  // The OAuth consent page must be reachable so it can bounce a logged-out user
+  // through /login preserving the full request (query string) itself — the
+  // middleware redirect would drop the OAuth params.
+  const isAuthorizeRoute = pathname === "/authorize";
   const isPublicRoute =
-    isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute || isMarketingRoute || isSignupRoute;
+    isAuthRoute || isApiRoute || isInviteRoute || isLegalRoute || isMarketingRoute || isSignupRoute || isWellKnown || isAuthorizeRoute;
 
   if (!user && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone();

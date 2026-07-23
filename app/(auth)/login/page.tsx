@@ -4,9 +4,11 @@ import { LegalLinks } from "@/components/legal/legal-links";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reason?: string }>;
+  searchParams: Promise<{ reason?: string; redirectTo?: string }>;
 }) {
-  const idle = (await searchParams)?.reason === "idle";
+  const sp = await searchParams;
+  const idle = sp?.reason === "idle";
+  const redirectTo = sp?.redirectTo;
   return (
     <main className="min-h-screen flex items-center justify-center bg-muted/40">
       <div className="w-full max-w-md px-4">
@@ -21,7 +23,7 @@ export default async function LoginPage({
             You were signed out due to inactivity. Please sign in again.
           </div>
         )}
-        <LoginForm />
+        <LoginForm redirectTo={redirectTo} />
         <LegalLinks className="mt-6" />
       </div>
     </main>

@@ -345,9 +345,21 @@ branded Zapier app. Sources: Zapier pricing (nocode.mba, eesel.ai); Claude conne
 > serializers directly (no HTTP hop), same 6 tools. Usable now from **MCP Inspector / Cursor** with the key
 > as a bearer token. `@modelcontextprotocol/sdk` added to the root app (external server package in
 > next.config). **Deferred:** `create_proposal`/`add_line_item`/`draft_section` (need C2 write endpoints +
-> `/api/ai/draft`), the **send-safety** `prepare_send`→confirm-token flow, and — **Slice 2** — the
-> **OAuth 2.1 authorization server** (`/.well-known/*`, `/authorize` reusing the Supabase session → tenant,
-> `/token`, DCR, PKCE, token→tenant) that makes claude.ai's "add by URL" work (A.2).
+> `/api/ai/draft`) and the **send-safety** `prepare_send`→confirm-token flow.
+>
+> **✅ REMOTE SERVER — SLICE 2 (OAuth 2.1 AS) BUILT** (branch `feature/mcp-oauth`, 2026-07-23). Migration
+> `034_oauth_mcp.sql` (`oauth_clients` + `oauth_authorization_codes` + `oauth_tokens`; service-role only,
+> codes/tokens SHA-256 hashed). Endpoints: `/.well-known/oauth-protected-resource` +
+> `/.well-known/oauth-authorization-server` (RFC 9728/8414 metadata, via next.config rewrites),
+> `/api/oauth/register` (DCR, RFC 7591, public PKCE clients), `/authorize` consent page (reuses the Supabase
+> session → tenant; read-always + opt-in write; open-redirect-guarded) → `/api/oauth/authorize` decision
+> (issues the code), `/api/oauth/token` (auth-code exchange with **PKCE S256** verify + **refresh rotation**).
+> `/api/mcp` now accepts BOTH `sp_live_` API keys and `sp_mcp_at_` OAuth access tokens (`lib/mcp/auth.ts`),
+> and 401s with a `WWW-Authenticate` resource-metadata pointer so clients auto-discover the AS. `/authorize`
+> + `/.well-known/*` made public in middleware; login form honors a safe `redirectTo`. Access-token TTL 1h,
+> refresh 30d. PKCE verified against the RFC 7636 test vector (unit). **To deploy:** run migration 034;
+> then claude.ai → Settings → Connectors → Add custom connector → `https://app.smartprops.io/api/mcp`.
+> **Deferred:** token **revocation** endpoint + a Settings "Connected AI apps" management list.
 
 **The pitch: "build proposals by chatting with your AI."** An MCP (Model Context Protocol) server exposes
 the proposal workflow as typed tools an AI can call, so a chat session in Claude / Claude Desktop /
