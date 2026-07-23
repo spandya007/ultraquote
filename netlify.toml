@@ -8,3 +8,8 @@
 # Netlify's official Next.js runtime (App Router, server components, API routes).
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# User functions (in addition to the ones the Next plugin generates). Holds the
+# scheduled function that drives webhook retries — netlify/functions/webhook-retry.mjs.
+[functions]
+  directory = "netlify/functions"
