@@ -152,6 +152,14 @@ separate future slice. For a smoke test, point it at a free catch-all bin:
 
 ## 3. Layer C2 — Public REST API
 
+> **✅ BUILT** (branch `feature/api-c2`, 2026-07-22). Migration `033_tenant_api_keys.sql`
+> (+ `api_rate_counters` + `api_rate_increment()`); `lib/api/{keys,scoped,ratelimit,handler,respond,serialize,openapi}.ts`
+> (+ `api.test.ts`, 12 tests incl. tenant-isolation). Endpoints under `/api/v1`: `proposals` (list + `:id`),
+> `clients` (GET/POST), `products` (GET), `webhooks` (POST/`:id` DELETE for Zapier), plus discovery root +
+> `/api/v1/openapi.json`. Owner key management `/api/keys` + Settings → Integrations → **API keys** card.
+> Shared owner+entitlement guard in `lib/access/integrations-owner.ts`. **Deferred:** `POST /proposals`
+> (v2), hosted docs page. **To deploy:** run migration 033 (dev+prod). tsc + unit + `next build` green.
+
 ### 3.1 API keys — migration `033_tenant_api_keys.sql`
 Hashed like `mfa_recovery_codes` (SHA-256, service-role only — `lib/auth/recovery-codes.ts` pattern):
 ```sql
