@@ -6,6 +6,7 @@ import {
   serializeProposalDetail,
   serializeClient,
   serializeProduct,
+  PROPOSAL_DETAIL_COLS,
 } from "@/lib/api/serialize";
 
 // Builds a per-request MCP server for the remote transport (app/api/mcp/route.ts).
@@ -92,7 +93,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     },
     async ({ id }) => {
       try {
-        const { data: quote } = await db.select("quotes", "*").eq("id", id).maybeSingle();
+        const { data: quote } = await db.select("quotes", PROPOSAL_DETAIL_COLS).eq("id", id).maybeSingle();
         if (!quote) return err("Proposal not found.");
         const { data: scenarios } = await db
           .child("quote_scenarios")

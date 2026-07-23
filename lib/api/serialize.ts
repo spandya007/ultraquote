@@ -6,6 +6,13 @@ import { lineRev, lineSetup } from "@/lib/pdf/serialize";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Columns needed to serialize a proposal's detail. Deliberately does NOT include
+// document_content (the BlockNote JSONB) — it's not in the output and can be
+// megabytes (embedded base64 images), so selecting "*" made get_proposal slow
+// enough to time out remote MCP clients. Keep in sync with serializeProposalDetail.
+export const PROPOSAL_DETAIL_COLS =
+  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, tax_rate, selected_scenario_id";
+
 export function serializeProposalSummary(q: any) {
   return {
     id: q.id,

@@ -1,6 +1,6 @@
 import { withApiKey } from "@/lib/api/handler";
 import { apiJson, apiError } from "@/lib/api/respond";
-import { serializeProposalDetail } from "@/lib/api/serialize";
+import { serializeProposalDetail, PROPOSAL_DETAIL_COLS } from "@/lib/api/serialize";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   return withApiKey(req, { scope: "read" }, async ({ db }) => {
     // The quote is tenant-pinned by select(); its children are then safe to read
     // by parent id (they have no tenant_id column of their own).
-    const { data: quote } = await db.select("quotes", "*").eq("id", params.id).maybeSingle();
+    const { data: quote } = await db.select("quotes", PROPOSAL_DETAIL_COLS).eq("id", params.id).maybeSingle();
     if (!quote) return apiError(404, "not_found", "Proposal not found.");
 
     const { data: scenarios } = await db
