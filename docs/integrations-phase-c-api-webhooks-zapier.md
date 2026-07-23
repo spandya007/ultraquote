@@ -329,6 +329,16 @@ branded Zapier app. Sources: Zapier pricing (nocode.mba, eesel.ai); Claude conne
 
 # Appendix A — MCP server (AI-chat / agent consumption layer)
 
+> **✅ LOCAL SERVER BUILT** (branch `feature/mcp-server`, 2026-07-23). Standalone `@smartprops/mcp` package
+> in **`mcp-server/`** (own `package.json`/`tsconfig`, excluded from the root build like `pdf-service`).
+> stdio transport, `@modelcontextprotocol/sdk` v1, auth via `SMARTPROPS_API_KEY` (an `sp_live_` key) over
+> the C2 `/api/v1` API. **v1 tools:** `list_proposals`, `get_proposal`, `list_clients`, `find_client`,
+> `list_products` (read) + `create_client` (write, with `destructiveHint:false`/`idempotentHint:false`).
+> Smoke-tested: server handshakes, lists all 6 tools with correct annotations, keyless calls return a clean
+> auth error. `mcp-server/README.md` has Claude Desktop + MCP Inspector setup. **Deferred to next slices:**
+> `create_proposal`/`add_line_item`/`draft_section` (need the C2 write endpoints + `/api/ai/draft` wiring),
+> the **send-safety** `prepare_send`→confirm-token flow, and the **remote OAuth** connector (A.2).
+
 **The pitch: "build proposals by chatting with your AI."** An MCP (Model Context Protocol) server exposes
 the proposal workflow as typed tools an AI can call, so a chat session in Claude / Claude Desktop /
 Cursor / any MCP client can drive the whole flow: *"Create a proposal for Acme from this thread, use the
