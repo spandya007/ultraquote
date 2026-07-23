@@ -93,14 +93,18 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     {
       title: "Get a proposal",
       description:
-        "Get one proposal in full: status, client, scenarios with line items, per-scenario and headline totals, valid_until, signed_at, and pdf_url.",
-      inputSchema: { id: z.string().describe("Proposal id (from list_proposals)") },
+        "Get one proposal in full (status, client, scenarios with line items, totals, valid_until, signed_at, pdf_url). Accepts either the proposal id (UUID) or its proposal number, e.g. CMIT-2026-036.",
+      inputSchema: { id: z.string().describe("Proposal id (UUID) OR proposal number, e.g. CMIT-2026-036") },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async ({ id }) => {
       try {
-        const { data: quote } = await db.select("quotes", PROPOSAL_DETAIL_COLS).eq("id", id).maybeSingle();
-        if (!quote) return err("Proposal not found.");
+        // Accept either a UUID id or the human proposal number — AI clients
+        // usually have the number (what the user says), not the internal id.
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim());
+        const lookup = db.select("quotes", PROPOSAL_DETAIL_COLS);
+        const { data: quote } = await (isUuid ? lookup.eq("id", id.trim()) : lookup.eq("quote_number", id.trim())).maybeSingle();
+        if (!quote) return err(`Proposal not found: ${id}`);
         const { data: scenarios } = await db
           .child("quote_scenarios")
           .select("id, name, is_recommended, sort_order")
