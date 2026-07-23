@@ -335,9 +335,19 @@ branded Zapier app. Sources: Zapier pricing (nocode.mba, eesel.ai); Claude conne
 > the C2 `/api/v1` API. **v1 tools:** `list_proposals`, `get_proposal`, `list_clients`, `find_client`,
 > `list_products` (read) + `create_client` (write, with `destructiveHint:false`/`idempotentHint:false`).
 > Smoke-tested: server handshakes, lists all 6 tools with correct annotations, keyless calls return a clean
-> auth error. `mcp-server/README.md` has Claude Desktop + MCP Inspector setup. **Deferred to next slices:**
-> `create_proposal`/`add_line_item`/`draft_section` (need the C2 write endpoints + `/api/ai/draft` wiring),
-> the **send-safety** `prepare_send`→confirm-token flow, and the **remote OAuth** connector (A.2).
+> auth error. `mcp-server/README.md` has Claude Desktop + MCP Inspector setup.
+>
+> **✅ REMOTE SERVER — SLICE 1 BUILT** (branch `feature/mcp-remote`, 2026-07-23). `POST /api/mcp` in the Next
+> app using the SDK's stateless `WebStandardStreamableHTTPServerTransport` (Web `Request`/`Response`, Fetch-
+> native → Netlify-safe; verified a fresh per-request server answers initialize/tools/list/tools/call with
+> no per-instance handshake). Auth = **Bearer API key** (`authenticateApiKey`) → reuses the C2 entitlement +
+> per-key rate limit + **`ScopedDb`** isolation; tools defined in `lib/mcp/server.ts` call ScopedDb +
+> serializers directly (no HTTP hop), same 6 tools. Usable now from **MCP Inspector / Cursor** with the key
+> as a bearer token. `@modelcontextprotocol/sdk` added to the root app (external server package in
+> next.config). **Deferred:** `create_proposal`/`add_line_item`/`draft_section` (need C2 write endpoints +
+> `/api/ai/draft`), the **send-safety** `prepare_send`→confirm-token flow, and — **Slice 2** — the
+> **OAuth 2.1 authorization server** (`/.well-known/*`, `/authorize` reusing the Supabase session → tenant,
+> `/token`, DCR, PKCE, token→tenant) that makes claude.ai's "add by URL" work (A.2).
 
 **The pitch: "build proposals by chatting with your AI."** An MCP (Model Context Protocol) server exposes
 the proposal workflow as typed tools an AI can call, so a chat session in Claude / Claude Desktop /

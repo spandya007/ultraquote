@@ -10,6 +10,9 @@ const nextConfig = {
   // newly added quote when navigating back to it).
   experimental: {
     staleTimes: { dynamic: 0 },
+    // The MCP SDK is ESM/Node-only; keep it external so it's required at runtime
+    // (in the /api/mcp nodejs route) rather than bundled. See lib/mcp/server.ts.
+    serverComponentsExternalPackages: ["@modelcontextprotocol/sdk"],
   },
   images: {
     remotePatterns: [
