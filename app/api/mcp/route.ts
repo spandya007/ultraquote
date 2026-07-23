@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 // On 401 we point clients at the OAuth protected-resource metadata so an MCP
 // client can discover the authorization server and start the OAuth flow.
 function unauthorized(req: Request) {
-  const origin = publicOrigin(req);
+  const origin = publicOrigin();
   return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null }), {
     status: 401,
     headers: {
