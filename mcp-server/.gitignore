@@ -3,3 +3,5 @@ dist/
 .env
 .env.*
 live-test.mjs
+live-test-output.txt
+write-test.mjs
