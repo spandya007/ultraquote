@@ -34,10 +34,11 @@ Ship in that order — C1 is the smallest build and immediately useful.
 > **✅ BUILT** (branch `feature/webhooks-c1`, 2026-07-22). Migration `032_tenant_webhooks.sql`;
 > `lib/webhooks/{events,sign,payload,store,dispatch,validate,guard}.ts` (+ `webhooks.test.ts`, 17 tests);
 > emit wired at `send` (`proposal.sent`) + `docuseal` webhook (`proposal.viewed/signed/declined`);
-> retry runner `POST /api/webhooks/dispatch/run` (CRON_SECRET-gated, mirrors `deletions/run`); CRUD routes
-> under `/api/webhooks/endpoints`; Settings → Integrations → **Webhooks** card (owner + `integrations`
-> entitlement). **To deploy:** run migration 032 (dev+prod) and point an external cron (~every 5 min) at
-> the dispatch/run endpoint. tsc + unit + `next build` green.
+> retry runner `POST /api/webhooks/dispatch/run` (CRON_SECRET-gated, mirrors `deletions/run`), driven by a
+> **Netlify scheduled function** `netlify/functions/webhook-retry.mjs` (every 5 min); CRUD routes under
+> `/api/webhooks/endpoints`; Settings → Integrations → **Webhooks** card (owner + `integrations`
+> entitlement). **To deploy:** run migration 032 (dev+prod) + set `CRON_SECRET` on Netlify (Functions +
+> Runtime scope) — the scheduled function then drives retries on prod. tsc + unit + `next build` green.
 
 ### 2.1 Events (v1)
 Fire from **server-side** code we already control (so no DB triggers needed for v1):
@@ -121,7 +122,10 @@ create index webhook_deliveries_retry_idx on public.webhook_deliveries (status, 
 - **Retry:** failed/pending deliveries retried by a **scheduled runner** (`/api/webhooks/dispatch/run`,
   cron-gated) with exponential backoff (1m→5m→30m→2h→6h), max ~6 attempts → `dead`. Reuses the
   **`app/api/admin/deletions/run` + cron** pattern (Netlify functions are short-lived, so a persistent
-  queue = the `webhook_deliveries` table + a cron drain).
+  queue = the `webhook_deliveries` table + a cron drain). **Driver = a Netlify scheduled function**
+  (`netlify/functions/webhook-retry.mjs`, `schedule: "*/5 * * * *"`) that POSTs the endpoint with
+  `CRON_SECRET`. Scheduled functions run on **production deploys only** (not previews); set `CRON_SECRET`
+  on the Netlify site. (Same driver can later cover the tenant-deletion purge runner, still un-cronned.)
 - **Idempotency:** stable `event_id`; consumers dedupe. Re-sends of a proposal produce new events.
 
 ### 2.5 Settings UI
