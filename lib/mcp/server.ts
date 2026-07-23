@@ -105,35 +105,40 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         const lookup = db.select("quotes", PROPOSAL_DETAIL_COLS);
         const { data: quote } = await (isUuid ? lookup.eq("id", id.trim()) : lookup.eq("quote_number", id.trim())).maybeSingle();
         if (!quote) return err(`Proposal not found: ${id}`);
-        const { data: scenarios } = await db
-          .child("quote_scenarios")
-          .select("id, name, is_recommended, sort_order")
-          .eq("quote_id", quote.id)
-          .order("sort_order");
-        const list = scenarios ?? [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const itemsByScenario = new Map<string, any[]>();
-        if (list.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ids = list.map((s: any) => s.id);
-          const { data: items } = await db
-            .child("quote_line_items")
-            .select("scenario_id, description, details, billing_period, quantity, unit_price, setup_price, discount_percent, discount_amount, is_taxable")
-            .in("scenario_id", ids)
-            .order("sort_order");
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          for (const it of items ?? []) {
-            const arr = itemsByScenario.get(it.scenario_id) ?? [];
-            arr.push(it);
-            itemsByScenario.set(it.scenario_id, arr);
-          }
-        }
-        let client = null;
-        if (quote.client_id) {
-          const { data: c } = await db.select("clients", "*").eq("id", quote.client_id).maybeSingle();
-          client = c ?? null;
-        }
-        return ok(serializeProposalDetail(quote, list, itemsByScenario, client));
+        // The scenario→line-item chain and the client lookup are independent —
+        // run them in parallel to cut a round-trip on the hot path.
+        const [scenPart, client] = await Promise.all([
+          (async () => {
+            const { data: scenarios } = await db
+              .child("quote_scenarios")
+              .select("id, name, is_recommended, sort_order")
+              .eq("quote_id", quote.id)
+              .order("sort_order");
+            const list = scenarios ?? [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const itemsByScenario = new Map<string, any[]>();
+            if (list.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const ids = list.map((s: any) => s.id);
+              const { data: items } = await db
+                .child("quote_line_items")
+                .select("scenario_id, description, details, billing_period, quantity, unit_price, setup_price, discount_percent, discount_amount, is_taxable")
+                .in("scenario_id", ids)
+                .order("sort_order");
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              for (const it of items ?? []) {
+                const arr = itemsByScenario.get(it.scenario_id) ?? [];
+                arr.push(it);
+                itemsByScenario.set(it.scenario_id, arr);
+              }
+            }
+            return { list, itemsByScenario };
+          })(),
+          quote.client_id
+            ? db.select("clients", "*").eq("id", quote.client_id).maybeSingle().then((r: { data: unknown }) => r.data ?? null)
+            : Promise.resolve(null),
+        ]);
+        return ok(serializeProposalDetail(quote, scenPart.list, scenPart.itemsByScenario, client));
       } catch (e) {
         return caught("get_proposal", e);
       }

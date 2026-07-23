@@ -31,12 +31,17 @@ function unauthorized(req: Request) {
 export async function POST(req: Request) {
   const auth = await resolveMcpAuth(req);
   if (!auth) return unauthorized(req);
-  if (!(await tenantHasFeature(auth.tenantId, "integrations"))) {
+  // Entitlement + rate-limit checks are independent — run them together to save a
+  // round-trip on the (latency-sensitive) hot path.
+  const [entitled, limited] = await Promise.all([
+    tenantHasFeature(auth.tenantId, "integrations"),
+    enforceRateLimit(auth.rateKey),
+  ]);
+  if (!entitled) {
     return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code: -32003, message: "This workspace's plan does not include API access." }, id: null }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
-  const limited = await enforceRateLimit(auth.rateKey);
   if (limited) return limited;
 
   // Fresh, tenant-scoped server + stateless transport per request (Netlify-safe:
