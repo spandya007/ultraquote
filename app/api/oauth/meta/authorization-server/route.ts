@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // Served at /.well-known/oauth-authorization-server (via next.config rewrite).
 export function GET(req: Request) {
-  return NextResponse.json(authorizationServerMetadata(publicOrigin(req)), { headers: OAUTH_CORS });
+  return NextResponse.json(authorizationServerMetadata(publicOrigin()), { headers: OAUTH_CORS });
 }
 export function OPTIONS() {
   return new Response(null, { status: 204, headers: OAUTH_CORS });

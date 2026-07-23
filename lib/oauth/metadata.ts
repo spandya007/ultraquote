@@ -3,14 +3,15 @@
 //   /.well-known/oauth-protected-resource   → the MCP resource
 //   /.well-known/oauth-authorization-server  → this app as the AS
 
-// The public origin the CLIENT actually used — derived from the forwarded Host
-// header (Netlify/proxies set these), not req.url, whose host can be an internal
-// deploy permalink. Critical for OAuth: the advertised issuer/resource must match
-// the URL the client fetched, or strict issuer matching fails.
-export function publicOrigin(req: Request): string {
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  return host ? `${proto}://${host}` : new URL(req.url).origin;
+// Stable, canonical origin for the OAuth issuer/resource + the /api/mcp
+// WWW-Authenticate pointer. It MUST be constant and match the URL clients use
+// (app.smartprops.io), or the flow's strict issuer matching breaks. We can't
+// derive it from the request: on Netlify the function is handed an internal
+// per-deploy permalink host (even in x-forwarded-host), which also changes every
+// deploy. Use the canonical app URL (env-overridable for self-host/dev).
+import { ENTITY } from "@/lib/legal/entity";
+export function publicOrigin(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL || ENTITY.appUrl).replace(/\/+$/, "");
 }
 
 export function protectedResourceMetadata(origin: string) {
