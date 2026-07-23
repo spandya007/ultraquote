@@ -3,10 +3,11 @@
 // call after idle. A cold start exceeds the client's request timeout → the client
 // closes the connection (Netlify logs a 499) and the tool call fails.
 //
-// A GET to /api/mcp loads the route module (incl. the MCP SDK — the bulk of the
-// cold-start cost) and returns 401 quickly. Runs every 2 minutes, comfortably
-// inside the serverless warm-instance window. Prod only (scheduled functions
-// don't run on deploy previews).
+// A GET to /api/mcp loads the Next server function (the whole app shares one
+// serverless function on Netlify; the MCP SDK import is the bulk of the cold
+// start) and returns 401 quickly. Runs every MINUTE — the function was observed
+// cooling in ~2 min, so a slower cadence leaves cold gaps. Prod only (scheduled
+// functions don't run on deploy previews).
 export default async () => {
   const base = process.env.URL || "https://app.smartprops.io";
   try {
@@ -18,4 +19,4 @@ export default async () => {
   return new Response("ok");
 };
 
-export const config = { schedule: "*/2 * * * *" };
+export const config = { schedule: "* * * * *" };
