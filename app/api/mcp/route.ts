@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   // Fresh, tenant-scoped server + stateless transport per request (Netlify-safe:
   // no long-lived session; JSON responses instead of SSE).
   try {
-    const server = buildMcpServer({ db: new ScopedDb(auth.tenantId), scopes: auth.scopes, userId: auth.userId });
+    const server = buildMcpServer({ db: new ScopedDb(auth.tenantId), scopes: auth.scopes, userId: auth.userId, label: auth.label });
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

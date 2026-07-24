@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
       valid_until,
       quote_number,
       tax_rate:         settings?.default_tax_rate ?? null,
+      source:           "ui",
     })
     .select("id, quote_number")
     .single() as { data: { id: string; quote_number: string } | null; error: { message: string } | null };

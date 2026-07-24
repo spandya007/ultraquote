@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 // POST /api/v1/proposals — create a draft proposal (client + optional title).
 // Requires the 'write' scope. Returns { id, number, title, status }.
 export async function POST(req: Request) {
-  return withApiKey(req, { scope: "write" }, async ({ db, userId }) => {
+  return withApiKey(req, { scope: "write" }, async ({ db, userId, keyName }) => {
     const body = await req.json().catch(() => ({}));
     try {
       const created = await createProposal(db, {
@@ -45,6 +45,8 @@ export async function POST(req: Request) {
         title: body.title,
         validUntil: body.valid_until,
         createdBy: userId,
+        source: "api",
+        sourceDetail: keyName,
       });
       return apiJson({ id: created.id, number: created.quote_number, title: created.title, status: created.status }, 201);
     } catch (e) {
