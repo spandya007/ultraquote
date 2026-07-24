@@ -35,6 +35,10 @@ const MIGRATIONS: string[] = [
   "supabase/migrations/024_ai_usage.sql",
   "supabase/migrations/025_ai_usage_quote_index.sql",
   "supabase/migrations/026_quote_ai_calls_carried.sql",
+  // 035 adds quotes.source/source_detail, which the (E2E-exercised) create-proposal
+  // path now sets. (027–034 add tables/columns the E2E suite doesn't touch, so they
+  // stay out until the next schema.sql regeneration.)
+  "supabase/migrations/035_quote_source.sql",
 ];
 
 async function resetDb() {

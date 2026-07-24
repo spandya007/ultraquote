@@ -9,7 +9,7 @@ const MUTATION_STATUS: Record<string, number> = {
   invalid_request: 400, duplicate_title: 409, client_not_found: 404,
 };
 
-const COLS = "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at";
+const COLS = "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, source, source_detail";
 
 // GET /api/v1/proposals — list, newest first. Filters: status, client_id,
 // updated_since (ISO). Pagination: limit (1–100, default 25), offset.
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 // POST /api/v1/proposals — create a draft proposal (client + optional title).
 // Requires the 'write' scope. Returns { id, number, title, status }.
 export async function POST(req: Request) {
-  return withApiKey(req, { scope: "write" }, async ({ db, userId }) => {
+  return withApiKey(req, { scope: "write" }, async ({ db, userId, keyName }) => {
     const body = await req.json().catch(() => ({}));
     try {
       const created = await createProposal(db, {
@@ -45,6 +45,8 @@ export async function POST(req: Request) {
         title: body.title,
         validUntil: body.valid_until,
         createdBy: userId,
+        source: "api",
+        sourceDetail: keyName,
       });
       return apiJson({ id: created.id, number: created.quote_number, title: created.title, status: created.status }, 201);
     } catch (e) {

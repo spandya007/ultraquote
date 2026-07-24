@@ -72,7 +72,11 @@ async function refreshScenarioTotals(db: ScopedDb, scenarioId: string, taxRate: 
 
 export async function createProposal(
   db: ScopedDb,
-  input: { clientId: string; title?: string | null; validUntil?: string | null; createdBy?: string | null }
+  input: {
+    clientId: string; title?: string | null; validUntil?: string | null; createdBy?: string | null;
+    // Provenance (migration 035): where the proposal came from + the caller name.
+    source?: "ui" | "api" | "mcp"; sourceDetail?: string | null;
+  }
 ): Promise<{ id: string; quote_number: string; title: string | null; status: string }> {
   const clientId = String(input.clientId ?? "").trim();
   if (!clientId) throw new MutationError("invalid_request", "client_id is required.");
@@ -98,6 +102,8 @@ export async function createProposal(
     valid_until: input.validUntil ?? null,
     quote_number: quoteNumber,
     tax_rate: (settings as any)?.default_tax_rate ?? null,
+    source: input.source ?? "api",
+    source_detail: input.sourceDetail ?? null,
   });
   if (qErr || !quote) throw new MutationError("insert_failed", qErr?.message ?? "Failed to create the proposal.");
 

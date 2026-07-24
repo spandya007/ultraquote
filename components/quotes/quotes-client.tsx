@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, FileText, Copy, Loader2, Eye, Trash2, ShieldAlert, Sparkles } from "lucide-react";
+import { Plus, Search, FileText, Copy, Loader2, Eye, Trash2, ShieldAlert, Sparkles, Plug } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { useToast } from "@/components/ui/toast";
@@ -22,6 +22,8 @@ interface QuoteRow {
   sent_at: string | null;
   signed_at: string | null;
   created_by: string | null;
+  source?: string | null;
+  source_detail?: string | null;
   client: { id: string; company_name: string; contact_name: string | null } | null;
   signers?: { signer_email: string; role: string | null; status: string; signing_order: number; decline_reason: string | null }[];
   creator?: { full_name: string | null; email: string } | null;
@@ -354,8 +356,24 @@ export function QuotesClient({ initialQuotes, clients, validDays, currentUserId,
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 flex-wrap">
                       {q.title ?? "—"}
+                      {q.source === "mcp" && (
+                        <span
+                          title={`Created by an AI client${q.source_detail ? ` (${q.source_detail})` : ""}`}
+                          className="inline-flex items-center gap-1 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 px-2 py-0.5 text-[11px] font-medium shrink-0"
+                        >
+                          <Sparkles className="w-3 h-3" /> {q.source_detail || "AI"}
+                        </span>
+                      )}
+                      {q.source === "api" && (
+                        <span
+                          title={`Created via the public API${q.source_detail ? ` (key: ${q.source_detail})` : ""}`}
+                          className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300 px-2 py-0.5 text-[11px] font-medium shrink-0"
+                        >
+                          <Plug className="w-3 h-3" /> API
+                        </span>
+                      )}
                       {!isOwner && q.created_by !== currentUserId && (
                         <span
                           title="Created by a teammate — opens read-only (use Duplicate to make your own editable copy)"

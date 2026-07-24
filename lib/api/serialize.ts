@@ -11,7 +11,7 @@ import { lineRev, lineSetup } from "@/lib/pdf/serialize";
 // megabytes (embedded base64 images), so selecting "*" made get_proposal slow
 // enough to time out remote MCP clients. Keep in sync with serializeProposalDetail.
 export const PROPOSAL_DETAIL_COLS =
-  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, tax_rate, selected_scenario_id";
+  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, tax_rate, selected_scenario_id, source, source_detail";
 
 export function serializeProposalSummary(q: any) {
   return {
@@ -26,6 +26,9 @@ export function serializeProposalSummary(q: any) {
     pdf_url: q.pdf_url ?? null,
     created_at: q.created_at ?? null,
     updated_at: q.updated_at ?? null,
+    // Provenance: how it was created (ui | api | mcp) + the caller name.
+    source: q.source ?? "ui",
+    source_detail: q.source_detail ?? null,
   };
 }
 

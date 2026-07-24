@@ -21,6 +21,8 @@ export interface McpContext {
   db: ScopedDb;
   scopes: string[];
   userId: string | null;
+  /** Caller name (OAuth client / API key) — recorded as proposal provenance. */
+  label: string | null;
 }
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -34,7 +36,7 @@ const caught = (tool: string, e: unknown): ToolResult => {
 };
 
 const PROPOSAL_COLS =
-  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at";
+  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, source, source_detail";
 const CLIENT_COLS =
   "id, company_name, contact_name, contact_email, contact_phone, secondary_contact_name, secondary_contact_email, secondary_contact_phone, address, address_street, address_suite, address_city, address_state, address_postal, address_country, is_active, created_at";
 const PRODUCT_COLS =
@@ -57,7 +59,7 @@ const page = (a: { limit?: number; offset?: number }) => {
 };
 
 export function buildMcpServer(ctx: McpContext): McpServer {
-  const { db, scopes, userId } = ctx;
+  const { db, scopes, userId, label } = ctx;
   // serverInfo branding — MCP clients that support the `icons`/`title` fields
   // (a recent spec addition) show the SmartProps name + logo in their connector UI.
   const app = publicOrigin();
@@ -312,7 +314,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
       const gate = requireWrite();
       if (gate) return gate;
       try {
-        return ok(await createProposal(db, { clientId: args.client_id, title: args.title, validUntil: args.valid_until, createdBy: userId }));
+        return ok(await createProposal(db, { clientId: args.client_id, title: args.title, validUntil: args.valid_until, createdBy: userId, source: "mcp", sourceDetail: label ?? "AI client" }));
       } catch (e) {
         return mutationError("create_proposal", e);
       }
