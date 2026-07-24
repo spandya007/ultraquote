@@ -9,7 +9,7 @@ const MUTATION_STATUS: Record<string, number> = {
   invalid_request: 400, duplicate_title: 409, client_not_found: 404,
 };
 
-const COLS = "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at";
+const COLS = "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, source, source_detail";
 
 // GET /api/v1/proposals — list, newest first. Filters: status, client_id,
 // updated_since (ISO). Pagination: limit (1–100, default 25), offset.

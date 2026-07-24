@@ -36,7 +36,7 @@ const caught = (tool: string, e: unknown): ToolResult => {
 };
 
 const PROPOSAL_COLS =
-  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at";
+  "id, quote_number, title, status, client_id, valid_until, sent_at, signed_at, pdf_url, created_at, updated_at, source, source_detail";
 const CLIENT_COLS =
   "id, company_name, contact_name, contact_email, contact_phone, secondary_contact_name, secondary_contact_email, secondary_contact_phone, address, address_street, address_suite, address_city, address_state, address_postal, address_country, is_active, created_at";
 const PRODUCT_COLS =
