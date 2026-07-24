@@ -10,6 +10,8 @@ export interface McpAuth {
   tenantId: string;
   scopes: string[];
   rateKey: string;
+  /** created_by for writes: the OAuth user, or the API key's creator. */
+  userId: string | null;
   source: "api_key" | "oauth";
 }
 
@@ -25,6 +27,7 @@ export async function resolveMcpAuth(req: Request): Promise<McpAuth | null> {
       tenantId: info.tenant_id,
       scopes: info.scope.split(/\s+/).filter(Boolean),
       rateKey: info.id,
+      userId: info.user_id,
       source: "oauth",
     };
   }
@@ -32,5 +35,5 @@ export async function resolveMcpAuth(req: Request): Promise<McpAuth | null> {
   // Fall back to the API-key path (also handles the sp_live_ prefix check + 401).
   const auth = await authenticateApiKey(req);
   if ("response" in auth) return null;
-  return { tenantId: auth.tenantId, scopes: auth.scopes, rateKey: auth.keyId, source: "api_key" };
+  return { tenantId: auth.tenantId, scopes: auth.scopes, rateKey: auth.keyId, userId: auth.userId, source: "api_key" };
 }

@@ -8,6 +8,7 @@ import {
   serializeProduct,
   PROPOSAL_DETAIL_COLS,
 } from "@/lib/api/serialize";
+import { createProposal, addScenario, addLineItem, MutationError } from "@/lib/proposals/mutations";
 
 // Builds a per-request MCP server for the remote transport (app/api/mcp/route.ts).
 // Tools call the SAME tenant-scoped ScopedDb + serializers the C2 /api/v1 routes
@@ -18,6 +19,7 @@ import {
 export interface McpContext {
   db: ScopedDb;
   scopes: string[];
+  userId: string | null;
 }
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -54,8 +56,12 @@ const page = (a: { limit?: number; offset?: number }) => {
 };
 
 export function buildMcpServer(ctx: McpContext): McpServer {
-  const { db, scopes } = ctx;
+  const { db, scopes, userId } = ctx;
   const server = new McpServer({ name: "smartprops", version: "0.1.0" });
+  const requireWrite = (): ToolResult | null =>
+    scopes.includes("write") ? null : err("This credential is read-only. A 'write'-scoped key/token is required.");
+  const mutationError = (tool: string, e: unknown): ToolResult =>
+    e instanceof MutationError ? err(`${e.code}: ${e.message}`) : caught(tool, e);
 
   server.registerTool(
     "list_proposals",
@@ -271,6 +277,90 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         return ok(serializeClient(data));
       } catch (e) {
         return caught("create_client", e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "create_proposal",
+    {
+      title: "Create a proposal",
+      description:
+        "Create a new DRAFT proposal for a client (with a default 'Scenario A'). Requires the 'write' scope. Returns the new proposal id + number. Use add_line_item to add pricing. Does NOT send anything.",
+      inputSchema: {
+        client_id: z.string().describe("The client id (from find_client / list_clients)"),
+        title: z.string().optional().describe("Proposal title"),
+        valid_until: z.string().optional().describe("Expiry date (YYYY-MM-DD)"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (args) => {
+      const gate = requireWrite();
+      if (gate) return gate;
+      try {
+        return ok(await createProposal(db, { clientId: args.client_id, title: args.title, validUntil: args.valid_until, createdBy: userId }));
+      } catch (e) {
+        return mutationError("create_proposal", e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "add_scenario",
+    {
+      title: "Add a pricing scenario",
+      description: "Add another pricing scenario (option) to a proposal. Requires 'write'. Returns the new scenario id.",
+      inputSchema: {
+        proposal_id: z.string().describe("The proposal id"),
+        name: z.string().optional().describe("Scenario name (defaults to the next letter)"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (args) => {
+      const gate = requireWrite();
+      if (gate) return gate;
+      try {
+        return ok(await addScenario(db, { quoteId: args.proposal_id, name: args.name }));
+      } catch (e) {
+        return mutationError("add_scenario", e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "add_line_item",
+    {
+      title: "Add a line item to a scenario",
+      description:
+        "Add a line item to a proposal scenario — either a catalog product (pass product_id, which snapshots its price) or a free-text item (pass description + unit_price). Requires 'write'. Get scenario_id from get_proposal.",
+      inputSchema: {
+        scenario_id: z.string().describe("The scenario id (from get_proposal)"),
+        product_id: z.string().optional().describe("Catalog product id (from list_products) — snapshots its price"),
+        description: z.string().optional().describe("Free-text item name (when not using product_id)"),
+        quantity: z.number().positive().optional().describe("Quantity (default 1)"),
+        unit_price: z.number().optional().describe("Unit price (overrides the catalog price, or sets the free-text price)"),
+        billing_period: z.enum(["Monthly", "One Time"]).optional().describe("Default 'One Time' for free-text"),
+        setup_price: z.number().optional().describe("One-time setup fee per unit"),
+        is_taxable: z.boolean().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (args) => {
+      const gate = requireWrite();
+      if (gate) return gate;
+      try {
+        return ok(await addLineItem(db, {
+          scenarioId: args.scenario_id,
+          productId: args.product_id,
+          description: args.description,
+          quantity: args.quantity,
+          unitPrice: args.unit_price,
+          billingPeriod: args.billing_period,
+          setupPrice: args.setup_price,
+          isTaxable: args.is_taxable,
+        }));
+      } catch (e) {
+        return mutationError("add_line_item", e);
       }
     }
   );

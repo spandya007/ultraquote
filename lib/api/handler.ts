@@ -14,6 +14,7 @@ export interface ApiContext {
   tenantId: string;
   scopes: string[];
   keyId: string;
+  userId: string | null;
   db: ScopedDb;
 }
 
@@ -43,6 +44,7 @@ export async function withApiKey(
       tenantId: auth.tenantId,
       scopes: auth.scopes,
       keyId: auth.keyId,
+      userId: auth.userId,
       db: new ScopedDb(auth.tenantId),
     });
   } catch (e) {
