@@ -16,6 +16,38 @@ export class MutationError extends Error {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Allocate the next proposal number for API/MCP (service-role) callers. The
+// next_quote_number() RPC can't be used here — it's security-definer and requires
+// an auth.uid() tenant member, which service-role requests don't have. Service-
+// role bypasses RLS, so we do the atomic bump directly via a compare-and-swap on
+// tenant_settings.quote_number_sequence (retry on lost race). Matches the RPC's
+// semantics exactly: issue the current sequence value S, store S+1.
+async function allocateQuoteNumber(db: ScopedDb): Promise<string> {
+  const admin = db.admin;
+  const tenantId = db.tenantId;
+  await admin.from("tenant_settings").upsert({ tenant_id: tenantId }, { onConflict: "tenant_id", ignoreDuplicates: true });
+  const year = new Date().getFullYear();
+  for (let i = 0; i < 6; i++) {
+    const { data: s } = await admin
+      .from("tenant_settings")
+      .select("quote_number_prefix, quote_number_sequence")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (!s) throw new MutationError("number_alloc_failed", "Tenant settings not found.");
+    const seq: number = s.quote_number_sequence ?? 1;
+    const { data: updated } = await admin
+      .from("tenant_settings")
+      .update({ quote_number_sequence: seq + 1 })
+      .eq("tenant_id", tenantId)
+      .eq("quote_number_sequence", seq) // CAS: only if unchanged
+      .select("tenant_id");
+    if (updated && updated.length > 0) {
+      return `${s.quote_number_prefix ?? "PROP"}-${year}-${String(seq).padStart(3, "0")}`;
+    }
+  }
+  throw new MutationError("number_alloc_failed", "Could not allocate a proposal number (contention).");
+}
+
 // Recompute + persist a scenario's denormalized totals from its line items.
 async function refreshScenarioTotals(db: ScopedDb, scenarioId: string, taxRate: number) {
   const { data: items } = await db
@@ -56,8 +88,7 @@ export async function createProposal(
 
   const { data: settings } = await db.select("tenant_settings", "default_tax_rate").maybeSingle();
 
-  const { data: quoteNumber, error: numErr } = await db.admin.rpc("next_quote_number", { p_tenant_id: db.tenantId });
-  if (numErr || !quoteNumber) throw new MutationError("number_alloc_failed", numErr?.message ?? "Failed to allocate a proposal number.");
+  const quoteNumber = await allocateQuoteNumber(db);
 
   const { data: quote, error: qErr } = await db.insertOne("quotes", {
     created_by: input.createdBy ?? null,

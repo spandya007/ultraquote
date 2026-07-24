@@ -18,9 +18,21 @@ function mockDb(config: { results?: Record<string, any>; rpc?: any } = {}): any 
     b.then = (res: any) => res({ data: r.list ?? [], error: null });
     return b;
   };
+  // Admin (service-role) builder — supports the CAS number allocator on
+  // tenant_settings: upsert (noop), select→maybeSingle (read), update→…→select (CAS).
+  const adminBuilder = (table: string) => {
+    const r = results["admin:" + table] ?? {};
+    const b: any = { _upd: false };
+    b.upsert = () => Promise.resolve({ data: null, error: null });
+    b.update = () => { b._upd = true; return b; };
+    b.eq = () => b;
+    b.select = () => (b._upd ? Promise.resolve({ data: r.updated ?? [{ tenant_id: "t1" }], error: null }) : b);
+    b.maybeSingle = () => Promise.resolve({ data: r.single ?? null, error: null });
+    return b;
+  };
   return {
     tenantId: "t1",
-    admin: { rpc: () => Promise.resolve(config.rpc ?? { data: "PROP-2026-001", error: null }) },
+    admin: { from: (table: string) => adminBuilder(table) },
     select: (table: string) => builder("select:" + table),
     insertOne: (table: string, row: any) =>
       Promise.resolve({ data: { id: "q-new", ...(results["insert:" + table]?.single ?? {}), ...row }, error: null }),
@@ -42,11 +54,11 @@ describe("createProposal", () => {
         "select:clients": { single: { id: "c1" } },
         "select:quotes": { single: null }, // no dup title
         "select:tenant_settings": { single: { default_tax_rate: 0.1 } },
+        "admin:tenant_settings": { single: { quote_number_prefix: "PROP", quote_number_sequence: 7 }, updated: [{ tenant_id: "t1" }] },
       },
-      rpc: { data: "PROP-2026-007", error: null },
     });
     const out = await createProposal(db, { clientId: "c1", title: "Website", createdBy: "u1" });
-    expect(out.quote_number).toBe("PROP-2026-007");
+    expect(out.quote_number).toBe(`PROP-${new Date().getFullYear()}-007`);
     expect(out.title).toBe("Website");
     expect(out.status).toBe("draft");
   });
