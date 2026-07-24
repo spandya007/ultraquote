@@ -84,6 +84,8 @@ export interface ApiAuth {
   tenantId: string;
   scopes: string[];
   keyId: string;
+  /** The user who created the key — used as created_by for writes. May be null. */
+  userId: string | null;
 }
 
 // Resolve a Bearer key to its tenant/scopes, or a 401 NextResponse. Throttles the
@@ -99,7 +101,7 @@ export async function authenticateApiKey(req: Request): Promise<ApiAuth | { resp
   const admin = createAdminClient();
   const { data } = await admin
     .from("tenant_api_keys")
-    .select("id, tenant_id, scopes, revoked_at, last_used_at")
+    .select("id, tenant_id, scopes, revoked_at, last_used_at, created_by")
     .eq("key_hash", hashApiKey(token))
     .maybeSingle();
   if (!data || data.revoked_at) return unauthorized();
@@ -109,5 +111,5 @@ export async function authenticateApiKey(req: Request): Promise<ApiAuth | { resp
   if (Date.now() - last > 60_000) {
     await admin.from("tenant_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
   }
-  return { tenantId: data.tenant_id, scopes: data.scopes ?? [], keyId: data.id };
+  return { tenantId: data.tenant_id, scopes: data.scopes ?? [], keyId: data.id, userId: data.created_by ?? null };
 }
