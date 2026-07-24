@@ -360,6 +360,16 @@ branded Zapier app. Sources: Zapier pricing (nocode.mba, eesel.ai); Claude conne
 > refresh 30d. PKCE verified against the RFC 7636 test vector (unit). **To deploy:** run migration 034;
 > then claude.ai → Settings → Connectors → Add custom connector → `https://app.smartprops.io/api/mcp`.
 > **Deferred:** token **revocation** endpoint + a Settings "Connected AI apps" management list.
+>
+> **✅ WRITE TOOLS BUILT + TESTED** (branch `feature/mcp-write-tools`, 2026-07-23). Shared tenant-scoped
+> helpers `lib/proposals/mutations.ts` (`createProposal`/`addScenario`/`addLineItem`; child tables verify
+> the parent up-chain for isolation; proposal number via a **service-role CAS** on `tenant_settings` — the
+> `next_quote_number` RPC needs an `auth.uid()` member which API/MCP lacks) back BOTH the MCP tools
+> `create_proposal`/`add_scenario`/`add_line_item` (all `write`-scope) AND **`POST /api/v1/proposals`** (the
+> previously-deferred C2 write). `created_by` threaded from the OAuth user / API-key creator. Verified
+> end-to-end (create → add catalog + free-text line items → add scenario → totals correct). **Still
+> deferred:** `draft_section` (Claude writes; `/api/ai/draft` is session-gated + AI-capped) and the
+> safety-gated `send_for_signature` (A.4: `prepare_send`→confirm token + separate `send` scope, off by default).
 
 **The pitch: "build proposals by chatting with your AI."** An MCP (Model Context Protocol) server exposes
 the proposal workflow as typed tools an AI can call, so a chat session in Claude / Claude Desktop /
