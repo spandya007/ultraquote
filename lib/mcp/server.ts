@@ -9,6 +9,7 @@ import {
   PROPOSAL_DETAIL_COLS,
 } from "@/lib/api/serialize";
 import { createProposal, addScenario, addLineItem, MutationError } from "@/lib/proposals/mutations";
+import { publicOrigin } from "@/lib/oauth/metadata";
 
 // Builds a per-request MCP server for the remote transport (app/api/mcp/route.ts).
 // Tools call the SAME tenant-scoped ScopedDb + serializers the C2 /api/v1 routes
@@ -57,7 +58,20 @@ const page = (a: { limit?: number; offset?: number }) => {
 
 export function buildMcpServer(ctx: McpContext): McpServer {
   const { db, scopes, userId } = ctx;
-  const server = new McpServer({ name: "smartprops", version: "0.1.0" });
+  // serverInfo branding — MCP clients that support the `icons`/`title` fields
+  // (a recent spec addition) show the SmartProps name + logo in their connector UI.
+  const app = publicOrigin();
+  const server = new McpServer({
+    name: "smartprops",
+    version: "0.1.0",
+    title: "SmartProps",
+    websiteUrl: app,
+    icons: [
+      { src: `${app}/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] },
+      { src: `${app}/favicon.svg`, mimeType: "image/svg+xml" },
+    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   const requireWrite = (): ToolResult | null =>
     scopes.includes("write") ? null : err("This credential is read-only. A 'write'-scoped key/token is required.");
   const mutationError = (tool: string, e: unknown): ToolResult =>

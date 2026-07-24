@@ -73,6 +73,8 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
   return (
     <main className="min-h-screen flex items-center justify-center p-6 bg-muted/30">
       <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-sm">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="SmartProps" className="h-7 mb-4" />
         <h1 className="text-lg font-semibold">Authorize access</h1>
         <p className="text-sm text-muted-foreground mt-2">
           <strong className="text-foreground">{appName}</strong> wants to connect to your SmartProps
